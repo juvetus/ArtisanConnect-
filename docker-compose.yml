@@ -1,0 +1,34 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: artisan-connect-db
+    environment:
+      POSTGRES_USER: artisan
+      POSTGRES_PASSWORD: artisan_password_dev
+      POSTGRES_DB: artisan_connect
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U artisan"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  adminer:
+    image: adminer:latest
+    container_name: artisan-connect-adminer
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
