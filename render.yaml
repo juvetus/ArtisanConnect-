@@ -43,6 +43,8 @@ services:
         fromDatabase:
           name: artisanconnect-db
           property: database
+      - key: DB_SYNCHRONIZE
+        value: 'true'
       - key: FRONTEND_URL
         value: https://artisanconnect-web.onrender.com
       - key: CLOUDINARY_CLOUD_NAME
