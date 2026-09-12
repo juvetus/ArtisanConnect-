@@ -1,16 +1,46 @@
 import Link from 'next/link';
 import { categoryIcon, categoryLabel } from '@/lib/categories';
 import { formatXAF } from '@/lib/format';
+import { useLanguage } from '@/lib/language-context';
+import { resolveMediaUrl } from '@/lib/media';
 import type { Listing } from '@/lib/types';
 
 export function ListingCard({ listing }: { listing: Listing }) {
+  const { t } = useLanguage();
+  const isWoman = Boolean(
+    listing.shop?.isWomenLed ||
+    listing.seller?.gender === 'female',
+  );
+  const isCoop = Boolean(
+    listing.shop?.isCooperative ||
+    listing.seller?.gender === 'cooperative',
+  );
+
   return (
     <Link
       href={`/listings/${listing.id}`}
-      className="group flex flex-col overflow-hidden rounded-lg border border-stone-200 bg-white transition hover:border-amber-600 hover:shadow-sm"
+      className="group relative flex flex-col overflow-hidden rounded-lg border border-stone-200 bg-white transition hover:border-amber-600 hover:shadow-sm"
     >
-      <div className="flex aspect-4/3 items-center justify-center bg-stone-100 text-4xl">
-        {categoryIcon(listing.category, listing.type)}
+      {isWoman && (
+        <span className="absolute left-2 top-2 z-10 rounded-full bg-rose-600/90 px-2.5 py-0.5 text-[11px] font-semibold text-white shadow backdrop-blur-sm">
+          {t('badge_women')}
+        </span>
+      )}
+      {!isWoman && isCoop && (
+        <span className="absolute left-2 top-2 z-10 rounded-full bg-indigo-600/90 px-2.5 py-0.5 text-[11px] font-semibold text-white shadow backdrop-blur-sm">
+          {t('badge_coop')}
+        </span>
+      )}
+      <div className="relative flex h-52 w-full items-center justify-center overflow-hidden bg-stone-100 text-4xl">
+        {(listing.imageUrls?.[0] || listing.imageUrl) ? (
+          <img
+            src={resolveMediaUrl(listing.imageUrls?.[0] || listing.imageUrl || '')}
+            alt={listing.title}
+            className="h-full w-full object-cover object-center transition duration-300 group-hover:scale-105"
+          />
+        ) : (
+          categoryIcon(listing.category, listing.type)
+        )}
       </div>
 
       <div className="flex flex-1 flex-col gap-1 p-4">

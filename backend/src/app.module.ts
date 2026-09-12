@@ -13,6 +13,18 @@ import { MessagesModule } from './modules/messages/messages.module.js';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './modules/auth/jwt-auth.guard.js';
 import { AdminModule } from './modules/admin/admin.module.js';
+import { InstitutionsModule } from './modules/institutions/institutions.module.js';
+import { ShopsModule } from './modules/shops/shops.module.js';
+import { NotificationsModule } from './modules/notifications/notifications.module.js';
+import { ServicesModule } from './modules/services/services.module.js';
+import { EmailModule } from './modules/email/email.module.js';
+import { ServiceOrdersModule } from './modules/service-orders/service-orders.module.js';
+import { ServiceReviewsModule } from './modules/service-reviews/service-reviews.module.js';
+import { ReportsModule } from './modules/reports/reports.module.js';
+import { ContactModule } from './modules/contact/contact.module.js';
+import { ProgramApplicationsModule } from './modules/program-applications/program-applications.module.js';
+import { DeliveryModule } from './modules/delivery/delivery.module.js';
+import { StorageModule } from './modules/storage/storage.module.js';
 
 @Module({
   imports: [
@@ -29,6 +41,18 @@ import { AdminModule } from './modules/admin/admin.module.js';
     ReviewsModule,
     MessagesModule,
     AdminModule,
+    InstitutionsModule,
+    ShopsModule,
+    NotificationsModule,
+    ServicesModule,
+    EmailModule,
+    ServiceOrdersModule,
+    ServiceReviewsModule,
+    ReportsModule,
+    ContactModule,
+    ProgramApplicationsModule,
+    DeliveryModule,
+    StorageModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: JwtAuthGuard }],

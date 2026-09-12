@@ -18,14 +18,14 @@ export class ListingsService {
   async findById(id: string): Promise<Listing | null> {
     return this.listingsRepository.findOne({
       where: { id },
-      relations: { seller: true },
+      relations: { seller: true, shop: true },
     });
   }
 
   async findByCategory(category: string, skip = 0, take = 20): Promise<[Listing[], number]> {
     return this.listingsRepository.findAndCount({
       where: { category, status: 'active' },
-      relations: { seller: true },
+      relations: { seller: true, shop: true },
       skip,
       take,
     });
@@ -34,7 +34,7 @@ export class ListingsService {
   async findByType(type: 'product' | 'service', skip = 0, take = 20): Promise<[Listing[], number]> {
     return this.listingsRepository.findAndCount({
       where: { type, status: 'active' },
-      relations: { seller: true },
+      relations: { seller: true, shop: true },
       skip,
       take,
     });
@@ -43,23 +43,26 @@ export class ListingsService {
   async findBySeller(sellerId: string): Promise<Listing[]> {
     return this.listingsRepository.find({
       where: { sellerId },
-      relations: { seller: true },
+      relations: { seller: true, shop: true },
     });
   }
 
   async update(id: string, updateData: Partial<Listing>): Promise<Listing | null> {
-    await this.listingsRepository.update(id, updateData);
+    const listing = await this.listingsRepository.findOne({ where: { id } });
+    if (!listing) return null;
+    Object.assign(listing, updateData);
+    await this.listingsRepository.save(listing);
     return this.findById(id);
   }
 
   async delete(id: string): Promise<void> {
-    await this.listingsRepository.delete(id);
+    await this.listingsRepository.update(id, { status: 'inactive' });
   }
 
   async findAll(skip = 0, take = 20): Promise<[Listing[], number]> {
     return this.listingsRepository.findAndCount({
       where: { status: 'active' },
-      relations: { seller: true },
+      relations: { seller: true, shop: true },
       order: { createdAt: 'DESC' },
       skip,
       take,

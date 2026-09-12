@@ -4,7 +4,8 @@ import { Listing } from './listing.entity.js';
 import { Order } from './order.entity.js';
 import { Review } from './review.entity.js';
 import { Message } from './message.entity.js';
-
+import { Shop } from './shop.entity.js';
+import { Notification } from './notification.entity.js';
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -16,8 +17,8 @@ export class User {
   @Column({ select: false })
   passwordHash: string;
 
-  @Column('enum', { enum: ['artisan', 'client', 'admin'], default: 'client' })
-  role: 'artisan' | 'client' | 'admin';
+  @Column('enum', { enum: ['artisan', 'client', 'institution', 'admin'], default: 'client' })
+  role: 'artisan' | 'client' | 'institution' | 'admin';
 
   @Column({ nullable: true })
   name: string;
@@ -34,8 +35,14 @@ export class User {
   @Column({ nullable: true })
   phone: string;
 
+  @Column({ type: 'varchar', nullable: true })
+  gender: 'female' | 'male' | 'cooperative' | 'other' | null;
+
   @Column({ default: false })
   verifiedEmail: boolean;
+
+  @Column({ default: true })
+  isActive: boolean;
 
   @CreateDateColumn()
   createdAt: Date;
@@ -64,4 +71,10 @@ export class User {
 
   @OneToMany(() => Message, (message) => message.recipient)
   receivedMessages: Relation<Message>[];
+
+  @OneToMany(() => Shop, (shop) => shop.seller)
+  shops: Relation<Shop>[];
+
+  @OneToMany(() => Notification, (notification) => notification.recipient)
+  notifications: Relation<Notification>[];
 }

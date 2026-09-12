@@ -33,6 +33,31 @@ export class Order {
   @Column('enum', { enum: ['cash', 'orange_money', 'card'], default: 'cash' })
   paymentMethod: 'cash' | 'orange_money' | 'card';
 
+  // --- Workflow escrow ---
+  /** Le vendeur a confirmé la disponibilité du produit. */
+  @Column({ default: false })
+  sellerConfirmedAvailability: boolean;
+
+  /** Le transporteur a récupéré le produit. */
+  @Column({ default: false })
+  carrierPickedUp: boolean;
+
+  /** Le transporteur a vérifié la conformité du produit. */
+  @Column({ default: false })
+  carrierVerified: boolean;
+
+  /** Le client a confirmé la réception. */
+  @Column({ default: false })
+  buyerConfirmedReception: boolean;
+
+  /** Motif d'annulation avec remboursement automatique. */
+  @Column({ nullable: true, type: 'text' })
+  cancellationReason: string;
+
+  /** Identifiant du transporteur (utilisateur rôle transporteur ou admin). */
+  @Column({ nullable: true })
+  carrierId: string;
+
   @CreateDateColumn()
   createdAt: Date;
 
