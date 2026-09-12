@@ -17,9 +17,34 @@ jobs:
   backend:
     name: Backend
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: artisan
+          POSTGRES_PASSWORD: artisan_password_dev
+          POSTGRES_DB: artisan_connect
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U artisan -d artisan_connect"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     defaults:
       run:
         working-directory: backend
+    env:
+      NODE_ENV: development
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_USERNAME: artisan
+      DB_PASSWORD: artisan_password_dev
+      DB_DATABASE: artisan_connect
+      DB_SYNCHRONIZE: 'true'
+      JWT_SECRET: ci-only-secret
+      FRONTEND_URL: http://localhost:3000
+      ORANGE_MONEY_MODE: mock
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,6 +61,12 @@ jobs:
 
       - name: Typecheck
         run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: npm test
+
+      - name: E2E tests
+        run: npm run test:e2e
 
       - name: Build
         run: npm run build
@@ -64,6 +95,10 @@ jobs:
 
       - name: Lint
         run: npm run lint
+        continue-on-error: true
+
+      - name: Typecheck
+        run: npx tsc --noEmit
 
       - name: Build
         run: npm run build
