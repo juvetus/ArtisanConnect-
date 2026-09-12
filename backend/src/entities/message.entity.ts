@@ -2,7 +2,6 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne } f
 import type { Relation } from 'typeorm';
 import { User } from './user.entity.js';
 import { Order } from './order.entity.js';
-import { ServiceOrder } from './service-order.entity.js';
 
 @Entity('messages')
 export class Message {
@@ -18,14 +17,8 @@ export class Message {
   @Column({ nullable: true })
   orderId: string;
 
-  @Column({ nullable: true })
-  serviceOrderId: string | null;
-
   @Column({ type: 'text' })
   content: string;
-
-  @Column('simple-array', { nullable: true })
-  fileUrls: string[];
 
   @Column({ default: false })
   read: boolean;
@@ -42,7 +35,4 @@ export class Message {
 
   @ManyToOne(() => Order, { nullable: true })
   order: Relation<Order>;
-
-  @ManyToOne(() => ServiceOrder, { nullable: true })
-  serviceOrder: Relation<ServiceOrder>;
 }

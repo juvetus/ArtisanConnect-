@@ -2,10 +2,9 @@
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { Listing, Order, Payment } from '../../entities/index.js';
-import { NotificationsService } from '../notifications/notifications.service.js';
 
 /** Commission prélevée par la plateforme sur chaque commande. */
-const PLATFORM_FEE_RATE = 0.10;
+const PLATFORM_FEE_RATE = 0.05;
 
 @Injectable()
 export class OrdersService {
@@ -13,7 +12,6 @@ export class OrdersService {
     @InjectRepository(Order)
     private ordersRepository: Repository<Order>,
     private dataSource: DataSource,
-    private notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -71,21 +69,6 @@ export class OrdersService {
           status: 'pending',
         }),
       );
-
-      // Notification du vendeur : nouvelle commande reçue.
-      // Hors transaction : une erreur de notification ne doit pas annuler la commande.
-      try {
-        await this.notificationsService.notify({
-          recipientId: order.sellerId,
-          type: 'new_order',
-          title: 'Nouvelle commande !',
-          content: `Vous avez reçu une nouvelle commande de ${order.quantity} article(s) pour un montant de ${totalPrice} FCFA. Confirmez la disponibilité du produit.`,
-          link: '/dashboard',
-          relatedId: order.id,
-        });
-      } catch {
-        // La notification ne doit jamais bloquer la commande.
-      }
 
       return order;
     });

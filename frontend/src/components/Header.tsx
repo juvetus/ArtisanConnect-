@@ -1,192 +1,61 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
-import { useLanguage } from '@/lib/language-context';
 
 export function Header() {
   const { user, ready, logout } = useAuth();
-  const { language, setLanguage, t } = useLanguage();
   const router = useRouter();
-  const pathname = usePathname();
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  const navLinkClass = (href: string) => `rounded-md px-3 py-2 transition-colors whitespace-nowrap ${
-    pathname === href || (href !== '/' && pathname.startsWith(`${href}/`))
-      ? 'bg-amber-50 font-bold text-amber-800 ring-1 ring-amber-200'
-      : 'text-stone-700 hover:bg-stone-100'
-  }`;
 
   const { data: unread } = useSWR(user ? 'unread' : null, () => api.unreadCount(), {
     refreshInterval: 20000,
   });
 
-  const { data: notifUnread } = useSWR(user ? 'notif-unread' : null, () => api.notificationsUnread(), {
-    refreshInterval: 20000,
-  });
-
   const handleLogout = () => {
-    setMenuOpen(false);
     logout();
     router.push('/');
   };
 
   return (
     <header className="border-b border-stone-200 bg-white">
-      <div className="relative mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-4 px-6 py-4">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="text-lg font-semibold tracking-tight text-stone-900">
-            Artisan<span className="text-amber-700">Connect</span>
-          </Link>
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
+        <Link href="/" className="text-lg font-semibold tracking-tight text-stone-900">
+          Artisan<span className="text-amber-700">Connect</span>
+        </Link>
 
-          {/* Sélecteur de langue bilingue (Cameroun : FR / EN) */}
-          <div className="flex items-center rounded-full border border-stone-200 bg-stone-50 p-0.5 text-xs font-semibold">
-            <button
-              type="button"
-              onClick={() => setLanguage('fr')}
-              className={`rounded-full px-2 py-0.5 transition-colors ${
-                language === 'fr'
-                  ? 'bg-amber-700 text-white shadow-xs'
-                  : 'text-stone-600 hover:text-stone-900'
-              }`}
-              title="Français"
-            >
-              🇫🇷 FR
-            </button>
-            <button
-              type="button"
-              onClick={() => setLanguage('en')}
-              className={`rounded-full px-2 py-0.5 transition-colors ${
-                language === 'en'
-                  ? 'bg-amber-700 text-white shadow-xs'
-                  : 'text-stone-600 hover:text-stone-900'
-              }`}
-              title="English"
-            >
-              🇬🇧 EN
-            </button>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          aria-expanded={menuOpen}
-          aria-controls="main-navigation"
-          aria-label={menuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
-          onClick={() => setMenuOpen((open) => !open)}
-          className="rounded-md border border-stone-300 px-3 py-2 text-stone-700 hover:bg-stone-100 md:hidden"
-        >
-          <span aria-hidden>{menuOpen ? '✕' : '☰'}</span>
-        </button>
-
-        <nav
-          id="main-navigation"
-          onClick={() => setMenuOpen(false)}
-          className={`${menuOpen ? 'flex' : 'hidden'} order-3 w-full flex-col items-stretch gap-1 border-t border-stone-200 pt-3 text-sm md:order-none md:flex md:flex-1 md:w-auto md:flex-row md:items-center md:justify-end md:gap-1 md:border-0 md:pt-0 md:text-[13px] [&>a]:whitespace-nowrap [&>a]:px-2 [&>a]:py-2 [&>button]:whitespace-nowrap [&>button]:px-2 [&>button]:py-2`}
-        >
-          <Link href="/services" className={navLinkClass('/services')}>
-            {t('nav_services')}
-          </Link>
-          <Link href="/blog" className={navLinkClass('/blog')}>
-            Blog
-          </Link>
+        <nav className="flex items-center gap-2 text-sm">
           {!ready ? null : user ? (
             <>
               {user.role === 'admin' && (
                 <Link
                   href="/admin"
-                  className={navLinkClass('/admin')}
+                  className="rounded-md px-3 py-2 font-medium text-amber-800 hover:bg-amber-50"
                 >
-                  {t('nav_admin')}
-                </Link>
-              )}
-              {user.role === 'admin' && (
-                <Link
-                  href="/admin/services"
-                  className={navLinkClass('/admin/services')}
-                >
-                  {t('nav_validate_services')}
-                </Link>
-              )}
-              {user.role === 'admin' && (
-                <Link
-                  href="/admin/service-orders"
-                  className={navLinkClass('/admin/service-orders')}
-                >
-                  {t('nav_service_requests')}
-                </Link>
-              )}
-              {user.role === 'artisan' && (
-                <Link href="/shop/create" className={navLinkClass('/shop/create')}>
-                  {t('nav_create_shop')}
+                  Administration
                 </Link>
               )}
               {user.role === 'artisan' && (
                 <Link
                   href="/dashboard"
-                  className={navLinkClass('/dashboard')}
+                  className="rounded-md px-3 py-2 text-stone-700 hover:bg-stone-100"
                 >
-                  {t('nav_my_workshop')}
+                  Mon atelier
                 </Link>
               )}
-              {user.role === 'artisan' && (
-                <Link
-                  href="/artisan/services"
-                  className={navLinkClass('/artisan/services')}
-                >
-                  {t('nav_my_services')}
-                </Link>
-              )}
-              {user.role === 'artisan' && (
-                <Link
-                  href="/artisan/service-orders"
-                  className={navLinkClass('/artisan/service-orders')}
-                >
-                  {t('nav_received_requests')}
-                </Link>
-              )}
-              {user.role === 'artisan' && (
-                <Link href="/formalization" className={navLinkClass('/formalization')}>
-                  {t('nav_formalization')}
-                </Link>
-              )}
-              {(user.role === 'artisan' || user.role === 'admin') && (
-                <Link href="/resources" className={navLinkClass('/resources')}>
-                  {t('nav_resources')}
-                </Link>
-              )}
-              {user.role === 'institution' && (
-                <Link href="/institution" className={navLinkClass('/institution')}>
-                  {t('nav_institution_space')}
-                </Link>
-              )}
-              <Link
-                href="/notifications"
-                className={`relative ${navLinkClass('/notifications')}`}
-                aria-label={t('nav_notifications')}
-              >
-                🔔
-                {notifUnread && notifUnread.unreadCount > 0 ? (
-                  <span className="absolute -right-1 -top-1 rounded-full bg-red-600 px-1.5 py-0.5 text-xs text-white">
-                    {notifUnread.unreadCount}
-                  </span>
-                ) : null}
-              </Link>
               <Link
                 href="/orders"
-                className={navLinkClass('/orders')}
+                className="rounded-md px-3 py-2 text-stone-700 hover:bg-stone-100"
               >
-                {t('nav_my_orders')}
+                Mes commandes
               </Link>
               <Link
                 href="/messages"
-                className={`relative ${navLinkClass('/messages')}`}
+                className="relative rounded-md px-3 py-2 text-stone-700 hover:bg-stone-100"
               >
-                {t('nav_messages')}
+                Messages
                 {unread && unread.unreadCount > 0 ? (
                   <span className="ml-1 rounded-full bg-amber-700 px-1.5 py-0.5 text-xs text-white">
                     {unread.unreadCount}
@@ -196,9 +65,9 @@ export function Header() {
               <span className="hidden px-2 text-stone-500 sm:inline">{user?.name}</span>
               <button
                 onClick={handleLogout}
-                className={navLinkClass('/login')}
+                className="rounded-md px-3 py-2 text-stone-700 hover:bg-stone-100"
               >
-                {t('nav_logout')}
+                Déconnexion
               </button>
             </>
           ) : (
@@ -207,13 +76,13 @@ export function Header() {
                 href="/login"
                 className="rounded-md px-3 py-2 text-stone-700 hover:bg-stone-100"
               >
-                {t('nav_login')}
+                Connexion
               </Link>
               <Link
                 href="/register"
-                className="rounded-md bg-amber-700 px-3 py-2 font-bold text-white hover:bg-amber-800"
+                className="rounded-md bg-amber-700 px-3 py-2 font-medium text-white hover:bg-amber-800"
               >
-                {t('nav_register')}
+                Créer un compte
               </Link>
             </>
           )}

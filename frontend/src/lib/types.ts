@@ -1,68 +1,5 @@
-export type Role = 'artisan' | 'client' | 'institution' | 'admin';
+export type Role = 'artisan' | 'client' | 'admin';
 export type ListingType = 'product' | 'service';
-export type ShopType = 'artisan' | 'reseller' | 'individual';
-export type ShopStatus = 'pending' | 'active' | 'rejected' | 'suspended';
-
-export interface KycDocument {
-  label: string;
-  url: string;
-  publicId?: string;
-  resourceType?: string;
-  format?: string;
-}
-
-export interface Shop {
-  id: string;
-  sellerId: string;
-  seller?: User;
-  type: ShopType;
-  name: string;
-  description: string;
-  category?: string | null;
-  city?: string | null;
-  neighborhood?: string | null;
-  market?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
-  mobileMoneyNumber: string;
-  deliveryMode: 'workshop' | 'home';
-  kycDocuments: KycDocument[];
-  mobileMoneyVerified: boolean;
-  status: ShopStatus;
-  rejectionReason?: string | null;
-  verifiedBadge: boolean;
-  topSellerBadge: boolean;
-  isWomenLed?: boolean;
-  isCooperative?: boolean;
-  successfulSales: number;
-  createdAt: string;
-}
-
-/** Preuves KYC exigées par type de boutique (miroir du backend). */
-export const SHOP_REQUIRED_DOCS: Record<ShopType, { label: string; labelFr: string }[]> = {
-  artisan: [
-    { label: 'piece_identite', labelFr: "Pièce d'identité" },
-    { label: 'photo_atelier', labelFr: "Photo de l'atelier" },
-    { label: 'photo_produit_1', labelFr: 'Photo produit 1' },
-    { label: 'photo_produit_2', labelFr: 'Photo produit 2' },
-    { label: 'photo_produit_3', labelFr: 'Photo produit 3' },
-  ],
-  reseller: [
-    { label: 'video_vendeur_produit', labelFr: 'Vidéo vendeur avec le produit' },
-    { label: 'photo_produit', labelFr: 'Photo du produit seul' },
-    { label: 'photo_produit_emballe', labelFr: 'Photo du produit emballé' },
-  ],
-  individual: [
-    { label: 'photo_vendeur_produit', labelFr: 'Photo du vendeur avec le produit' },
-    { label: 'photo_produit', labelFr: 'Photo du produit' },
-  ],
-};
-
-export const SHOP_OPTIONAL_DOCS: Record<ShopType, { label: string; labelFr: string }[]> = {
-  artisan: [],
-  reseller: [{ label: 'piece_identite', labelFr: "Pièce d'identité (facultative)" }],
-  individual: [{ label: 'piece_identite', labelFr: "Pièce d'identité (facultative)" }],
-};
 export type OrderStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled';
 export type PaymentStatus = 'pending' | 'confirmed' | 'captured' | 'refunded';
 
@@ -71,18 +8,14 @@ export interface User {
   email: string;
   name: string;
   role: Role;
-  gender?: 'female' | 'male' | 'cooperative' | 'other' | null;
   bio?: string;
   location?: string;
   phone?: string;
-  isActive?: boolean;
 }
 
 export interface Listing {
   id: string;
   sellerId: string;
-  shopId?: string | null;
-  shop?: Shop;
   seller?: User;
   title: string;
   description: string;
@@ -90,7 +23,6 @@ export interface Listing {
   type: ListingType;
   price: string;
   imageUrl?: string | null;
-  imageUrls?: string[] | null;
   status: 'active' | 'inactive';
   stock: number;
   createdAt: string;
@@ -110,11 +42,6 @@ export interface Order {
   platformFee: string;
   status: OrderStatus;
   paymentMethod: 'cash' | 'orange_money' | 'card';
-  sellerConfirmedAvailability: boolean;
-  carrierPickedUp: boolean;
-  carrierVerified: boolean;
-  buyerConfirmedReception: boolean;
-  cancellationReason?: string | null;
   createdAt: string;
 }
 
@@ -148,7 +75,6 @@ export interface Message {
   sender?: User;
   recipient?: User;
   content: string;
-  fileUrls?: string[];
   read: boolean;
   createdAt: string;
 }
@@ -159,44 +85,15 @@ export interface Thread {
   unread: number;
 }
 
-export type NotificationType = 'new_order' | 'order_status' | 'payment' | 'shop_review' | 'service_review' | 'general';
-
-export interface NotificationItem {
-  id: string;
-  recipientId: string;
-  type: NotificationType;
-  title: string;
-  content: string;
-  link?: string | null;
-  relatedId?: string | null;
-  read: boolean;
-  createdAt: string;
-}
-
-export interface NotificationsResponse {
-  items: NotificationItem[];
-  total: number;
-  unreadCount: number;
-}
-
 export interface AdminStats {
   users: number;
   artisans: number;
   clients: number;
-  institutions?: number;
   listings: number;
   orders: number;
   revenue: number;
   platformFees: number;
-  servicePlatformFees?: number;
   pendingPayments: number;
-  womenArtisans?: number;
-  womenPercentage?: number;
-  cooperativeArtisans?: number;
-  cooperativePercentage?: number;
-  resources?: number;
-  programs?: number;
-  programApplications?: number;
 }
 
 export interface AdminOverview {
@@ -207,206 +104,6 @@ export interface AdminOverview {
 export interface AuthSession {
   accessToken: string;
   user: User;
-}
-
-export type ResourceType = 'training' | 'guide' | 'template';
-export type ProgramType = 'training' | 'support' | 'funding' | 'grant';
-export type FormalizationStatus = 'draft' | 'submitted' | 'in_review' | 'approved' | 'rejected';
-
-export interface InstitutionalResource {
-  id: string;
-  title: string;
-  description: string;
-  type: ResourceType;
-  theme: string;
-  contentUrl?: string | null;
-  published: boolean;
-  institution?: User;
-  createdAt: string;
-}
-
-export interface InstitutionalProgram {
-  id: string;
-  title: string;
-  description: string;
-  type: ProgramType;
-  eligibility?: string | null;
-    budget?: number | null;
-    interventionZone?: string | null;
-    startDate?: string | null;
-    endDate?: string | null;
-    objectives?: string | null;
-    targetBeneficiaries?: string | null;
-    impactIndicators?: string[];
-  status: 'active' | 'closed';
-  institution?: User;
-  createdAt: string;
-}
-
-export type ProgramApplicationStatus = 'submitted' | 'in_review' | 'accepted' | 'rejected';
-
-export interface ProgramApplication {
-  id: string;
-  artisanId: string;
-  programId: string;
-  motivation: string;
-  status: ProgramApplicationStatus;
-  institutionNotes?: string | null;
-  artisan?: User;
-  program?: InstitutionalProgram;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface ArtisanFormalization {
-  id: string;
-  artisan: User;
-  businessName: string;
-  registrationNumber?: string | null;
-  taxId?: string | null;
-  documentsUrl?: string | null;
-  status: FormalizationStatus;
-  progress: number;
-  institutionNotes?: string | null;
-  updatedAt: string;
-}
-
-export interface InstitutionDashboard {
-  stats: {
-    artisans: number;
-    institutions: number;
-    listings: number;
-    orders: number;
-    pendingFormalizations: number;
-    approvedFormalizations: number;
-    resources: number;
-    programs: number;
-    womenArtisans?: number;
-    womenPercentage?: number;
-    cooperativeArtisans?: number;
-    cooperativePercentage?: number;
-  };
-}
-
-export type ServiceStatus = 'draft' | 'pending_validation' | 'validation_requested' | 'approved' | 'rejected';
-
-export interface Service {
-  id: string;
-  title: string;
-  description: string;
-  price?: number;
-  priceMin?: number;
-  priceMax?: number;
-  estimatedDays: number;
-  category: string;
-  tags?: string[];
-  fileUrls?: string[];
-  status: ServiceStatus;
-  validationFeedback?: string | null;
-  artisan?: User;
-  validatedBy?: User | null;
-  createdAt: string;
-  updatedAt: string;
-  validatedAt?: string | null;
-  revisionDueAt?: string | null;
-  averageRating?: number | null;
-  reviewCount?: number;
-}
-
-export type ServiceOrderStatus =
-  | 'pending_admin_validation'
-  | 'details_requested'
-  | 'sent_to_artisan'
-  | 'quote_pending'
-  | 'accepted'
-  | 'in_progress'
-  | 'delivered'
-  | 'completed'
-  | 'disputed'
-  | 'cancelled'
-  | 'rejected';
-
-export interface ServiceOrder {
-  id: string;
-  clientId: string;
-  artisanId: string;
-  serviceId: string;
-  projectObjective: string;
-  options: Record<string, unknown>;
-  inspirationLinks?: string | null;
-  budgetMin?: number | null;
-  budgetMax?: number | null;
-  platformFee: number;
-  requestedDate?: string | null;
-  deliveryMethod: 'home' | 'workshop' | 'carrier';
-  deliveryAddress?: string | null;
-  deliveryLatitude?: number | null;
-  deliveryLongitude?: number | null;
-  fileUrls?: string[];
-  status: ServiceOrderStatus;
-  adminFeedback?: string | null;
-  deliveryFeedback?: string | null;
-  deliveredAt?: string | null;
-  completedAt?: string | null;
-  createdAt: string;
-  updatedAt: string;
-  service?: Service;
-  artisan?: User;
-  client?: User;
-}
-
-export interface ServiceReview {
-  id: string;
-  orderId: string;
-  serviceId: string;
-  reviewerId: string;
-  recipientId: string;
-  rating: number;
-  comment?: string | null;
-  verified: boolean;
-  createdAt: string;
-  reviewer?: User;
-}
-
-export interface ServiceValidationHistory {
-  id: string;
-  serviceId: string;
-  adminId?: string | null;
-  action: 'approved' | 'rejected' | 'revision_requested' | 'auto_rejected';
-  previousStatus?: string | null;
-  newStatus: string;
-  feedback?: string | null;
-  createdAt: string;
-  service?: Service;
-  admin?: User;
-}
-
-export type ServiceQuoteStatus = 'pending' | 'accepted' | 'rejected';
-
-export interface ServiceQuote {
-  id: string;
-  orderId: string;
-  artisanId: string;
-  proposedPrice: number;
-  proposedDays: number;
-  details: string;
-  status: ServiceQuoteStatus;
-  clientResponse?: string | null;
-  expiresAt: string;
-  createdAt: string;
-  updatedAt: string;
-  artisan?: User;
-}
-
-export interface ServicePayment {
-  id: string;
-  orderId: string;
-  type: 'deposit' | 'balance';
-  amount: number;
-  status: 'pending' | 'paid' | 'refunded';
-  method: 'orange_money' | 'stripe' | 'cash';
-  transactionId?: string | null;
-  paidAt?: string | null;
 }
 
 /** Le backend renvoie [items, total] pour les endpoints paginés. */

@@ -4,11 +4,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import { useLanguage } from '@/lib/language-context';
 
 export default function LoginPage() {
   const { login } = useAuth();
-  const { t } = useLanguage();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,7 +21,7 @@ export default function LoginPage() {
       await login(email, password);
       router.push('/');
     } catch {
-      setError('Email ou mot de passe incorrect / Incorrect email or password.');
+      setError('Email ou mot de passe incorrect.');
     } finally {
       setPending(false);
     }
@@ -31,13 +29,13 @@ export default function LoginPage() {
 
   return (
     <div className="mx-auto max-w-md">
-      <h1 className="text-2xl font-semibold">{t('login_title')}</h1>
-      <p className="mt-1 text-sm text-stone-600">{t('login_subtitle')}</p>
+      <h1 className="text-2xl font-semibold">Connexion</h1>
+      <p className="mt-1 text-sm text-stone-600">Accédez à vos commandes et à votre atelier.</p>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4 rounded-lg border border-stone-200 bg-white p-6">
         <div>
           <label htmlFor="email" className="block text-sm font-medium">
-            {t('login_email')}
+            Email
           </label>
           <input
             id="email"
@@ -51,7 +49,7 @@ export default function LoginPage() {
 
         <div>
           <label htmlFor="password" className="block text-sm font-medium">
-            {t('login_password')}
+            Mot de passe
           </label>
           <input
             id="password"
@@ -70,13 +68,13 @@ export default function LoginPage() {
           disabled={pending}
           className="w-full rounded-md bg-amber-700 py-2 font-medium text-white hover:bg-amber-800 disabled:opacity-60"
         >
-          {pending ? t('action_loading') : t('login_submit')}
+          {pending ? 'Connexion…' : 'Se connecter'}
         </button>
 
         <p className="text-center text-sm text-stone-600">
-          {t('login_no_account')}{' '}
+          Pas encore de compte ?{' '}
           <Link href="/register" className="text-amber-700 underline">
-            {t('login_create_account')}
+            Créer un compte
           </Link>
         </p>
       </form>

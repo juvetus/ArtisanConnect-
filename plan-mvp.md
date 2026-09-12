@@ -11,7 +11,6 @@ Lancer une marketplace artisanale **minimale mais fonctionnelle** avec :
 - ✅ Commandes et suivi
 - ✅ Avis simples
 - ✅ Admin basique
-- ✅ Espace institutionnel initial : statistiques, ressources, formalisation et programmes d’accompagnement
 
 ---
 
@@ -238,8 +237,8 @@ Paiement → 90% Artisan + 10% Plateforme
 ## 🎯 Features Optionnelles (Phase 2+)
 - ❌ Paiement par carte (Stripe)
 - ❌ Chat temps réel (WebSocket)
-- ❌ Recherche géo avancée (Postgis)
-- ❌ ElasticSearch / Meilisearch / OpenAI
+- ❌ Recherche géo avancée
+- ❌ ElasticSearch / Meilisearch
 - ❌ Modération IA
 - ❌ App mobile native
 - ❌ Devis / Négociation de prix

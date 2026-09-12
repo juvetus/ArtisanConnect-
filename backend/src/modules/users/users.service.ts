@@ -18,7 +18,7 @@ export class UsersService {
   async findByEmailWithPassword(email: string): Promise<User | null> {
     return this.usersRepository.findOne({
       where: { email },
-      select: { id: true, email: true, name: true, role: true, gender: true, passwordHash: true, isActive: true },
+      select: { id: true, email: true, name: true, role: true, passwordHash: true },
     });
   }
 
@@ -26,14 +26,13 @@ export class UsersService {
     return this.usersRepository.findOne({ where: { id } });
   }
 
-  async create(email: string, password: string, name: string, role: 'artisan' | 'client' | 'institution' = 'client', gender?: 'female' | 'male' | 'cooperative' | 'other'): Promise<User> {
+  async create(email: string, password: string, name: string, role: 'artisan' | 'client' = 'client'): Promise<User> {
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = this.usersRepository.create({
       email,
       passwordHash: hashedPassword,
       name,
       role,
-      gender: gender ?? null,
     });
     return this.usersRepository.save(user);
   }
@@ -43,10 +42,7 @@ export class UsersService {
   }
 
   async update(id: string, updateData: Partial<User>): Promise<User | null> {
-    const user = await this.usersRepository.findOne({ where: { id } });
-    if (!user) return null;
-    Object.assign(user, updateData);
-    await this.usersRepository.save(user);
+    await this.usersRepository.update(id, updateData);
     return this.findById(id);
   }
 }

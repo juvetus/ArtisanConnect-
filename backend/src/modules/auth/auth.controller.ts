@@ -8,8 +8,8 @@ export class AuthController {
 
   @Public()
   @Post('register')
-  async register(@Body() body: { email: string; password: string; name: string; role?: 'artisan' | 'client' | 'institution'; gender?: 'female' | 'male' | 'cooperative' | 'other' }) {
-    return this.authService.register(body.email, body.password, body.name, body.role, body.gender);
+  async register(@Body() body: { email: string; password: string; name: string; role?: 'artisan' | 'client' }) {
+    return this.authService.register(body.email, body.password, body.name, body.role);
   }
 
   @Public()

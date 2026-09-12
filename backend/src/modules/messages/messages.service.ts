@@ -1,18 +1,13 @@
-﻿import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+﻿import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { existsSync } from 'node:fs';
-import path from 'node:path';
 import { Message } from '../../entities/index.js';
-import { ServiceOrder } from '../../entities/service-order.entity.js';
 
 @Injectable()
 export class MessagesService {
   constructor(
     @InjectRepository(Message)
     private messagesRepository: Repository<Message>,
-    @InjectRepository(ServiceOrder)
-    private serviceOrdersRepository: Repository<ServiceOrder>,
   ) {}
 
   async create(message: Partial<Message>): Promise<Message> {
@@ -38,53 +33,6 @@ export class MessagesService {
       where: { orderId },
       relations: { sender: true, recipient: true },
       order: { createdAt: 'ASC' },
-    });
-  }
-
-  async createForServiceOrder(userId: string, serviceOrderId: string, content: string) {
-    const order = await this.serviceOrdersRepository.findOne({ where: { id: serviceOrderId } });
-    if (!order) throw new NotFoundException('Commande de service introuvable');
-    if (order.clientId !== userId && order.artisanId !== userId) {
-      throw new ForbiddenException('Cette commande ne vous concerne pas');
-    }
-    const recipientId = order.clientId === userId ? order.artisanId : order.clientId;
-    return this.create({ senderId: userId, recipientId, serviceOrderId, content });
-  }
-
-  async attachServiceFile(userId: string, serviceOrderId: string, fileUrl: string) {
-    const order = await this.serviceOrdersRepository.findOne({ where: { id: serviceOrderId } });
-    if (!order) throw new NotFoundException('Commande de service introuvable');
-    if (order.clientId !== userId && order.artisanId !== userId) throw new ForbiddenException('Cette commande ne vous concerne pas');
-    const recipientId = order.clientId === userId ? order.artisanId : order.clientId;
-    return this.create({ senderId: userId, recipientId, serviceOrderId, content: 'Pièce jointe', fileUrls: [fileUrl] });
-  }
-
-  async getServiceFile(userId: string, filename: string) {
-    const safeFilename = path.basename(filename);
-    const fileUrl = `/messages/files/${safeFilename}`;
-    const message = await this.messagesRepository.createQueryBuilder('message')
-      .leftJoinAndSelect('message.serviceOrder', 'serviceOrder')
-      .where(":fileUrl = ANY(string_to_array(message.fileUrls, ','))", { fileUrl })
-      .getOne();
-    if (!message?.serviceOrder) throw new NotFoundException('Fichier introuvable');
-    if (message.serviceOrder.clientId !== userId && message.serviceOrder.artisanId !== userId) throw new ForbiddenException('Accès refusé');
-    const filePath = path.resolve(process.cwd(), 'uploads', 'service-messages', safeFilename);
-    if (!existsSync(filePath)) throw new NotFoundException('Fichier introuvable');
-    return { path: filePath, mimeType: 'application/octet-stream' };
-  }
-
-  async findByServiceOrder(userId: string, serviceOrderId: string, skip = 0, take = 50) {
-    const order = await this.serviceOrdersRepository.findOne({ where: { id: serviceOrderId } });
-    if (!order) throw new NotFoundException('Commande de service introuvable');
-    if (order.clientId !== userId && order.artisanId !== userId) {
-      throw new ForbiddenException('Cette commande ne vous concerne pas');
-    }
-    return this.messagesRepository.findAndCount({
-      where: { serviceOrderId },
-      relations: { sender: true, recipient: true },
-      order: { createdAt: 'ASC' },
-      skip,
-      take,
     });
   }
 

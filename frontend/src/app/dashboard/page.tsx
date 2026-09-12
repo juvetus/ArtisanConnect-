@@ -6,18 +6,13 @@ import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
-import { useLanguage } from '@/lib/language-context';
 import { CATEGORIES, PRODUCT_CATEGORIES, SERVICE_CATEGORIES, categoryLabel } from '@/lib/categories';
 import { formatXAF } from '@/lib/format';
 import { StatusBadge } from '@/components/StatusBadge';
-import type { Listing, ListingType, Order } from '@/lib/types';
-import { resolveMediaUrl } from '@/lib/media';
-
-import type { Shop } from '@/lib/types';
+import type { ListingType, Order } from '@/lib/types';
 
 export default function DashboardPage() {
   const { user, ready } = useAuth();
-  const { t } = useLanguage();
   const router = useRouter();
   const isArtisan = user?.role === 'artisan';
 
@@ -34,32 +29,18 @@ export default function DashboardPage() {
 
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
 
-  const [shops, setShops] = useState<Shop[]>([]);
-  const [shopId, setShopId] = useState<string>('');
-
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('vannerie');
   const [type, setType] = useState<ListingType>('product');
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('1');
-  const [imageUrl, setImageUrl] = useState('');
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
-  const [uploadingImage, setUploadingImage] = useState(false);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (ready && !isArtisan) router.push('/');
   }, [ready, isArtisan, router]);
-
-  // Charger mes boutiques pour la sélection
-  useEffect(() => {
-    if (user?.role === 'artisan') {
-      api.myShops().then(setShops);
-    }
-  }, [user]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,112 +55,16 @@ export default function DashboardPage() {
         type,
         price,
         stock: Number(stock),
-        imageUrl: imageUrls[0] ?? null,
-        imageUrls,
-        shopId: shopId || undefined,
       });
       setTitle('');
       setDescription('');
       setPrice('');
       setStock('1');
-      setImageUrl('');
-      setImageUrls([]);
-      setShopId('');
       await mutate();
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : "La création de l'annonce a échoué.");
+    } catch {
+      setFormError("La création de l'annonce a échoué.");
     } finally {
       setSaving(false);
-    }
-  };
-
-  const startEditing = (listing: Listing) => {
-    setEditingId(listing.id);
-    setTitle(listing.title);
-    setDescription(listing.description);
-    setCategory(listing.category);
-    setType(listing.type);
-    setPrice(String(listing.price));
-    setStock(String(listing.stock));
-    setImageUrl(listing.imageUrl ?? '');
-    setImageUrls(listing.imageUrls?.length ? listing.imageUrls : listing.imageUrl ? [listing.imageUrl] : []);
-    setShopId(listing.shopId || '');
-    setFormError('');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const cancelEditing = () => {
-    setEditingId(null);
-    setTitle('');
-    setDescription('');
-    setCategory('vannerie');
-    setType('product');
-    setPrice('');
-    setStock('1');
-    setImageUrl('');
-    setImageUrls([]);
-    setFormError('');
-  };
-
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    if (!files.length) return;
-    if (files.length > 5) {
-      setFormError('Sélectionnez au maximum 5 images.');
-      e.target.value = '';
-      return;
-    }
-    setUploadingImage(true);
-    setFormError('');
-    try {
-      const { imageUrls: uploaded } = await api.uploadListingImages(files);
-      setImageUrls(uploaded);
-      setImageUrl(uploaded[0] ?? '');
-    } catch {
-      setFormError("Le téléversement des images a échoué (5 Mo max par image, JPEG/PNG/WebP/GIF).");
-    } finally {
-      setUploadingImage(false);
-      e.target.value = '';
-    }
-  };
-
-  const handleSaveListing = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingId) return;
-    setSaving(true);
-    setFormError('');
-    try {
-      await api.updateListing(editingId, {
-        title,
-        description,
-        category,
-        type,
-        price,
-        stock: Number(stock),
-        imageUrl: imageUrls[0] ?? null,
-        imageUrls,
-        shopId: shopId || undefined,
-      });
-      cancelEditing();
-      await mutate();
-    } catch {
-      setFormError("La modification de l'annonce a échoué.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleToggleListing = async (listing: Listing) => {
-    setFormError('');
-    try {
-      if (listing.status === 'active') {
-        await api.deleteListing(listing.id);
-      } else {
-        await api.updateListing(listing.id, { status: 'active' });
-      }
-      await mutate();
-    } catch {
-      setFormError("Le statut de l'annonce n'a pas pu être modifié.");
     }
   };
 
@@ -194,25 +79,7 @@ export default function DashboardPage() {
     }
   };
 
-  const runEscrow = async (orderId: string, action: () => Promise<unknown>) => {
-    setBusyOrderId(orderId);
-    try {
-      await action();
-      await mutate();
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : "L'action a échoué.");
-    } finally {
-      setBusyOrderId(null);
-    }
-  };
-
-  /** Vérification transporteur : un tiers (ni acheteur, ni vendeur) confirme le produit. */
-  const runCarrierVerify = async (order: Order) => {
-    if (!user || user.id === order.buyerId || user.id === order.sellerId) return;
-    await runEscrow(order.id, () => api.carrierVerify(order.id, true, true));
-  };
-
-  if (!ready || !isArtisan || isLoading) return <p className="text-stone-600">{t('action_loading')}</p>;
+  if (!ready || !isArtisan || isLoading) return <p className="text-stone-600">Chargement…</p>;
 
   const listings = data?.listings ?? [];
   const orders = data?.orders ?? [];
@@ -224,13 +91,12 @@ export default function DashboardPage() {
   return (
     <div className="space-y-10">
       <div>
-        <h1 className="text-2xl font-semibold">{t('dashboard_title')}</h1>
-        <p className="mt-1 text-sm text-stone-600">{t('dashboard_subtitle')}</p>
+        <h1 className="text-2xl font-semibold">Mon atelier</h1>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           {[
-            { label: t('dashboard_my_listings'), value: listings.length },
-            { label: t('dashboard_orders_received'), value: orders.length },
-            { label: 'Encaissé / Revenue', value: formatXAF(revenue) },
+            { label: 'Annonces en ligne', value: listings.length },
+            { label: 'Commandes reçues', value: orders.length },
+            { label: 'Encaissé', value: formatXAF(revenue) },
           ].map((stat) => (
             <div key={stat.label} className="rounded-lg border border-stone-200 bg-white p-4">
               <p className="text-sm text-stone-600">{stat.label}</p>
@@ -241,10 +107,10 @@ export default function DashboardPage() {
       </div>
 
       <section>
-        <h2 className="text-lg font-semibold">{t('dashboard_orders_received')}</h2>
+        <h2 className="text-lg font-semibold">Commandes à traiter</h2>
         {orders.length === 0 ? (
           <p className="mt-3 rounded-lg border border-stone-200 bg-white p-6 text-stone-600">
-            {t('dashboard_no_orders')}
+            Aucune commande pour le moment.
           </p>
         ) : (
           <ul className="mt-3 space-y-3">
@@ -284,38 +150,6 @@ export default function DashboardPage() {
                   {order.paymentMethod === 'orange_money' && order.status === 'pending' && (
                     <span className="text-sm text-orange-700">Orange Money en attente</span>
                   )}
-                  {order.paymentMethod === 'orange_money' && user && (
-                    <div className="mt-2 flex w-full flex-wrap gap-2">
-                      {user.id === order.sellerId && !order.sellerConfirmedAvailability && (
-                        <>
-                          <button
-                            onClick={() => runEscrow(order.id, () => api.confirmAvailability(order.id))}
-                            disabled={busyOrderId === order.id}
-                            className="rounded-md bg-green-700 px-3 py-2 text-sm font-medium text-white hover:bg-green-800 disabled:opacity-60"
-                          >
-                            Produit disponible
-                          </button>
-                          <button
-                            onClick={() => runEscrow(order.id, () => api.rejectAvailability(order.id))}
-                            disabled={busyOrderId === order.id}
-                            className="rounded-md border border-red-200 px-3 py-2 text-sm text-red-700 hover:bg-red-50 disabled:opacity-60"
-                          >
-                            Indisponible (rembourser)
-                          </button>
-                        </>
-                      )}
-                      {user.id !== order.sellerId && user.id !== order.buyerId &&
-                        order.sellerConfirmedAvailability && !order.carrierVerified && (
-                        <button
-                          onClick={() => runCarrierVerify(order)}
-                          disabled={busyOrderId === order.id}
-                          className="rounded-md bg-stone-800 px-3 py-2 text-sm font-medium text-white hover:bg-stone-900 disabled:opacity-60"
-                        >
-                          Transporteur : récupéré & conforme
-                        </button>
-                      )}
-                    </div>
-                  )}
                 </div>
               </li>
             ))}
@@ -325,52 +159,14 @@ export default function DashboardPage() {
 
       <section className="grid gap-8 lg:grid-cols-2">
         <div>
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold">
-              {editingId ? t('dashboard_edit_listing') : t('dashboard_new_listing')}
-            </h2>
-            {editingId && (
-              <button
-                type="button"
-                onClick={cancelEditing}
-                className="text-sm text-stone-600 underline"
-              >
-                {t('action_cancel')}
-              </button>
-            )}
-          </div>
+          <h2 className="text-lg font-semibold">Nouvelle annonce</h2>
           <form
-            onSubmit={editingId ? handleSaveListing : handleCreate}
+            onSubmit={handleCreate}
             className="mt-3 space-y-4 rounded-lg border border-stone-200 bg-white p-6"
           >
             <div>
-              <label htmlFor="shop" className="block text-sm font-medium">
-                {t('dashboard_shop_select')}
-              </label>
-              <select
-                id="shop"
-                value={shopId}
-                onChange={e => setShopId(e.target.value)}
-                required
-                className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600"
-              >
-                <option value="">— Sélectionner une boutique / Select shop —</option>
-                {shops.map((shop) => (
-                  <option key={shop.id} value={shop.id}>
-                    {shop.name} ({shop.status === 'active' ? 'Active' : shop.status === 'pending' ? 'En attente / Pending' : 'Inactive'})
-                  </option>
-                ))}
-              </select>
-            </div>
-            {shops.length > 0 && shops.every(s => s.status !== 'active') && (
-              <p className="rounded-md bg-amber-50 p-3 text-xs text-amber-800 border border-amber-200">
-                ⚠️ Votre boutique <strong>« {shops[0].name} »</strong> est actuellement <strong>en attente de validation</strong> par un administrateur.
-              </p>
-            )}
-
-            <div>
               <label htmlFor="title" className="block text-sm font-medium">
-                {t('dashboard_listing_title')}
+                Titre
               </label>
               <input
                 id="title"
@@ -383,7 +179,7 @@ export default function DashboardPage() {
 
             <div>
               <label htmlFor="description" className="block text-sm font-medium">
-                {t('dashboard_listing_description')}
+                Description
               </label>
               <textarea
                 id="description"
@@ -398,7 +194,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label htmlFor="category" className="block text-sm font-medium">
-                  {t('dashboard_listing_category')}
+                  Catégorie
                 </label>
                 <select
                   id="category"
@@ -411,17 +207,17 @@ export default function DashboardPage() {
                   }}
                   className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600"
                 >
-                  <optgroup label={t('filter_crafts')}>
+                  <optgroup label="Métiers d'art">
                     {PRODUCT_CATEGORIES.map((c) => (
                       <option key={c.value} value={c.value}>
-                        {categoryLabel(c.value)}
+                        {c.label}
                       </option>
                     ))}
                   </optgroup>
-                  <optgroup label={t('filter_services')}>
+                  <optgroup label="Services">
                     {SERVICE_CATEGORIES.map((c) => (
                       <option key={c.value} value={c.value}>
-                        {categoryLabel(c.value)}
+                        {c.label}
                       </option>
                     ))}
                   </optgroup>
@@ -437,7 +233,7 @@ export default function DashboardPage() {
 
               <div>
                 <label htmlFor="price" className="block text-sm font-medium">
-                  {t('dashboard_listing_price')}
+                  Prix (FCFA)
                 </label>
                 <input
                   id="price"
@@ -454,55 +250,18 @@ export default function DashboardPage() {
 
               <div>
                 <label htmlFor="stock" className="block text-sm font-medium">
-                  {t('dashboard_listing_stock')}
+                  Stock
                 </label>
                 <input
                   id="stock"
                   type="number"
-                  min="0"
+                  min="1"
                   required
                   value={stock}
                   onChange={(e) => setStock(e.target.value)}
                   className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600"
                 />
               </div>
-            </div>
-
-            <div>
-              <label htmlFor="images" className="block text-sm font-medium">
-                Photos (jusqu&apos;à 5)
-              </label>
-              <input
-                id="images"
-                type="file"
-                multiple
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                onChange={async (e) => {
-                  const files = Array.from(e.target.files ?? []);
-                  if (!files.length) return;
-                  setUploadingImage(true);
-                  try {
-                    const { imageUrls: uploaded } = await api.uploadListingImages(files);
-                    setImageUrls(uploaded);
-                    setImageUrl(uploaded[0] ?? '');
-                  } catch {
-                    setFormError("Le téléversement d'une ou plusieurs images a échoué.");
-                  } finally {
-                    setUploadingImage(false);
-                  }
-                }}
-                className="mt-1 w-full rounded-md border border-amber-300 bg-amber-50 p-2 text-sm text-stone-700 file:mr-3 file:rounded-md file:border-0 file:bg-amber-700 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-amber-800"
-              />
-              {uploadingImage && (
-                <p className="mt-1 text-xs text-stone-500">{t('action_loading')}</p>
-              )}
-              {imageUrls.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {imageUrls.map((url, i) => (
-                    <img key={i} src={resolveMediaUrl(url)} alt={`Aperçu ${i + 1}`} className="h-16 w-16 object-cover rounded border border-stone-200" />
-                  ))}
-                </div>
-              )}
             </div>
 
             {formError && <p className="text-sm text-red-600">{formError}</p>}
@@ -512,62 +271,31 @@ export default function DashboardPage() {
               disabled={saving}
               className="w-full rounded-md bg-amber-700 py-2 font-medium text-white hover:bg-amber-800 disabled:opacity-60"
             >
-              {saving ? t('action_loading') : editingId ? t('action_save') : t('dashboard_publish_button')}
+              {saving ? 'Publication…' : "Publier l'annonce"}
             </button>
           </form>
         </div>
 
         <div>
-          <h2 className="text-lg font-semibold">{t('dashboard_my_listings')}</h2>
+          <h2 className="text-lg font-semibold">Mes annonces</h2>
           {listings.length === 0 ? (
             <p className="mt-3 rounded-lg border border-stone-200 bg-white p-6 text-stone-600">
-              {t('dashboard_no_listings')}
+              Vous n&apos;avez pas encore publié d&apos;annonce.
             </p>
           ) : (
             <ul className="mt-3 space-y-3">
               {listings.map((listing) => (
                 <li
                   key={listing.id}
-                  className={`flex items-center justify-between gap-4 rounded-lg border p-4 transition ${
-                    listing.status === 'inactive'
-                      ? 'border-stone-300 bg-stone-100 text-stone-500 grayscale'
-                      : 'border-stone-200 bg-white'
-                  }`}
+                  className="flex items-center justify-between gap-4 rounded-lg border border-stone-200 bg-white p-4"
                 >
                   <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium">{listing.title}</p>
-                      {listing.status === 'inactive' && (
-                        <span className="rounded-full bg-stone-200 px-2 py-0.5 text-xs text-stone-600">
-                          Désactivée
-                        </span>
-                      )}
-                    </div>
+                    <p className="font-medium">{listing.title}</p>
                     <p className="text-sm text-stone-600">
                       {categoryLabel(listing.category)} · stock {listing.stock}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-semibold">{formatXAF(listing.price)}</span>
-                    <button
-                      type="button"
-                      onClick={() => startEditing(listing)}
-                      className="rounded-md border border-amber-700 px-3 py-1.5 text-sm text-amber-800 hover:bg-amber-50"
-                    >
-                      {t('action_edit')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleToggleListing(listing)}
-                      className={`rounded-md border px-3 py-1.5 text-sm ${
-                        listing.status === 'inactive'
-                          ? 'border-green-200 text-green-700 hover:bg-green-50'
-                          : 'border-red-200 text-red-700 hover:bg-red-50'
-                      }`}
-                    >
-                      {listing.status === 'inactive' ? 'Réactiver' : 'Désactiver'}
-                    </button>
-                  </div>
+                  <span className="font-semibold">{formatXAF(listing.price)}</span>
                 </li>
               ))}
             </ul>
