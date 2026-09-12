@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import { ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
 import { PRODUCT_CATEGORIES, categoryLabel } from '@/lib/categories';
@@ -68,10 +69,15 @@ export default function CreateShopPage() {
     setUploading(label);
     setError('');
     try {
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error('Le fichier dépasse la limite de 10 Mo.');
+      }
       const uploaded = await api.uploadKycDocument(file);
       setDocs((prev) => [...prev.filter((doc) => doc.label !== label), { label, ...uploaded }]);
-    } catch {
-      setError('Le téléversement a échoué (5 Mo max, JPEG/PNG/WebP/GIF ou vidéo légère).');
+    } catch (error) {
+      setError(error instanceof ApiError || error instanceof Error
+        ? error.message
+        : 'Le téléversement a échoué. Vérifiez le format, la taille et la configuration Cloudinary.');
     } finally {
       setUploading(null);
     }
@@ -173,7 +179,7 @@ export default function CreateShopPage() {
                 <input
                   id={`doc-${req.label}`}
                   type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif,video/mp4"
+                  accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime,application/pdf"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) uploadDoc(req.label, file);
@@ -194,7 +200,7 @@ export default function CreateShopPage() {
                 <input
                   id={`optional-doc-${req.label}`}
                   type="file"
-                  accept="image/jpeg,image/png,image/webp,application/pdf"
+                  accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime,application/pdf"
                   onChange={(event) => {
                     const file = event.target.files?.[0];
                     if (file) uploadDoc(req.label, file);

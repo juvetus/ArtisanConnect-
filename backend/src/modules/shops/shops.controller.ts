@@ -31,8 +31,12 @@ export class ShopsController {
       throw new BadRequestException('Le stockage Cloudinary doit être configuré pour les documents KYC.');
     }
     const resourceType = file.mimetype.startsWith('image/') ? 'image' : file.mimetype.startsWith('video/') ? 'video' : 'raw';
-    const upload = await this.storageService.uploadBuffer(file.buffer, 'artisanconnect/kyc', resourceType === 'video' ? 'auto' : resourceType, 'authenticated');
-    return { url: upload.url, publicId: upload.publicId, resourceType: upload.resourceType, format: upload.format };
+    try {
+      const upload = await this.storageService.uploadBuffer(file.buffer, 'artisanconnect/kyc', resourceType === 'video' ? 'auto' : resourceType, 'authenticated');
+      return { url: upload.url, publicId: upload.publicId, resourceType: upload.resourceType, format: upload.format };
+    } catch {
+      throw new BadRequestException('Cloudinary a refusé ce document KYC. Vérifiez les identifiants, le format et la taille du fichier.');
+    }
   }
 
   @UseGuards(JwtAuthGuard, AdminGuard)
