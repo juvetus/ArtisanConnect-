@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
+import type { ReactNode } from "react";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { Header } from "@/components/Header";
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
     "Découvrez et commandez des créations et services d'artisans locaux, paiement en espèces à la remise.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="fr" className={`${geistSans.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col bg-stone-50 text-stone-900">
