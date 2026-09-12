@@ -251,7 +251,7 @@ export default function ServicesPage() {
                 >
                   {categories.map((cat) => (
                     <option key={cat.value} value={cat.value}>
-                      {cat.icon} {cat.labelFr}
+                      {cat.labelFr}
                     </option>
                   ))}
                 </select>
@@ -368,7 +368,6 @@ export default function ServicesPage() {
                     <div>
                       <p className="text-xs text-stone-500 uppercase">Catégorie</p>
                       <p className="font-medium">
-                        {categories.find((category) => category.value === service.category)?.icon ?? '🛠️'}{' '}
                         {categoryLabel(service.category)}
                       </p>
                     </div>

@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
-import { categoryIcon, categoryLabel } from '@/lib/categories';
+import { categoryLabel } from '@/lib/categories';
 import { formatXAF } from '@/lib/format';
 import { resolveMediaUrl } from '@/lib/media';
 
@@ -81,7 +81,7 @@ export default function ListingPage() {
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
       <div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {images.length ? images.map((image, index) => <button key={image} type="button" onClick={() => setZoomIndex(index)} className="group relative overflow-hidden rounded-lg bg-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-600"><img src={resolveMediaUrl(image)} alt={`${listing.title} ${index + 1}`} className="aspect-square w-full object-cover transition duration-200 group-hover:scale-105" /><span className="absolute bottom-2 right-2 rounded-md bg-stone-900/75 px-2 py-1 text-xs text-white">Agrandir</span></button>) : <div className="col-span-full flex h-64 items-center justify-center rounded-lg bg-stone-100 text-7xl">{categoryIcon(listing.category, listing.type)}</div>}
+          {images.length ? images.map((image, index) => <button key={image} type="button" onClick={() => setZoomIndex(index)} className="group relative overflow-hidden rounded-lg bg-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-600"><img src={resolveMediaUrl(image)} alt={`${listing.title} ${index + 1}`} className="aspect-square w-full object-cover transition duration-200 group-hover:scale-105" /><span className="absolute bottom-2 right-2 rounded-md bg-stone-900/75 px-2 py-1 text-xs text-white">Agrandir</span></button>) : <div className="col-span-full flex h-64 items-center justify-center rounded-lg bg-stone-100 text-sm font-medium text-stone-500">{categoryLabel(listing.category)}</div>}
         </div>
 
         {zoomIndex !== null && images[zoomIndex] ? (

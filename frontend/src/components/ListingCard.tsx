@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { categoryIcon, categoryLabel } from '@/lib/categories';
+import { categoryLabel } from '@/lib/categories';
 import { formatXAF } from '@/lib/format';
 import { useLanguage } from '@/lib/language-context';
 import { resolveMediaUrl } from '@/lib/media';
@@ -38,9 +38,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
             alt={listing.title}
             className="h-full w-full object-cover object-center transition duration-300 group-hover:scale-105"
           />
-        ) : (
-          categoryIcon(listing.category, listing.type)
-        )}
+        ) : <span className="text-sm font-medium text-stone-500">{categoryLabel(listing.category)}</span>}
       </div>
 
       <div className="flex flex-1 flex-col gap-1 p-4">

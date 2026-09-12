@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { api } from '@/lib/api';
 import { formatXAF } from '@/lib/format';
-import { categoryIcon, categoryLabel } from '@/lib/categories';
+import { categoryLabel } from '@/lib/categories';
 import { resolveMediaUrl } from '@/lib/media';
 
 export default async function ShopPublicPage({ params }: { params: { id: string } }) {
@@ -54,9 +54,7 @@ export default async function ShopPublicPage({ params }: { params: { id: string 
                       alt={listing.title}
                       className="h-full w-full object-cover object-center"
                     />
-                  ) : (
-                    categoryIcon(listing.category, listing.type)
-                  )}
+                  ) : <span className="text-sm font-medium text-stone-500">{categoryLabel(listing.category)}</span>}
                 </div>
                 <div className="p-4">
                   <div className="font-medium text-stone-900">{listing.title}</div>

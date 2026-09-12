@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import { useLanguage } from '@/lib/language-context';
 import type { Service } from '@/lib/types';
 import { Pagination } from '@/components/Pagination';
+import { categoryLabel } from '@/lib/categories';
 
 export default function ServicesCatalogPage() {
   const { t } = useLanguage();
@@ -72,7 +73,7 @@ export default function ServicesCatalogPage() {
                 </span>
               )}
               <div className="flex-1">
-                <p className="text-xs font-medium uppercase tracking-wide text-amber-700">{service.category}</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-amber-700">{categoryLabel(service.category)}</p>
                 <h2 className="mt-2 text-xl font-semibold text-stone-900">{service.title}</h2>
                 <p className="mt-3 line-clamp-4 text-sm text-stone-600">{service.description}</p>
                 <p className="mt-4 text-sm text-stone-600">{t('service_estimated_days', { days: service.estimatedDays })}</p>

@@ -5,7 +5,7 @@ import useSWR from 'swr';
 import { api } from '@/lib/api';
 import { ListingCard } from '@/components/ListingCard';
 import { Pagination } from '@/components/Pagination';
-import { CATEGORIES, PRODUCT_CATEGORIES, SERVICE_CATEGORIES } from '@/lib/categories';
+import { CATEGORIES, PRODUCT_CATEGORIES, SERVICE_CATEGORIES, categoryLabel } from '@/lib/categories';
 import { useLanguage } from '@/lib/language-context';
 import type { Service } from '@/lib/types';
 
@@ -103,7 +103,7 @@ export default function HomePage() {
               onClick={() => selectCategory('')}
               className="flex items-center gap-2 rounded-full border border-amber-700 bg-amber-700 px-4 py-1.5 text-sm text-white"
             >
-              {activeCategory.icon} {activeCategory.label}
+              {categoryLabel(activeCategory.value)}
               <span aria-hidden>✕</span>
               <span className="sr-only">Retirer le filtre</span>
             </button>
@@ -154,7 +154,7 @@ export default function HomePage() {
                         : 'border-stone-300 bg-white hover:border-amber-600'
                     }`}
                   >
-                    {c.icon} {c.label}
+                    {categoryLabel(c.value)}
                   </button>
                 ))}
               </div>
@@ -217,7 +217,7 @@ export default function HomePage() {
             {services.map((service) => (
               <article key={service.id} className="flex flex-col rounded-lg border border-stone-200 bg-white p-5">
                 <div className="flex-1">
-                  <p className="text-xs font-medium uppercase tracking-wide text-amber-700">{service.category}</p>
+                  <p className="text-xs font-medium uppercase tracking-wide text-amber-700">{categoryLabel(service.category)}</p>
                   <h3 className="mt-2 text-lg font-semibold text-stone-900">{service.title}</h3>
                   <p className="mt-2 line-clamp-3 text-sm text-stone-600">{service.description}</p>
                   <p className="mt-3 text-sm text-stone-600">Délai : <strong className="text-stone-900">{service.estimatedDays} jours</strong></p>
