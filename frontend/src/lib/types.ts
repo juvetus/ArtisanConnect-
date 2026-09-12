@@ -75,6 +75,7 @@ export interface User {
   bio?: string;
   location?: string;
   phone?: string;
+  verifiedEmail?: boolean;
   isActive?: boolean;
 }
 

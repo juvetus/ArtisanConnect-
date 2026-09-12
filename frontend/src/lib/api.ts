@@ -75,6 +75,14 @@ export const api = {
 
   login: (data: { email: string; password: string }) => post<AuthSession>('/auth/login', data),
 
+  verifyEmail: (token: string) => post<{ success: boolean; message: string; user: User }>('/auth/verify-email', { token }),
+
+  resendVerification: (email?: string) => post<{ success: boolean; message: string }>('/auth/resend-verification', { email }),
+
+  forgotPassword: (email: string) => post<{ success: boolean; message: string }>('/auth/forgot-password', { email }),
+
+  resetPassword: (token: string, password: string) => post<{ success: boolean; message: string }>('/auth/reset-password', { token, password }),
+
   sendContactMessage: async (data: { name: string; email: string; subject: string; message: string; city?: string; neighborhood?: string }, files: File[] = []) => {
     const form = new FormData();
     Object.entries(data).forEach(([key, value]) => form.append(key, value ?? ''));

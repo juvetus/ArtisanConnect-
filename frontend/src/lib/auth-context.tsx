@@ -11,6 +11,7 @@ interface AuthContextValue {
   ready: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (data: { email: string; password: string; name: string; role: Role; gender?: 'female' | 'male' | 'cooperative' | 'other' }) => Promise<void>;
+  updateUser: (partial: Partial<User>) => void;
   logout: () => void;
 }
 
@@ -50,6 +51,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session.user);
     };
 
+    const updateUser = (partial: Partial<User>) => {
+      setUser((prev) => {
+        if (!prev) return null;
+        const updated = { ...prev, ...partial };
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const session: AuthSession = JSON.parse(stored);
+          session.user = updated;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+        }
+        return updated;
+      });
+    };
+
     return {
       user,
       ready,
@@ -58,6 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await api.register(data);
         await login(data.email, data.password);
       },
+      updateUser,
       logout() {
         localStorage.removeItem(STORAGE_KEY);
         setAuthToken(null);

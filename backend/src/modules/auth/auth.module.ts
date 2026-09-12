@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service.js';
 import { AuthController } from './auth.controller.js';
 import { UsersModule } from '../users/users.module.js';
+import { EmailModule } from '../email/email.module.js';
 
 // Global : le JwtAuthGuard enregistré au niveau applicatif a besoin de JwtService.
 @Global()
@@ -19,6 +20,7 @@ import { UsersModule } from '../users/users.module.js';
       }),
     }),
     UsersModule,
+    EmailModule,
   ],
   controllers: [AuthController],
   providers: [AuthService],

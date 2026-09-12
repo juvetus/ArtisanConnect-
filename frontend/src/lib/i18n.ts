@@ -62,6 +62,7 @@ export const TRANSLATIONS = {
     login_email: 'Adresse email',
     login_password: 'Mot de passe',
     login_submit: 'Se connecter',
+    login_forgot_password: 'Mot de passe oublié ?',
     login_no_account: 'Pas encore de compte ?',
     login_create_account: 'Créer un compte',
     register_title: 'Créer un compte',
@@ -72,6 +73,31 @@ export const TRANSLATIONS = {
     register_submit: 'Créer mon compte',
     register_already_account: 'Déjà un compte ?',
     register_login_link: 'Se connecter',
+
+    // Password Reset
+    forgot_password_title: 'Mot de passe oublié',
+    forgot_password_subtitle: 'Saisissez votre adresse e-mail pour recevoir un lien de réinitialisation.',
+    forgot_password_submit: 'Envoyer le lien de réinitialisation',
+    forgot_password_back_login: 'Retour à la connexion',
+    reset_password_title: 'Nouveau mot de passe',
+    reset_password_subtitle: 'Choisissez un nouveau mot de passe sécurisé pour votre compte.',
+    reset_password_new_label: 'Nouveau mot de passe',
+    reset_password_confirm_label: 'Confirmer le mot de passe',
+    reset_password_submit: 'Changer mon mot de passe',
+    reset_password_mismatch: 'Les mots de passe ne correspondent pas.',
+    reset_password_success: 'Votre mot de passe a été modifié avec succès !',
+    reset_password_login_now: 'Se connecter maintenant',
+
+    // Email Verification
+    email_verification_banner: "Votre adresse e-mail n'est pas encore vérifiée.",
+    email_verification_resend: "Renvoyer l'e-mail de confirmation",
+    email_verification_sent: "Un nouvel e-mail de confirmation vous a été envoyé.",
+    email_verification_title: 'Vérification de votre adresse e-mail',
+    email_verification_success: 'Votre adresse e-mail a été vérifiée avec succès !',
+    email_verification_error: 'Le lien de vérification est invalide ou a expiré.',
+    email_verification_verifying: 'Vérification de votre adresse e-mail en cours…',
+    email_verification_back_home: "Retour à l'accueil",
+    email_verification_go_dashboard: 'Accéder à mon espace',
 
     // Atelier / Dashboard
     dashboard_title: 'Mon atelier',
@@ -327,6 +353,7 @@ export const TRANSLATIONS = {
     login_email: 'Email address',
     login_password: 'Password',
     login_submit: 'Sign In',
+    login_forgot_password: 'Forgot password?',
     login_no_account: 'Don’t have an account yet?',
     login_create_account: 'Create an account',
     register_title: 'Create an Account',
@@ -337,6 +364,31 @@ export const TRANSLATIONS = {
     register_submit: 'Create my account',
     register_already_account: 'Already have an account?',
     register_login_link: 'Sign In',
+
+    // Password Reset
+    forgot_password_title: 'Forgot Password',
+    forgot_password_subtitle: 'Enter your email address to receive a password reset link.',
+    forgot_password_submit: 'Send reset link',
+    forgot_password_back_login: 'Back to Sign In',
+    reset_password_title: 'Reset Password',
+    reset_password_subtitle: 'Choose a new secure password for your account.',
+    reset_password_new_label: 'New Password',
+    reset_password_confirm_label: 'Confirm Password',
+    reset_password_submit: 'Change Password',
+    reset_password_mismatch: 'Passwords do not match.',
+    reset_password_success: 'Your password has been changed successfully!',
+    reset_password_login_now: 'Sign In Now',
+
+    // Email Verification
+    email_verification_banner: 'Your email address is not verified yet.',
+    email_verification_resend: 'Resend confirmation email',
+    email_verification_sent: 'A new confirmation email has been sent to you.',
+    email_verification_title: 'Email Address Verification',
+    email_verification_success: 'Your email address has been successfully verified!',
+    email_verification_error: 'The verification link is invalid or has expired.',
+    email_verification_verifying: 'Verifying your email address…',
+    email_verification_back_home: 'Back to Home',
+    email_verification_go_dashboard: 'Go to my Dashboard',
 
     // Atelier / Dashboard
     dashboard_title: 'My Workshop',

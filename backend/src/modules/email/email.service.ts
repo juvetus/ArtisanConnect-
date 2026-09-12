@@ -49,6 +49,92 @@ export class EmailService {
     }
   }
 
+  async sendVerificationEmail(data: {
+    to: string;
+    userName: string;
+    verificationUrl: string;
+  }): Promise<boolean> {
+    const text = `Bonjour ${data.userName},\n\nMerci de vous être inscrit sur ArtisanConnect. Veuillez confirmer votre adresse email en cliquant sur le lien suivant :\n${data.verificationUrl}\n\nCe lien expirera dans 24 heures.\n\nSi vous n'avez pas créé de compte, vous pouvez ignorer cet email.\n\nL'équipe ArtisanConnect`;
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #292524; line-height: 1.6;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <h1 style="color: #b45309; margin: 0; font-size: 24px;">ArtisanConnect</h1>
+          <p style="color: #78716c; font-size: 14px; margin: 4px 0 0;">Le carrefour du savoir-faire artisanal</p>
+        </div>
+        <div style="background-color: #ffffff; border: 1px solid #e7e5e4; border-radius: 8px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+          <h2 style="font-size: 18px; color: #1c1917; margin-top: 0;">Confirmez votre adresse email</h2>
+          <p>Bonjour <strong>${this.escapeHtml(data.userName)}</strong>,</p>
+          <p>Merci de rejoindre <strong>ArtisanConnect</strong> ! Pour activer pleinement toutes les fonctionnalités de votre compte, veuillez confirmer votre adresse email.</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${this.escapeHtml(data.verificationUrl)}" style="background-color: #b45309; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 15px;">
+              Vérifier mon adresse email
+            </a>
+          </div>
+          <p style="font-size: 13px; color: #78716c;">Ou copiez et collez ce lien dans votre navigateur :<br>
+            <a href="${this.escapeHtml(data.verificationUrl)}" style="color: #b45309; word-break: break-all;">${this.escapeHtml(data.verificationUrl)}</a>
+          </p>
+          <p style="font-size: 12px; color: #a8a29e; margin-top: 24px; border-top: 1px solid #f5f5f4; padding-top: 12px;">
+            Ce lien est valable pendant 24 heures. Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email.
+          </p>
+        </div>
+        <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #a8a29e;">
+          &copy; ${new Date().getFullYear()} ArtisanConnect. Tous droits réservés.
+        </div>
+      </div>
+    `;
+
+    return this.send({
+      to: data.to,
+      subject: '[ArtisanConnect] Vérifiez votre adresse email',
+      text,
+      html,
+    });
+  }
+
+  async sendPasswordResetEmail(data: {
+    to: string;
+    userName: string;
+    resetUrl: string;
+  }): Promise<boolean> {
+    const text = `Bonjour ${data.userName},\n\nVous avez demandé la réinitialisation de votre mot de passe sur ArtisanConnect.\n\nVeuillez cliquer sur le lien suivant pour définir un nouveau mot de passe :\n${data.resetUrl}\n\nCe lien expirera dans 1 heure.\n\nSi vous n'avez pas demandé cette réinitialisation, vous pouvez ignorer ce message en toute sécurité.\n\nL'équipe ArtisanConnect`;
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #292524; line-height: 1.6;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <h1 style="color: #b45309; margin: 0; font-size: 24px;">ArtisanConnect</h1>
+          <p style="color: #78716c; font-size: 14px; margin: 4px 0 0;">Le carrefour du savoir-faire artisanal</p>
+        </div>
+        <div style="background-color: #ffffff; border: 1px solid #e7e5e4; border-radius: 8px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+          <h2 style="font-size: 18px; color: #1c1917; margin-top: 0;">Réinitialisation de votre mot de passe</h2>
+          <p>Bonjour <strong>${this.escapeHtml(data.userName)}</strong>,</p>
+          <p>Nous avons reçu une demande de réinitialisation de mot de passe pour votre compte <strong>ArtisanConnect</strong>.</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${this.escapeHtml(data.resetUrl)}" style="background-color: #b45309; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 15px;">
+              Réinitialiser mon mot de passe
+            </a>
+          </div>
+          <p style="font-size: 13px; color: #78716c;">Ou copiez et collez ce lien dans votre navigateur :<br>
+            <a href="${this.escapeHtml(data.resetUrl)}" style="color: #b45309; word-break: break-all;">${this.escapeHtml(data.resetUrl)}</a>
+          </p>
+          <p style="font-size: 12px; color: #a8a29e; margin-top: 24px; border-top: 1px solid #f5f5f4; padding-top: 12px;">
+            Ce lien est valable pendant 1 heure. Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email en toute sécurité. Votre mot de passe actuel reste inchangé.
+          </p>
+        </div>
+        <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #a8a29e;">
+          &copy; ${new Date().getFullYear()} ArtisanConnect. Tous droits réservés.
+        </div>
+      </div>
+    `;
+
+    return this.send({
+      to: data.to,
+      subject: '[ArtisanConnect] Réinitialisation de votre mot de passe',
+      text,
+      html,
+    });
+  }
+
   async sendServiceStatusEmail(data: {
     to: string;
     artisanName: string;

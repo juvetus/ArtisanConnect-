@@ -5,6 +5,7 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { LanguageProvider } from "@/lib/language-context";
 import { Header } from "@/components/Header";
+import { EmailVerificationBanner } from "@/components/EmailVerificationBanner";
 import { Footer } from "@/components/Footer";
 
 const geistSans = Geist({
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <LanguageProvider>
           <AuthProvider>
             <Header />
+            <EmailVerificationBanner />
             <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
             <Footer />
           </AuthProvider>
