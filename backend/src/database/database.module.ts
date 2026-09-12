@@ -22,7 +22,7 @@ import {
         password: configService.get('DB_PASSWORD', 'artisan_password_dev'),
         database: configService.get('DB_DATABASE', 'artisan_connect'),
         entities: [User, Listing, Order, Payment, Review, Message],
-        synchronize: configService.get('NODE_ENV') === 'development',
+        synchronize: configService.get('DB_SYNCHRONIZE', configService.get('NODE_ENV') === 'development' ? 'true' : 'false') === 'true',
         logging: configService.get('NODE_ENV') === 'development',
       }),
     }),
