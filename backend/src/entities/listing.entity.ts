@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import type { Relation } from 'typeorm';
 import { User } from './user.entity.js';
 import { Order } from './order.entity.js';
+import { Shop } from './shop.entity.js';
 
 @Entity('listings')
 export class Listing {
@@ -25,6 +26,16 @@ export class Listing {
 
   @Column({ nullable: true })
   imageUrl: string;
+
+  @Column('simple-array', { nullable: true })
+  imageUrls: string[];
+
+  /** Boutique à laquelle rattacher l'annonce (optionnel en phase de migration). */
+  @Column({ nullable: true })
+  shopId: string;
+
+  @ManyToOne(() => Shop, (shop) => shop.listings, { nullable: true, onDelete: 'SET NULL' })
+  shop: Relation<Shop>;
 
   @Column('enum', { enum: ['active', 'inactive'], default: 'active' })
   status: 'active' | 'inactive';

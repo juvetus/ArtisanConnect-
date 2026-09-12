@@ -604,6 +604,27 @@ curl -X POST http://localhost:3001/listings \
 
 ---
 
+## Institutions et accompagnement
+
+Le rôle `institution` peut publier des ressources et des programmes, suivre les artisans et examiner leurs dossiers de formalisation.
+
+```
+GET  /institutions/resources                  Ressources publiées
+GET  /institutions/programs                   Programmes actifs
+POST /institutions/resources                  Institution : publier formation/guide/modèle
+POST /institutions/programs                   Institution : publier accompagnement/financement/subvention
+GET  /institutions/dashboard                  Institution : indicateurs sectoriels
+GET  /institutions/formalizations             Institution : dossiers à examiner
+PATCH /institutions/formalizations/:id/status Institution : approuver ou demander correction
+GET  /institutions/report.csv                 Institution : exporter le rapport
+GET  /institutions/formalizations/me          Artisan : consulter sa progression
+POST /institutions/formalizations              Artisan : soumettre son dossier
+```
+
+Les endpoints de pilotage et de revue sont réservés aux institutions authentifiées. Les ressources et programmes publiés sont consultables par les utilisateurs connectés.
+
+---
+
 ## Next Phases
 
 **Phase 2 Additions:**
@@ -618,5 +639,5 @@ curl -X POST http://localhost:3001/listings \
 
 ---
 
-Last updated: 2026-09-05
-API Version: 1.0.0 (MVP)
+Last updated: 2026-09-06
+API Version: 1.1.0 (MVP + institutions)

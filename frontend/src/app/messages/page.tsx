@@ -5,15 +5,18 @@ import { Suspense, useEffect, useState } from 'react';
 import useSWR from 'swr';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { useLanguage } from '@/lib/language-context';
 
-function Conversation({ otherUserId }: { otherUserId: string }) {
+function Conversation({ otherUserId, serviceOrderId }: { otherUserId: string; serviceOrderId?: string }) {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  const [attachment, setAttachment] = useState<File | null>(null);
 
   const { data, mutate } = useSWR(
-    ['conversation', otherUserId],
-    ([, id]) => api.conversation(id),
+    ['conversation', otherUserId, serviceOrderId],
+    ([, id, orderId]) => orderId ? api.serviceOrderConversation(orderId) : api.conversation(id),
     { refreshInterval: 10000 },
   );
 
@@ -22,12 +25,16 @@ function Conversation({ otherUserId }: { otherUserId: string }) {
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     const content = draft.trim();
-    if (!content) return;
+    if (!content && !attachment) return;
 
     setSending(true);
     try {
-      await api.sendMessage({ recipientId: otherUserId, content });
+      if (attachment && serviceOrderId) {
+        await api.uploadServiceAttachment(serviceOrderId, attachment);
+      }
+      if (content) await api.sendMessage({ recipientId: otherUserId, serviceOrderId, content });
       setDraft('');
+      setAttachment(null);
       await mutate();
     } finally {
       setSending(false);
@@ -39,7 +46,7 @@ function Conversation({ otherUserId }: { otherUserId: string }) {
       <div className="flex-1 space-y-3 overflow-y-auto p-4">
         {messages.length === 0 ? (
           <p className="text-center text-sm text-stone-500">
-            Aucun message. Écrivez le premier !
+            {t('messages_empty')}
           </p>
         ) : (
           messages.map((message) => {
@@ -52,6 +59,7 @@ function Conversation({ otherUserId }: { otherUserId: string }) {
                   }`}
                 >
                   <p className="whitespace-pre-line">{message.content}</p>
+                  {message.fileUrls?.map((fileUrl) => <a key={fileUrl} href={`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'}${fileUrl}`} target="_blank" rel="noreferrer" className="mt-2 block text-xs underline">{t('messages_attachment')}</a>)}
                   <p className={`mt-1 text-xs ${isMine ? 'text-amber-200' : 'text-stone-500'}`}>
                     {new Date(message.createdAt).toLocaleString('fr-FR', {
                       day: '2-digit',
@@ -71,7 +79,7 @@ function Conversation({ otherUserId }: { otherUserId: string }) {
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Votre message…"
+          placeholder={t('messages_placeholder')}
           className="flex-1 rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600"
         />
         <button
@@ -79,18 +87,22 @@ function Conversation({ otherUserId }: { otherUserId: string }) {
           disabled={sending || !draft.trim()}
           className="rounded-md bg-amber-700 px-4 py-2 font-medium text-white hover:bg-amber-800 disabled:opacity-60"
         >
-          Envoyer
+          {t('messages_send')}
         </button>
+        {serviceOrderId ? <label className="cursor-pointer rounded-md border border-stone-300 px-3 py-2 text-sm">{t('messages_attachment')}<input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.webp,.zip,.txt" onChange={(event) => setAttachment(event.target.files?.[0] ?? null)} /></label> : null}
       </form>
+      {attachment ? <p className="px-3 pb-2 text-xs text-stone-500">{t('messages_attachment')} : {attachment.name}</p> : null}
     </div>
   );
 }
 
 function MessagesContent() {
   const { user, ready } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
   const activeId = searchParams.get('to');
+  const serviceOrderId = searchParams.get('serviceOrderId') || undefined;
 
   const { data: threads, isLoading } = useSWR(user ? 'threads' : null, () => api.threads(), {
     refreshInterval: 15000,
@@ -100,13 +112,13 @@ function MessagesContent() {
     if (ready && !user) router.push('/login');
   }, [ready, user, router]);
 
-  if (!ready || !user || isLoading) return <p className="text-stone-600">Chargement…</p>;
+  if (!ready || !user || isLoading) return <p className="text-stone-600">{t('action_loading')}</p>;
 
   const activeThread = threads?.find((t) => t.user.id === activeId);
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Messages</h1>
+      <h1 className="text-2xl font-semibold">{t('messages_page_title')}</h1>
 
       <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
         <aside className="space-y-2">
@@ -142,7 +154,7 @@ function MessagesContent() {
         {activeId ? (
           <div>
             <p className="mb-2 font-medium">{activeThread?.user.name ?? 'Nouvelle conversation'}</p>
-            <Conversation otherUserId={activeId} />
+            <Conversation otherUserId={activeId} serviceOrderId={serviceOrderId} />
           </div>
         ) : (
           <p className="rounded-lg border border-stone-200 bg-white p-8 text-center text-stone-600">

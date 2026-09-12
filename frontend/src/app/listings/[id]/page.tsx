@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { categoryIcon, categoryLabel } from '@/lib/categories';
 import { formatXAF } from '@/lib/format';
+import { resolveMediaUrl } from '@/lib/media';
 
 export default function ListingPage() {
   const { id } = useParams<{ id: string }>();
@@ -25,6 +26,19 @@ export default function ListingPage() {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'orange_money'>('cash');
   const [ordering, setOrdering] = useState(false);
   const [error, setError] = useState('');
+  const [zoomIndex, setZoomIndex] = useState<number | null>(null);
+  const images = listing?.imageUrls?.length ? listing.imageUrls : listing?.imageUrl ? [listing.imageUrl] : [];
+
+  useEffect(() => {
+    if (zoomIndex === null || images.length === 0) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setZoomIndex(null);
+      if (event.key === 'ArrowRight') setZoomIndex((index) => index === null ? null : (index + 1) % images.length);
+      if (event.key === 'ArrowLeft') setZoomIndex((index) => index === null ? null : (index - 1 + images.length) % images.length);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [zoomIndex, images.length]);
 
   const handleOrder = async () => {
     if (!user) {
@@ -66,9 +80,20 @@ export default function ListingPage() {
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
       <div>
-        <div className="flex h-64 items-center justify-center rounded-lg bg-stone-100 text-7xl">
-          {categoryIcon(listing.category, listing.type)}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {images.length ? images.map((image, index) => <button key={image} type="button" onClick={() => setZoomIndex(index)} className="group relative overflow-hidden rounded-lg bg-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-600"><img src={resolveMediaUrl(image)} alt={`${listing.title} ${index + 1}`} className="aspect-square w-full object-cover transition duration-200 group-hover:scale-105" /><span className="absolute bottom-2 right-2 rounded-md bg-stone-900/75 px-2 py-1 text-xs text-white">Agrandir</span></button>) : <div className="col-span-full flex h-64 items-center justify-center rounded-lg bg-stone-100 text-7xl">{categoryIcon(listing.category, listing.type)}</div>}
         </div>
+
+        {zoomIndex !== null && images[zoomIndex] ? (
+          <div role="dialog" aria-modal="true" aria-label="Aperçu agrandi" className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setZoomIndex(null)}>
+            <div className="relative flex max-h-[90vh] max-w-6xl items-center gap-3" onClick={(event) => event.stopPropagation()}>
+              <button type="button" aria-label="Image précédente" onClick={() => setZoomIndex((index) => index === null ? null : (index - 1 + images.length) % images.length)} className="rounded-full bg-white/90 px-4 py-3 text-xl text-stone-900 shadow">‹</button>
+              <img src={resolveMediaUrl(images[zoomIndex])} alt={`${listing.title} agrandie`} className="max-h-[85vh] max-w-[80vw] rounded-lg object-contain shadow-2xl" />
+              <button type="button" aria-label="Image suivante" onClick={() => setZoomIndex((index) => index === null ? null : (index + 1) % images.length)} className="rounded-full bg-white/90 px-4 py-3 text-xl text-stone-900 shadow">›</button>
+              <button type="button" aria-label="Fermer" onClick={() => setZoomIndex(null)} className="absolute -right-2 -top-12 rounded-full bg-white px-3 py-1 text-xl text-stone-900 shadow">×</button>
+            </div>
+          </div>
+        ) : null}
 
         <span className="mt-6 inline-block text-xs uppercase tracking-wide text-stone-500">
           {categoryLabel(listing.category)} · {listing.type === 'service' ? 'Service' : 'Produit'}
