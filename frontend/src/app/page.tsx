@@ -205,13 +205,13 @@ export default function HomePage() {
       <section className="space-y-4 border-t border-stone-200 pt-8">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <p className="text-sm font-medium uppercase tracking-wide text-amber-700">Prestations</p>
-            <h2 className="text-2xl font-semibold text-stone-900">Services proposés par nos artisans</h2>
+            <p className="text-sm font-medium uppercase tracking-wide text-amber-700">{t('home_services_badge')}</p>
+            <h2 className="text-2xl font-semibold text-stone-900">{t('home_services_title')}</h2>
           </div>
-          <a href="/services" className="text-sm font-medium text-amber-700 hover:text-amber-800">Voir tous les services →</a>
+          <a href="/services" className="text-sm font-medium text-amber-700 hover:text-amber-800">{t('home_services_link')}</a>
         </div>
         {!services?.length ? (
-          <p className="rounded-md border border-stone-200 bg-stone-50 p-5 text-sm text-stone-600">Aucun service approuvé pour le moment.</p>
+          <p className="rounded-md border border-stone-200 bg-stone-50 p-5 text-sm text-stone-600">{t('home_services_empty')}</p>
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {services.map((service) => (
@@ -220,10 +220,10 @@ export default function HomePage() {
                   <p className="text-xs font-medium uppercase tracking-wide text-amber-700">{categoryLabel(service.category)}</p>
                   <h3 className="mt-2 text-lg font-semibold text-stone-900">{service.title}</h3>
                   <p className="mt-2 line-clamp-3 text-sm text-stone-600">{service.description}</p>
-                  <p className="mt-3 text-sm text-stone-600">Délai : <strong className="text-stone-900">{service.estimatedDays} jours</strong></p>
-                  <p className="mt-2 text-sm text-stone-600">{service.averageRating ? `★ ${service.averageRating}/5` : 'Pas encore noté'} <span className="text-stone-400">({service.reviewCount ?? 0} avis)</span></p>
+                  <p className="mt-3 text-sm text-stone-600">{t('service_estimated_days', { days: service.estimatedDays })}</p>
+                  <p className="mt-2 text-sm text-stone-600">{service.averageRating ? `★ ${service.averageRating}/5` : t('service_no_rating')} <span className="text-stone-400">{t('service_reviews_count', { count: service.reviewCount ?? 0 })}</span></p>
                 </div>
-                <a href={`/services/${service.id}`} className="mt-4 rounded-md bg-amber-700 px-4 py-2 text-center text-sm font-medium text-white hover:bg-amber-800">Voir le service</a>
+                <a href={`/services/${service.id}`} className="mt-4 rounded-md bg-amber-700 px-4 py-2 text-center text-sm font-medium text-white hover:bg-amber-800">{t('home_service_view')}</a>
               </article>
             ))}
           </div>

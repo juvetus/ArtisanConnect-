@@ -49,6 +49,11 @@ export const TRANSLATIONS = {
     service_estimated_days: 'Délai estimé : {days} jours',
     service_no_rating: 'Pas encore noté',
     service_reviews_count: '({count} avis)',
+    home_services_badge: 'Prestations',
+    home_services_title: 'Services proposés par nos artisans',
+    home_services_link: 'Voir tous les services →',
+    home_services_empty: 'Aucun service approuvé pour le moment.',
+    home_service_view: 'Voir le service',
     action_see_and_order: 'Voir et commander',
 
     // Login & Register
@@ -309,6 +314,11 @@ export const TRANSLATIONS = {
     service_estimated_days: 'Estimated turnaround: {days} days',
     service_no_rating: 'No ratings yet',
     service_reviews_count: '({count} reviews)',
+    home_services_badge: 'Services',
+    home_services_title: 'Services offered by our artisans',
+    home_services_link: 'View all services →',
+    home_services_empty: 'No approved services at the moment.',
+    home_service_view: 'View service',
     action_see_and_order: 'View & Order',
 
     // Login & Register
