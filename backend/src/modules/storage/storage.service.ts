@@ -13,22 +13,32 @@ export type StoredUpload = {
 export class StorageService {
   private readonly logger = new Logger(StorageService.name);
   private readonly enabled: boolean;
+  private readonly missingConfig: string[];
 
   constructor(private readonly config: ConfigService) {
     const cloudName = this.config.get<string>('CLOUDINARY_CLOUD_NAME');
     const apiKey = this.config.get<string>('CLOUDINARY_API_KEY');
     const apiSecret = this.config.get<string>('CLOUDINARY_API_SECRET');
-    this.enabled = Boolean(cloudName && apiKey && apiSecret);
+    this.missingConfig = [
+      !cloudName ? 'CLOUDINARY_CLOUD_NAME' : null,
+      !apiKey ? 'CLOUDINARY_API_KEY' : null,
+      !apiSecret ? 'CLOUDINARY_API_SECRET' : null,
+    ].filter((key): key is string => key !== null);
+    this.enabled = this.missingConfig.length === 0;
 
     if (this.enabled) {
       cloudinary.config({ cloud_name: cloudName, api_key: apiKey, api_secret: apiSecret, secure: true });
     } else {
-      this.logger.warn('Cloudinary non configure : le stockage local reste utilise en developpement.');
+      this.logger.warn(`Cloudinary non configure. Variables manquantes: ${this.missingConfig.join(', ')}`);
     }
   }
 
   isEnabled() {
     return this.enabled;
+  }
+
+  missingConfiguration() {
+    return [...this.missingConfig];
   }
 
   async uploadBuffer(

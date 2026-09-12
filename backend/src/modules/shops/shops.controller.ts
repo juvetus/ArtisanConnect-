@@ -28,7 +28,7 @@ export class ShopsController {
       throw new BadRequestException('Document KYC invalide (JPEG, PNG, WebP, GIF, MP4, MOV ou PDF)');
     }
     if (!this.storageService.isEnabled()) {
-      throw new BadRequestException('Le stockage Cloudinary doit être configuré pour les documents KYC.');
+      throw new BadRequestException(`Le stockage Cloudinary doit être configuré pour les documents KYC. Variables manquantes: ${this.storageService.missingConfiguration().join(', ')}`);
     }
     const resourceType = file.mimetype.startsWith('image/') ? 'image' : file.mimetype.startsWith('video/') ? 'video' : 'raw';
     try {
