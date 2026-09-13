@@ -86,15 +86,6 @@ export default function CreateShopPage() {
   const allDocsProvided = requiredDocs.every((req) =>
     docs.some((doc) => doc.label === req.label),
   );
-  const isValidCameroonPhoneNumber = (phone: string) => {
-    const normalized = phone.replace(/[\s().-]/g, '').replace(/^00/, '+');
-    const localNumber = normalized.startsWith('+237')
-      ? normalized.slice(4)
-      : normalized.startsWith('237')
-        ? normalized.slice(3)
-        : normalized;
-    return /^[26]\d{8}$/.test(localNumber);
-  };
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -245,7 +236,7 @@ export default function CreateShopPage() {
             </button>
             <button
               type="button"
-              disabled={!isValidCameroonPhoneNumber(mobileMoneyNumber) || uploading !== null}
+              disabled={!mobileMoneyNumber.trim() || uploading !== null}
               onClick={() => setStep(3)}
               className="flex-1 rounded-md bg-amber-700 py-2 font-medium text-white hover:bg-amber-800 disabled:opacity-60"
             >
