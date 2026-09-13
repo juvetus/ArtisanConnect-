@@ -29,6 +29,13 @@ const ADMIN_CREATABLE_ROLES: { value: Role; label: string }[] = [
   { value: 'institution', label: 'Institution' },
 ];
 
+const ARTISAN_PROFILE_TYPES = [
+  { value: 'female', label: 'Femme artisane' },
+  { value: 'cooperative', label: 'Coopérative / GIC' },
+  { value: 'male', label: 'Homme artisan' },
+  { value: 'other', label: 'Autre' },
+] as const;
+
 function roleLabel(role: Role) {
   return ADMIN_CREATABLE_ROLES.find((item) => item.value === role)?.label ?? role;
 }
@@ -47,6 +54,7 @@ export default function AdminPage() {
     email: '',
     password: '',
     role: 'viewer' as Role,
+    gender: 'cooperative' as 'female' | 'male' | 'cooperative' | 'other',
   });
   const PAGE_SIZE = 10;
 
@@ -88,7 +96,7 @@ export default function AdminPage() {
     event.preventDefault();
     await runAdminAction(async () => {
       await api.adminCreateUser(newUser);
-      setNewUser({ name: '', email: '', password: '', role: 'viewer' });
+      setNewUser({ name: '', email: '', password: '', role: 'viewer', gender: 'cooperative' });
       setUsersPage(0);
       setView('users');
     });
@@ -250,6 +258,16 @@ export default function AdminPage() {
               >
                 {ADMIN_CREATABLE_ROLES.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}
               </select>
+              {newUser.role === 'artisan' && (
+                <select
+                  value={newUser.gender}
+                  onChange={(event) => setNewUser((current) => ({ ...current, gender: event.target.value as typeof newUser.gender }))}
+                  className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600 md:col-span-4"
+                  aria-label="Profil artisan"
+                >
+                  {ARTISAN_PROFILE_TYPES.map((profile) => <option key={profile.value} value={profile.value}>{profile.label}</option>)}
+                </select>
+              )}
               <button className="rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-white hover:bg-amber-800">
                 Ajouter
               </button>
