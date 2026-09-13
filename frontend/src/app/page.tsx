@@ -75,7 +75,7 @@ export default function HomePage() {
               <a href="/how-it-works" className="rounded-lg border border-white/30 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10">Comment ça marche</a>
             </div>
           </div>
-          <div className="min-h-64 bg-[url('/images/hero-artisan.jpg')] bg-cover bg-center" aria-hidden />
+          <div className="min-h-64 bg-[url('/images/african-market-artisan-stockcake.jpg')] bg-cover bg-center" aria-hidden />
         </div>
       </section>
 
@@ -99,9 +99,9 @@ export default function HomePage() {
 
       <section className="grid gap-4 overflow-hidden rounded-xl border border-stone-200 bg-white p-4 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="grid grid-cols-2 gap-3">
-          <img src="/images/hero-artisan.jpg" alt="Marché artisanal camerounais avec textiles et poteries" className="col-span-2 h-60 w-full rounded-lg object-cover" />
-          <img src="/images/vannerie.jpg" alt="Objets de vannerie artisanale" className="h-36 w-full rounded-lg object-cover" />
-          <img src="/images/tissu-africain.jpg" alt="Tissus africains colorés" className="h-36 w-full rounded-lg object-cover" />
+          <img src="/images/african-marketplace-artisan-stockcake.jpg" alt="Stand artisanal coloré avec vannerie et décorations" className="col-span-2 h-60 w-full rounded-lg object-cover" />
+          <img src="/images/african-market-artisan-stockcake.jpg" alt="Marché artisanal camerounais avec textiles et poteries" className="h-36 w-full rounded-lg object-cover" />
+          <img src="/images/infusing-personal-style-into-your-craft-market-stall.jpg" alt="Stand de créations artisanales avec textiles et objets décoratifs" className="h-36 w-full rounded-lg object-cover" />
         </div>
         <div className="flex flex-col justify-center p-2 lg:p-6">
           <p className="text-sm font-medium uppercase tracking-wide text-amber-700">Aperçu marketplace</p>
