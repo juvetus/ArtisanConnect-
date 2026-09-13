@@ -78,7 +78,7 @@ services:
       - key: NEXT_PUBLIC_API_URL
         value: https://artisanconnect-api.onrender.com
       - key: NEXT_PUBLIC_SITE_URL
-        value: https://artisanconnect-web.onrender.com
+        value: https://artisanconnectcm.info
 
 databases:
   - name: artisanconnect-db

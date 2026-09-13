@@ -13,11 +13,46 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://artisanconnectcm.info';
+
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'),
-  title: "ArtisanConnect — la place de marché des artisans",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "ArtisanConnect — la place de marché des artisans",
+    template: "%s | ArtisanConnect",
+  },
   description:
-    "Découvrez et commandez des créations et services d'artisans locaux, paiement en espèces à la remise.",
+    "Découvrez, commandez et échangez avec des artisans, créateurs, boutiques et prestataires locaux au Cameroun.",
+  applicationName: 'ArtisanConnect',
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'fr_CM',
+    url: siteUrl,
+    siteName: 'ArtisanConnect',
+    title: "ArtisanConnect — la place de marché des artisans",
+    description: "La plateforme camerounaise pour découvrir, commander et soutenir les artisans locaux.",
+    images: [{ url: '/images/hero-artisan.jpg', width: 1200, height: 630, alt: 'Artisan camerounais dans son atelier' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: "ArtisanConnect — la place de marché des artisans",
+    description: "Découvrez et commandez auprès des artisans locaux au Cameroun.",
+    images: ['/images/hero-artisan.jpg'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
+  },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
