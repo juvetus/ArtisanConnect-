@@ -54,7 +54,7 @@ export default function HomePage() {
   };
 
   const activeCategory = CATEGORIES.find((c) => c.value === filters.category);
-  const visibleListings = listings.length ? listings : !hasFilter && !isLoading && !error ? demoListings : [];
+  const visibleListings = listings.length ? listings : !hasFilter && !isLoading ? demoListings : [];
   const visibleTotal = listings.length ? total : visibleListings.length;
   const visibleServices = services?.length ? services : demoServices;
   const featuredProducts = visibleListings.slice(0, 6);
@@ -83,7 +83,7 @@ export default function HomePage() {
         {[
           ['Produits artisanaux', 'Vannerie, textile, sculpture, décoration', 'vannerie'],
           ['Services artisans', 'Couture, menuiserie, plomberie, électricité', 'couture'],
-          ['Créatrices locales', 'Mise en avant des femmes artisanes', 'textile'],
+          ['Créatrices locales', 'Mise en avant des femmes artisanes', 'mode'],
           ['Coopératives & GIC', 'Groupements et structures collectives', 'ameublement'],
         ].map(([title, description, category]) => (
           <button
@@ -255,16 +255,17 @@ export default function HomePage() {
       <div className="space-y-5">
         {isLoading ? (
           <p className="text-stone-600">{t('action_loading')}</p>
-        ) : error ? (
-          <p className="rounded-md border border-red-200 bg-red-50 p-4 text-red-700">
-            Impossible de charger le catalogue. Le serveur est-il démarré ?
-          </p>
         ) : visibleListings.length === 0 ? (
           <p className="rounded-md border border-stone-200 bg-white p-8 text-center text-stone-600">
             Aucune annonce ne correspond à votre recherche.
           </p>
         ) : (
           <>
+            {error && (
+              <p className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                Le catalogue réel est momentanément indisponible. Les annonces de démonstration restent affichées pour présenter la marketplace.
+              </p>
+            )}
             <p className="text-sm text-stone-600">
               {t('announcements_count', { count: visibleTotal })}
               {filters.q && ` pour « ${filters.q} »`}
@@ -314,7 +315,7 @@ export default function HomePage() {
                   <p className="mt-3 text-sm text-stone-600">{t('service_estimated_days', { days: service.estimatedDays })}</p>
                   <p className="mt-2 text-sm text-stone-600">{service.averageRating ? `★ ${service.averageRating}/5` : t('service_no_rating')} <span className="text-stone-400">{t('service_reviews_count', { count: service.reviewCount ?? 0 })}</span></p>
                 </div>
-                <a href={`/services/${service.id}`} className="mt-4 rounded-md bg-amber-700 px-4 py-2 text-center text-sm font-medium text-white hover:bg-amber-800">{t('home_service_view')}</a>
+                <a href={service.id.startsWith('demo-') ? '/contact' : `/services/${service.id}`} className="mt-4 rounded-md bg-amber-700 px-4 py-2 text-center text-sm font-medium text-white hover:bg-amber-800">{t('home_service_view')}</a>
               </article>
             ))}
           </div>
