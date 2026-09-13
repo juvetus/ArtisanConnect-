@@ -49,6 +49,7 @@ export default function AdminPage() {
   const [listingsPage, setListingsPage] = useState(0);
   const [shopsPage, setShopsPage] = useState(0);
   const [recentOrdersPage, setRecentOrdersPage] = useState(0);
+  const [userSearch, setUserSearch] = useState('');
   const [newUser, setNewUser] = useState({
     name: '',
     email: '',
@@ -81,6 +82,19 @@ export default function AdminPage() {
   }
 
   const { stats, recentOrders } = data.overview;
+  const normalizedUserSearch = userSearch.trim().toLowerCase();
+  const filteredUsers = normalizedUserSearch
+    ? data.users.filter((member) => [
+      member.name,
+      member.email,
+      roleLabel(member.role),
+      member.role,
+      member.gender === 'female' ? 'femme artisane' : undefined,
+      member.gender === 'cooperative' ? 'coopérative gic cooperative' : undefined,
+      member.gender,
+      member.isActive === false ? 'désactivé desactive inactive' : 'actif active',
+    ].filter(Boolean).join(' ').toLowerCase().includes(normalizedUserSearch))
+    : data.users;
 
   const moderateListing = async (listing: Listing) => {
     await api.adminSetListingStatus(listing.id, listing.status === 'active' ? 'inactive' : 'active');
@@ -276,11 +290,25 @@ export default function AdminPage() {
 
           <section className="overflow-hidden rounded-lg border border-stone-200 bg-white">
             <div className="border-b border-stone-200 p-5">
-              <h2 className="font-semibold">Utilisateurs ({data.users.length})</h2>
-              <p className="mt-1 text-sm text-stone-600">Les mots de passe ne sont jamais exposés.</p>
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <h2 className="font-semibold">Utilisateurs ({filteredUsers.length}/{data.users.length})</h2>
+                  <p className="mt-1 text-sm text-stone-600">Les mots de passe ne sont jamais exposés.</p>
+                </div>
+                <label className="w-full max-w-sm text-sm font-medium text-stone-700">
+                  Rechercher un utilisateur
+                  <input
+                    type="search"
+                    value={userSearch}
+                    onChange={(event) => { setUserSearch(event.target.value); setUsersPage(0); }}
+                    placeholder="Nom, e-mail, rôle, coopérative..."
+                    className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
+                  />
+                </label>
+              </div>
             </div>
             <div className="divide-y divide-stone-100">
-              {data.users.slice(usersPage * PAGE_SIZE, (usersPage + 1) * PAGE_SIZE).map((member) => (
+              {filteredUsers.slice(usersPage * PAGE_SIZE, (usersPage + 1) * PAGE_SIZE).map((member) => (
                 <div key={member.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
                   <div>
                     <p className="font-medium">{member.name}</p>
@@ -322,13 +350,16 @@ export default function AdminPage() {
                   </div>
                 </div>
               ))}
+              {filteredUsers.length === 0 && (
+                <p className="p-4 text-sm text-stone-500">Aucun utilisateur ne correspond à cette recherche.</p>
+              )}
             </div>
-            {data.users.length > PAGE_SIZE && (
+            {filteredUsers.length > PAGE_SIZE && (
               <div className="p-4 border-t border-stone-100">
                 <Pagination
                   page={usersPage}
                   hasPrevious={usersPage > 0}
-                  hasNext={(usersPage + 1) * PAGE_SIZE < data.users.length}
+                  hasNext={(usersPage + 1) * PAGE_SIZE < filteredUsers.length}
                   onPrevious={() => setUsersPage((p) => Math.max(0, p - 1))}
                   onNext={() => setUsersPage((p) => p + 1)}
                 />
