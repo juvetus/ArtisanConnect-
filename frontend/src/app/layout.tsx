@@ -24,6 +24,11 @@ export const metadata: Metadata = {
   description:
     "Découvrez, commandez et échangez avec des artisans, créateurs, boutiques et prestataires locaux au Cameroun.",
   applicationName: 'ArtisanConnect',
+  icons: {
+    icon: '/icon.svg',
+    shortcut: '/icon.svg',
+    apple: '/icon.svg',
+  },
   alternates: {
     canonical: '/',
   },
