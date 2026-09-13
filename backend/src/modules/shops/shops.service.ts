@@ -57,7 +57,7 @@ export class ShopsService {
     const required = Shop.requiredDocuments(data.type);
     const provided = new Set(data.kycDocuments.map((doc) => doc.label));
     const missing = required.filter((label) => !provided.has(label));
-    const mobileMoneyNumber = this.normalizeCameroonMobileMoneyNumber(data.mobileMoneyNumber);
+    const mobileMoneyNumber = this.normalizeCameroonPhoneNumber(data.mobileMoneyNumber);
 
     const hasCompleteKyc = missing.length === 0;
     const status: Shop['status'] = data.type === 'artisan' || !hasCompleteKyc ? 'pending' : 'active';
@@ -99,7 +99,7 @@ export class ShopsService {
     return savedShop;
   }
 
-  private normalizeCameroonMobileMoneyNumber(phone: string): string {
+  private normalizeCameroonPhoneNumber(phone: string): string {
     const normalized = String(phone || '').replace(/[\s().-]/g, '').replace(/^00/, '+');
     const withoutCountryCode = normalized.startsWith('+237')
       ? normalized.slice(4)
@@ -107,8 +107,8 @@ export class ShopsService {
         ? normalized.slice(3)
         : normalized;
 
-    if (!/^6\d{8}$/.test(withoutCountryCode)) {
-      throw new BadRequestException('Le numéro Mobile Money doit être un numéro camerounais valide');
+    if (!/^[26]\d{8}$/.test(withoutCountryCode)) {
+      throw new BadRequestException('Le numéro doit être un numéro camerounais valide');
     }
 
     return `+237${withoutCountryCode}`;

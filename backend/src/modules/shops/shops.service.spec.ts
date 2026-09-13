@@ -127,6 +127,19 @@ describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
     expect(shop.status).toBe('pending');
   });
 
+  it('doit accepter un numéro fixe camerounais avec préfixe 00 237', async () => {
+    const shop = await service.create('artisan-user-id', {
+      type: 'artisan',
+      name: 'Atelier numéro fixe',
+      description: 'Test numéro fixe Cameroun',
+      mobileMoneyNumber: '00 237 2 22 65 43 21',
+      deliveryMode: 'workshop',
+      kycDocuments: [],
+    });
+
+    expect(shop.mobileMoneyNumber).toBe('+237222654321');
+  });
+
   it('doit refuser un numéro Mobile Money qui n’est pas camerounais', async () => {
     await expect(
       service.create('artisan-user-id', {
@@ -137,7 +150,7 @@ describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
         deliveryMode: 'workshop',
         kycDocuments: [],
       }),
-    ).rejects.toThrow('Le numéro Mobile Money doit être un numéro camerounais valide');
+    ).rejects.toThrow('Le numéro doit être un numéro camerounais valide');
   });
 
   it('doit permettre à l’administrateur de valider (approuver) une boutique artisan pending', async () => {

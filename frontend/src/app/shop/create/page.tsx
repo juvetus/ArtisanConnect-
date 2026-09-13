@@ -86,14 +86,14 @@ export default function CreateShopPage() {
   const allDocsProvided = requiredDocs.every((req) =>
     docs.some((doc) => doc.label === req.label),
   );
-  const isValidCameroonMobileMoneyNumber = (phone: string) => {
+  const isValidCameroonPhoneNumber = (phone: string) => {
     const normalized = phone.replace(/[\s().-]/g, '').replace(/^00/, '+');
     const localNumber = normalized.startsWith('+237')
       ? normalized.slice(4)
       : normalized.startsWith('237')
         ? normalized.slice(3)
         : normalized;
-    return /^6\d{8}$/.test(localNumber);
+    return /^[26]\d{8}$/.test(localNumber);
   };
 
   const handleSubmit = async () => {
@@ -221,18 +221,18 @@ export default function CreateShopPage() {
           })}
           <div>
             <label htmlFor="momophone" className="block text-sm font-medium">
-              Numéro Mobile Money camerounais
+              Numéro camerounais
             </label>
             <input
               id="momophone"
               type="tel"
               required
-              placeholder="Ex: 237699001122"
+              placeholder="Ex: 00237 2 22 65 43 21"
               value={mobileMoneyNumber}
               onChange={(e) => setMobileMoneyNumber(e.target.value)}
               className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600"
             />
-            <p className="mt-1 text-xs text-stone-500">Format accepté : 6XXXXXXXX, 2376XXXXXXXX ou +2376XXXXXXXX.</p>
+            <p className="mt-1 text-xs text-stone-500">Formats acceptés : 6XXXXXXXX, 2XXXXXXXX, 237XXXXXXXXX, +237XXXXXXXXX ou 00237XXXXXXXXX.</p>
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex gap-3">
@@ -245,7 +245,7 @@ export default function CreateShopPage() {
             </button>
             <button
               type="button"
-              disabled={!isValidCameroonMobileMoneyNumber(mobileMoneyNumber) || uploading !== null}
+              disabled={!isValidCameroonPhoneNumber(mobileMoneyNumber) || uploading !== null}
               onClick={() => setStep(3)}
               className="flex-1 rounded-md bg-amber-700 py-2 font-medium text-white hover:bg-amber-800 disabled:opacity-60"
             >
