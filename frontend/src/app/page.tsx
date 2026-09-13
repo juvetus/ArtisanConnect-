@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import { ListingCard } from '@/components/ListingCard';
 import { Pagination } from '@/components/Pagination';
 import { CATEGORIES, PRODUCT_CATEGORIES, SERVICE_CATEGORIES, categoryLabel } from '@/lib/categories';
+import { demoArtisans, demoListings, demoServices } from '@/lib/demo-content';
 import { useLanguage } from '@/lib/language-context';
 import type { Service } from '@/lib/types';
 
@@ -53,15 +54,104 @@ export default function HomePage() {
   };
 
   const activeCategory = CATEGORIES.find((c) => c.value === filters.category);
+  const visibleListings = listings.length ? listings : !hasFilter && !isLoading && !error ? demoListings : [];
+  const visibleTotal = listings.length ? total : visibleListings.length;
+  const visibleServices = services?.length ? services : demoServices;
+  const featuredProducts = visibleListings.slice(0, 6);
 
   return (
     <div className="space-y-8">
-      <section className="rounded-xl bg-amber-800 px-6 py-10 text-white">
-        <h1 className="text-3xl font-semibold">{t('hero_title')}</h1>
-        <p className="mt-2 max-w-2xl text-amber-100">
-          {t('hero_subtitle')}
-        </p>
+      <section className="overflow-hidden rounded-xl bg-stone-900 text-white">
+        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="px-6 py-10 lg:px-8">
+            <p className="text-sm font-semibold uppercase tracking-wide text-amber-300">Marketplace artisanale camerounaise</p>
+            <h1 className="mt-3 text-3xl font-semibold leading-tight md:text-4xl">Trouvez les meilleurs artisans du Cameroun.</h1>
+            <p className="mt-3 max-w-2xl text-stone-200">
+              Commandez des produits faits main, demandez un service ou échangez directement avec un artisan local.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <a href="#produits-populaires" className="rounded-lg bg-amber-600 px-5 py-3 text-sm font-semibold text-white hover:bg-amber-700">Voir les produits</a>
+              <a href="/services" className="rounded-lg bg-white px-5 py-3 text-sm font-semibold text-stone-900 hover:bg-stone-100">Demander un service</a>
+              <a href="/how-it-works" className="rounded-lg border border-white/30 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10">Comment ça marche</a>
+            </div>
+          </div>
+          <div className="min-h-64 bg-[url('/images/hero-artisan.jpg')] bg-cover bg-center" aria-hidden />
+        </div>
+      </section>
 
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          ['Produits artisanaux', 'Vannerie, textile, sculpture, décoration', 'vannerie'],
+          ['Services artisans', 'Couture, menuiserie, plomberie, électricité', 'couture'],
+          ['Créatrices locales', 'Mise en avant des femmes artisanes', 'textile'],
+          ['Coopératives & GIC', 'Groupements et structures collectives', 'ameublement'],
+        ].map(([title, description, category]) => (
+          <button
+            key={title}
+            onClick={() => selectCategory(category)}
+            className="rounded-lg border border-stone-200 bg-white p-4 text-left transition hover:border-amber-600 hover:shadow-sm"
+          >
+            <p className="font-semibold text-stone-900">{title}</p>
+            <p className="mt-1 text-sm text-stone-600">{description}</p>
+          </button>
+        ))}
+      </section>
+
+      <section id="produits-populaires" className="space-y-4">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium uppercase tracking-wide text-amber-700">Produits populaires</p>
+            <h2 className="text-2xl font-semibold text-stone-900">Des créations uniques, prêtes à commander</h2>
+          </div>
+          <a href="#catalogue" className="text-sm font-medium text-amber-700 hover:text-amber-800">Voir le catalogue</a>
+        </div>
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {featuredProducts.map((listing) => (
+            <ListingCard key={listing.id} listing={listing} />
+          ))}
+        </div>
+      </section>
+
+      <section className="grid gap-5 rounded-xl border border-stone-200 bg-white p-6 lg:grid-cols-[0.8fr_1.2fr]">
+        <div>
+          <p className="text-sm font-medium uppercase tracking-wide text-amber-700">Artisans en vedette</p>
+          <h2 className="mt-2 text-2xl font-semibold text-stone-900">Des professionnels passionnés, prêts à vous servir</h2>
+          <p className="mt-2 text-sm text-stone-600">Pour le pilote, ces profils donnent un aperçu du type d’artisans que la plateforme met en avant.</p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          {demoArtisans.map((artisan) => (
+            <article key={artisan.id} className="overflow-hidden rounded-lg border border-stone-200 bg-stone-50">
+              <img src={artisan.imageUrl} alt={artisan.name} className="h-28 w-full object-cover" />
+              <div className="p-4">
+                <h3 className="font-semibold text-stone-900">{artisan.name}</h3>
+                <p className="mt-1 text-xs font-medium uppercase tracking-wide text-amber-700">{artisan.specialty}</p>
+                <p className="mt-1 text-sm text-stone-600">{artisan.city}</p>
+                <a href="/contact" className="mt-3 inline-block text-sm font-medium text-amber-700 underline">Contacter</a>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          ['Artisans vérifiés', 'Validation progressive des boutiques et profils.'],
+          ['Paiement adapté', 'Cash, MoMo et Orange Money selon le pilote.'],
+          ['Livraison possible', 'Atelier, domicile ou transporteur partenaire.'],
+          ['Accompagnement digital', 'Formalisation, visibilité et services numériques.'],
+        ].map(([title, description]) => (
+          <div key={title} className="rounded-lg border border-stone-200 bg-white p-5">
+            <p className="font-semibold text-stone-900">{title}</p>
+            <p className="mt-2 text-sm text-stone-600">{description}</p>
+          </div>
+        ))}
+      </section>
+
+      <section id="catalogue" className="space-y-4 border-t border-stone-200 pt-8">
+        <div>
+          <p className="text-sm font-medium uppercase tracking-wide text-amber-700">Catalogue</p>
+          <h2 className="text-2xl font-semibold text-stone-900">Rechercher un produit ou une catégorie</h2>
+        </div>
         <form onSubmit={handleSearch} className="mt-6 flex max-w-2xl flex-col gap-2 sm:flex-row">
           <div className="relative flex-1">
             <span
@@ -169,35 +259,38 @@ export default function HomePage() {
           <p className="rounded-md border border-red-200 bg-red-50 p-4 text-red-700">
             Impossible de charger le catalogue. Le serveur est-il démarré ?
           </p>
-        ) : listings.length === 0 ? (
+        ) : visibleListings.length === 0 ? (
           <p className="rounded-md border border-stone-200 bg-white p-8 text-center text-stone-600">
             Aucune annonce ne correspond à votre recherche.
           </p>
         ) : (
           <>
             <p className="text-sm text-stone-600">
-              {t('announcements_count', { count: total })}
+              {t('announcements_count', { count: visibleTotal })}
               {filters.q && ` pour « ${filters.q} »`}
               {audienceFilter === 'women' && ` · ${t('filter_women_active')}`}
               {audienceFilter === 'cooperatives' && ` · ${t('filter_coop_active')}`}
+              {!listings.length && !hasFilter && ' · exemples de démonstration'}
             </p>
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {(audienceFilter === 'women'
-                ? listings.filter((l) => l.shop?.isWomenLed || l.seller?.gender === 'female')
+                ? visibleListings.filter((l) => l.shop?.isWomenLed || l.seller?.gender === 'female')
                 : audienceFilter === 'cooperatives'
-                ? listings.filter((l) => l.shop?.isCooperative || l.seller?.gender === 'cooperative')
-                : listings
+                ? visibleListings.filter((l) => l.shop?.isCooperative || l.seller?.gender === 'cooperative')
+                : visibleListings
               ).map((listing) => (
                 <ListingCard key={listing.id} listing={listing} />
               ))}
             </div>
-            <Pagination
-              page={listingPage}
-              hasPrevious={listingPage > 0}
-              hasNext={listings.length === 12}
-              onPrevious={() => setListingPage((page) => Math.max(0, page - 1))}
-              onNext={() => setListingPage((page) => page + 1)}
-            />
+            {listings.length > 0 && (
+              <Pagination
+                page={listingPage}
+                hasPrevious={listingPage > 0}
+                hasNext={listings.length === 12}
+                onPrevious={() => setListingPage((page) => Math.max(0, page - 1))}
+                onNext={() => setListingPage((page) => page + 1)}
+              />
+            )}
           </>
         )}
       </div>
@@ -210,11 +303,9 @@ export default function HomePage() {
           </div>
           <a href="/services" className="text-sm font-medium text-amber-700 hover:text-amber-800">{t('home_services_link')}</a>
         </div>
-        {!services?.length ? (
-          <p className="rounded-md border border-stone-200 bg-stone-50 p-5 text-sm text-stone-600">{t('home_services_empty')}</p>
-        ) : (
+        {visibleServices.length > 0 && (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {services.map((service) => (
+            {visibleServices.slice(0, 6).map((service) => (
               <article key={service.id} className="flex flex-col rounded-lg border border-stone-200 bg-white p-5">
                 <div className="flex-1">
                   <p className="text-xs font-medium uppercase tracking-wide text-amber-700">{categoryLabel(service.category)}</p>

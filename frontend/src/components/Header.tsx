@@ -91,6 +91,9 @@ export function Header() {
           <Link href="/services" className={navLinkClass('/services')}>
             {t('nav_services')}
           </Link>
+          <Link href="/how-it-works" className={navLinkClass('/how-it-works')}>
+            Comment ça marche
+          </Link>
           <Link href="/blog" className={navLinkClass('/blog')}>
             Blog
           </Link>

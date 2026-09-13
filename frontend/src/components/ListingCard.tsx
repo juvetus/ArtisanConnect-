@@ -7,6 +7,7 @@ import type { Listing } from '@/lib/types';
 
 export function ListingCard({ listing }: { listing: Listing }) {
   const { t } = useLanguage();
+  const href = listing.id.startsWith('demo-') ? '/contact' : `/listings/${listing.id}`;
   const isWoman = Boolean(
     listing.shop?.isWomenLed ||
     listing.seller?.gender === 'female',
@@ -18,7 +19,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
 
   return (
     <Link
-      href={`/listings/${listing.id}`}
+      href={href}
       className="group relative flex flex-col overflow-hidden rounded-lg border border-stone-200 bg-white transition hover:border-amber-600 hover:shadow-sm"
     >
       {isWoman && (

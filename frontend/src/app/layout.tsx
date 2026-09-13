@@ -8,6 +8,7 @@ import { Header } from "@/components/Header";
 import { EmailVerificationBanner } from "@/components/EmailVerificationBanner";
 import { Footer } from "@/components/Footer";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import { WhatsAppFloatingButton } from "@/components/WhatsAppFloatingButton";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -85,6 +86,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <EmailVerificationBanner />
             <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
             <Footer />
+            <WhatsAppFloatingButton />
           </AuthProvider>
         </LanguageProvider>
       </body>

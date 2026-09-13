@@ -20,6 +20,7 @@ export function Footer() {
           <div className="mt-2 flex flex-col gap-1 text-sm">
             <Link href="/services" className="hover:text-white">{t('nav_services')}</Link>
             <Link href="/" className="hover:text-white">{t('nav_listings')}</Link>
+            <Link href="/how-it-works" className="hover:text-white">Comment ça marche</Link>
             <Link href="/contact" className="hover:text-white">{t('nav_contact')}</Link>
           </div>
         </div>
