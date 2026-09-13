@@ -29,6 +29,18 @@ const ADMIN_CREATABLE_ROLES: { value: Role; label: string }[] = [
   { value: 'institution', label: 'Institution' },
 ];
 
+type AdminUserKind = Role | 'cooperative';
+
+const ADMIN_USER_KIND_OPTIONS: { value: AdminUserKind; label: string }[] = [
+  { value: 'admin', label: 'Admin' },
+  { value: 'editor', label: 'Éditeur' },
+  { value: 'viewer', label: 'Viewer' },
+  { value: 'client', label: 'Client' },
+  { value: 'artisan', label: 'Artisan / vendeur' },
+  { value: 'cooperative', label: 'Coopérative / GIC' },
+  { value: 'institution', label: 'Institution' },
+];
+
 const ARTISAN_PROFILE_TYPES = [
   { value: 'female', label: 'Femme artisane' },
   { value: 'cooperative', label: 'Coopérative / GIC' },
@@ -58,6 +70,7 @@ export default function AdminPage() {
     email: '',
     password: '',
     role: 'viewer' as Role,
+    kind: 'viewer' as AdminUserKind,
     gender: 'cooperative' as 'female' | 'male' | 'cooperative' | 'other',
   });
   const PAGE_SIZE = 10;
@@ -120,8 +133,14 @@ export default function AdminPage() {
   const createUser = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     await runAdminAction(async () => {
-      await api.adminCreateUser(newUser);
-      setNewUser({ name: '', email: '', password: '', role: 'viewer', gender: 'cooperative' });
+      await api.adminCreateUser({
+        name: newUser.name,
+        email: newUser.email,
+        password: newUser.password,
+        role: newUser.kind === 'cooperative' ? 'artisan' : newUser.role,
+        gender: newUser.kind === 'cooperative' ? 'cooperative' : newUser.role === 'artisan' ? newUser.gender : undefined,
+      });
+      setNewUser({ name: '', email: '', password: '', role: 'viewer', kind: 'viewer', gender: 'cooperative' });
       setUsersPage(0);
       setView('users');
     });
@@ -277,13 +296,21 @@ export default function AdminPage() {
                 className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
               />
               <select
-                value={newUser.role}
-                onChange={(event) => setNewUser((current) => ({ ...current, role: event.target.value as Role }))}
+                value={newUser.kind}
+                onChange={(event) => {
+                  const kind = event.target.value as AdminUserKind;
+                  setNewUser((current) => ({
+                    ...current,
+                    kind,
+                    role: kind === 'cooperative' ? 'artisan' : kind,
+                    gender: kind === 'cooperative' ? 'cooperative' : current.gender,
+                  }));
+                }}
                 className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
               >
-                {ADMIN_CREATABLE_ROLES.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}
+                {ADMIN_USER_KIND_OPTIONS.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}
               </select>
-              {newUser.role === 'artisan' && (
+              {newUser.kind === 'artisan' && (
                 <select
                   value={newUser.gender}
                   onChange={(event) => setNewUser((current) => ({ ...current, gender: event.target.value as typeof newUser.gender }))}
