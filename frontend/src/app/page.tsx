@@ -97,6 +97,26 @@ export default function HomePage() {
         ))}
       </section>
 
+      <section className="grid gap-4 overflow-hidden rounded-xl border border-stone-200 bg-white p-4 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="grid grid-cols-2 gap-3">
+          <img src="/images/hero-artisan.jpg" alt="Marché artisanal camerounais avec textiles et poteries" className="col-span-2 h-60 w-full rounded-lg object-cover" />
+          <img src="/images/vannerie.jpg" alt="Objets de vannerie artisanale" className="h-36 w-full rounded-lg object-cover" />
+          <img src="/images/tissu-africain.jpg" alt="Tissus africains colorés" className="h-36 w-full rounded-lg object-cover" />
+        </div>
+        <div className="flex flex-col justify-center p-2 lg:p-6">
+          <p className="text-sm font-medium uppercase tracking-wide text-amber-700">Aperçu marketplace</p>
+          <h2 className="mt-2 text-2xl font-semibold text-stone-900">Une vitrine vivante pour les artisans camerounais</h2>
+          <p className="mt-3 text-sm leading-6 text-stone-600">
+            ArtisanConnect met en scène les produits, les stands, les ateliers et les services locaux pour donner envie de découvrir, comparer et contacter rapidement un artisan.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-2 text-sm">
+            <span className="rounded-full bg-amber-50 px-3 py-1 text-amber-800">Produits visibles</span>
+            <span className="rounded-full bg-stone-100 px-3 py-1 text-stone-700">Artisans identifiés</span>
+            <span className="rounded-full bg-green-50 px-3 py-1 text-green-800">Contact WhatsApp</span>
+          </div>
+        </div>
+      </section>
+
       <section id="produits-populaires" className="space-y-4">
         <div className="flex items-end justify-between gap-4">
           <div>
