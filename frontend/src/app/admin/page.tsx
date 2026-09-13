@@ -50,6 +50,9 @@ export default function AdminPage() {
   const [shopsPage, setShopsPage] = useState(0);
   const [recentOrdersPage, setRecentOrdersPage] = useState(0);
   const [userSearch, setUserSearch] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState<Role | 'all'>('all');
+  const [userGenderFilter, setUserGenderFilter] = useState<'all' | 'female' | 'male' | 'cooperative' | 'other'>('all');
+  const [userStatusFilter, setUserStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [newUser, setNewUser] = useState({
     name: '',
     email: '',
@@ -83,8 +86,9 @@ export default function AdminPage() {
 
   const { stats, recentOrders } = data.overview;
   const normalizedUserSearch = userSearch.trim().toLowerCase();
-  const filteredUsers = normalizedUserSearch
-    ? data.users.filter((member) => [
+  const filteredUsers = data.users.filter((member) => {
+    const matchesSearch = normalizedUserSearch
+      ? [
       member.name,
       member.email,
       roleLabel(member.role),
@@ -93,8 +97,15 @@ export default function AdminPage() {
       member.gender === 'cooperative' ? 'coopérative gic cooperative' : undefined,
       member.gender,
       member.isActive === false ? 'désactivé desactive inactive' : 'actif active',
-    ].filter(Boolean).join(' ').toLowerCase().includes(normalizedUserSearch))
-    : data.users;
+    ].filter(Boolean).join(' ').toLowerCase().includes(normalizedUserSearch)
+      : true;
+    const matchesRole = userRoleFilter === 'all' || member.role === userRoleFilter;
+    const matchesGender = userGenderFilter === 'all' || member.gender === userGenderFilter;
+    const matchesStatus = userStatusFilter === 'all' || (userStatusFilter === 'active' ? member.isActive !== false : member.isActive === false);
+
+    return matchesSearch && matchesRole && matchesGender && matchesStatus;
+  });
+  const hasUserFilters = Boolean(normalizedUserSearch || userRoleFilter !== 'all' || userGenderFilter !== 'all' || userStatusFilter !== 'all');
 
   const moderateListing = async (listing: Listing) => {
     await api.adminSetListingStatus(listing.id, listing.status === 'active' ? 'inactive' : 'active');
@@ -295,16 +306,60 @@ export default function AdminPage() {
                   <h2 className="font-semibold">Utilisateurs ({filteredUsers.length}/{data.users.length})</h2>
                   <p className="mt-1 text-sm text-stone-600">Les mots de passe ne sont jamais exposés.</p>
                 </div>
-                <label className="w-full max-w-sm text-sm font-medium text-stone-700">
-                  Rechercher un utilisateur
+              </div>
+              <div className="mt-4 grid gap-3 lg:grid-cols-[1.4fr_180px_180px_160px_auto]">
+                <label className="text-sm font-medium text-stone-700">
+                  Recherche
                   <input
                     type="search"
                     value={userSearch}
                     onChange={(event) => { setUserSearch(event.target.value); setUsersPage(0); }}
-                    placeholder="Nom, e-mail, rôle, coopérative..."
+                    placeholder="Nom ou e-mail"
                     className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
                   />
                 </label>
+                <label className="text-sm font-medium text-stone-700">
+                  Rôle
+                  <select
+                    value={userRoleFilter}
+                    onChange={(event) => { setUserRoleFilter(event.target.value as Role | 'all'); setUsersPage(0); }}
+                    className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
+                  >
+                    <option value="all">Tous</option>
+                    {ADMIN_CREATABLE_ROLES.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}
+                  </select>
+                </label>
+                <label className="text-sm font-medium text-stone-700">
+                  Profil
+                  <select
+                    value={userGenderFilter}
+                    onChange={(event) => { setUserGenderFilter(event.target.value as typeof userGenderFilter); setUsersPage(0); }}
+                    className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
+                  >
+                    <option value="all">Tous</option>
+                    {ARTISAN_PROFILE_TYPES.map((profile) => <option key={profile.value} value={profile.value}>{profile.label}</option>)}
+                  </select>
+                </label>
+                <label className="text-sm font-medium text-stone-700">
+                  Statut
+                  <select
+                    value={userStatusFilter}
+                    onChange={(event) => { setUserStatusFilter(event.target.value as typeof userStatusFilter); setUsersPage(0); }}
+                    className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
+                  >
+                    <option value="all">Tous</option>
+                    <option value="active">Actifs</option>
+                    <option value="inactive">Désactivés</option>
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  disabled={!hasUserFilters}
+                  onClick={() => { setUserSearch(''); setUserRoleFilter('all'); setUserGenderFilter('all'); setUserStatusFilter('all'); setUsersPage(0); }}
+                  className="self-end rounded-md border border-stone-300 px-3 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-50"
+                >
+                  Réinitialiser
+                </button>
               </div>
             </div>
             <div className="divide-y divide-stone-100">
