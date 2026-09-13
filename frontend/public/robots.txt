@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /messages
+Disallow: /notifications
+Disallow: /orders
+Disallow: /payment
+
+Sitemap: https://artisanconnectcm.info/sitemap.xml
