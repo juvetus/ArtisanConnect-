@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import type { ReactNode } from "react";
 import "./globals.css";
@@ -7,6 +7,7 @@ import { LanguageProvider } from "@/lib/language-context";
 import { Header } from "@/components/Header";
 import { EmailVerificationBanner } from "@/components/EmailVerificationBanner";
 import { Footer } from "@/components/Footer";
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,6 +25,15 @@ export const metadata: Metadata = {
   description:
     "Découvrez, commandez et échangez avec des artisans, créateurs, boutiques et prestataires locaux au Cameroun.",
   applicationName: 'ArtisanConnect',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    title: 'ArtisanConnect',
+    statusBarStyle: 'default',
+  },
+  formatDetection: {
+    telephone: false,
+  },
   icons: {
     icon: '/icon.svg',
     shortcut: '/icon.svg',
@@ -60,10 +70,15 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: '#92400e',
+};
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="fr" className={`${geistSans.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col bg-stone-50 text-stone-900">
+        <ServiceWorkerRegistration />
         <LanguageProvider>
           <AuthProvider>
             <Header />
