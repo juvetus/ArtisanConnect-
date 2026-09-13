@@ -13,8 +13,8 @@ export class Payment {
   @Column('decimal', { precision: 12, scale: 0 })
   amount: number;
 
-  @Column('enum', { enum: ['cash', 'orange_money', 'stripe'], default: 'cash' })
-  method: 'cash' | 'orange_money' | 'stripe';
+  @Column('enum', { enum: ['cash', 'momo', 'orange_money', 'stripe'], default: 'cash' })
+  method: 'cash' | 'momo' | 'orange_money' | 'stripe';
 
   @Column('enum', { enum: ['pending', 'confirmed', 'captured', 'refunded'], default: 'pending' })
   status: 'pending' | 'confirmed' | 'captured' | 'refunded';
@@ -24,6 +24,15 @@ export class Payment {
 
   @Column({ nullable: true })
   orangeMoneyTransactionId: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  orangeMoneyPaymentToken: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  orangeMoneyNotifToken: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  orangeMoneyPaymentUrl: string | null;
 
   @Column({ nullable: true, type: 'timestamp' })
   cashConfirmedAt: Date;

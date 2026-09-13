@@ -3,8 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { Message } from '../../entities/index.js';
+import { Message, User } from '../../entities/index.js';
 import { ServiceOrder } from '../../entities/service-order.entity.js';
+import { EmailService } from '../email/email.service.js';
 
 @Injectable()
 export class MessagesService {
@@ -13,11 +14,39 @@ export class MessagesService {
     private messagesRepository: Repository<Message>,
     @InjectRepository(ServiceOrder)
     private serviceOrdersRepository: Repository<ServiceOrder>,
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
+    private emailService: EmailService,
   ) {}
 
   async create(message: Partial<Message>): Promise<Message> {
     const newMessage = this.messagesRepository.create(message);
-    return this.messagesRepository.save(newMessage);
+    const savedMessage = await this.messagesRepository.save(newMessage);
+    await this.sendMessageEmailNotification(savedMessage);
+    return savedMessage;
+  }
+
+  private async sendMessageEmailNotification(message: Message): Promise<void> {
+    if (!message.recipientId || !message.senderId) return;
+
+    try {
+      const [recipient, sender] = await Promise.all([
+        this.usersRepository.findOne({ where: { id: message.recipientId } }),
+        this.usersRepository.findOne({ where: { id: message.senderId } }),
+      ]);
+      if (!recipient?.email) return;
+
+      await this.emailService.sendNewMessageEmail({
+        to: recipient.email,
+        recipientName: recipient.name || 'Utilisateur',
+        senderName: sender?.name || 'Un utilisateur',
+        content: message.content || 'Pièce jointe',
+        messagesUrl: `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/messages`,
+        hasAttachments: Boolean(message.fileUrls?.length),
+      });
+    } catch {
+      // La notification e-mail ne doit jamais bloquer la messagerie interne.
+    }
   }
 
   async findByConversation(userId1: string, userId2: string, skip = 0, take = 50): Promise<[Message[], number]> {

@@ -7,6 +7,13 @@ import { NotificationsService } from '../notifications/notifications.service.js'
 /** Commission prélevée par la plateforme sur chaque commande. */
 const PLATFORM_FEE_RATE = 0.10;
 
+interface ProductOrderDeliveryInput {
+  deliveryMethod: 'workshop' | 'home' | 'carrier';
+  deliveryAddress?: string;
+  deliveryLatitude?: number;
+  deliveryLongitude?: number;
+}
+
 @Injectable()
 export class OrdersService {
   constructor(
@@ -24,10 +31,17 @@ export class OrdersService {
     buyerId: string,
     listingId: string,
     quantity: number,
-    paymentMethod: 'cash' | 'orange_money' = 'cash',
+    paymentMethod: 'cash' | 'momo' | 'orange_money' = 'cash',
+    delivery: ProductOrderDeliveryInput = { deliveryMethod: 'workshop' },
   ): Promise<Order> {
     if (!Number.isInteger(quantity) || quantity < 1) {
       throw new BadRequestException('Quantité invalide');
+    }
+    if (!['workshop', 'home', 'carrier'].includes(delivery.deliveryMethod)) {
+      throw new BadRequestException('Mode de livraison invalide');
+    }
+    if (delivery.deliveryMethod !== 'workshop' && !delivery.deliveryAddress?.trim()) {
+      throw new BadRequestException('Une adresse est obligatoire pour ce mode de livraison');
     }
 
     return this.dataSource.transaction(async (manager) => {
@@ -60,6 +74,11 @@ export class OrdersService {
           platformFee: Math.round(totalPrice * PLATFORM_FEE_RATE),
           status: 'pending',
           paymentMethod,
+          deliveryMethod: delivery.deliveryMethod,
+          deliveryAddress: delivery.deliveryMethod !== 'workshop' ? delivery.deliveryAddress!.trim() : null,
+          deliveryLatitude: delivery.deliveryMethod !== 'workshop' ? delivery.deliveryLatitude ?? null : null,
+          deliveryLongitude: delivery.deliveryMethod !== 'workshop' ? delivery.deliveryLongitude ?? null : null,
+          deliveryStatus: 'pending',
         }),
       );
 

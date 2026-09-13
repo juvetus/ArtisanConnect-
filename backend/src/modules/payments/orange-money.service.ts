@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 export interface OrangeMoneyInitPaymentDto {
@@ -54,6 +54,8 @@ export class OrangeMoneyService {
   private readonly clientSecret: string | undefined;
   private readonly merchantKey: string | undefined;
   private readonly baseUrl: string;
+  private readonly frontendUrl: string;
+  private readonly apiUrl: string;
   private readonly isMockMode: boolean;
 
   // Cache token OAuth
@@ -64,6 +66,8 @@ export class OrangeMoneyService {
     this.clientSecret = this.config.get<string>('ORANGE_MONEY_CLIENT_SECRET');
     this.merchantKey = this.config.get<string>('ORANGE_MONEY_MERCHANT_KEY');
     this.baseUrl = this.config.get<string>('ORANGE_MONEY_BASE_URL') || 'https://api.orange.com';
+    this.frontendUrl = this.config.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    this.apiUrl = this.config.get<string>('API_URL') || 'http://localhost:3001';
     this.isMockMode = this.config.get<string>('ORANGE_MONEY_MODE') === 'mock' || !this.clientId;
   }
 
@@ -123,9 +127,9 @@ export class OrangeMoneyService {
         currency: data.currency || 'XAF',
         order_id: data.orderId,
         amount: data.amount,
-        return_url: data.returnUrl || `${this.config.get<string>('FRONTEND_URL')}/orders`,
-        cancel_url: data.cancelUrl || `${this.config.get<string>('FRONTEND_URL')}/orders`,
-        notif_url: data.notifUrl || `${this.config.get<string>('API_URL')}/payments/orange/callback`,
+        return_url: data.returnUrl || `${this.frontendUrl}/orders`,
+        cancel_url: data.cancelUrl || `${this.frontendUrl}/orders`,
+        notif_url: data.notifUrl || `${this.apiUrl}/payments/orange/callback`,
         lang: 'fr',
         reference: data.reference || `CMD-${data.orderId.slice(0, 8)}`,
       };
@@ -155,8 +159,7 @@ export class OrangeMoneyService {
       };
     } catch (error) {
       this.logger.error(`Erreur initWebPayment Orange Money:`, error);
-      // Fallback sécurisé en mode dégradé/simulation
-      return this.mockInitPayment(data);
+      throw error;
     }
   }
 
@@ -204,6 +207,7 @@ export class OrangeMoneyService {
       };
     } catch (error) {
       this.logger.error(`Erreur checkTransactionStatus:`, error);
+      if (!this.isMockMode) throw error;
       return {
         status: 'PENDING',
         transactionId: payToken,
@@ -262,8 +266,15 @@ export class OrangeMoneyService {
   /**
    * 5. Traitement du Callback / Webhook IPN Orange Money
    */
-  async handleCallback(payload: Record<string, unknown>): Promise<{ success: boolean; orderId?: string; status?: string; transactionId?: string }> {
+  async handleCallback(payload: Record<string, unknown>, expectedNotifToken?: string | null): Promise<{ success: boolean; orderId?: string; status?: string; transactionId?: string }> {
     this.logger.log('Notification IPN reçue d’Orange Money:', payload);
+    if (expectedNotifToken) {
+      const receivedNotifToken = String(payload.notif_token || payload.notifToken || '').trim();
+      if (!receivedNotifToken || receivedNotifToken !== expectedNotifToken) {
+        throw new BadRequestException('notif_token Orange Money invalide');
+      }
+    }
+
     const status = String(payload.status || payload.transaction_status || 'SUCCESS').toUpperCase();
     const orderId = String(payload.order_id || payload.orderId || '');
     const transactionId = String(payload.txnid || payload.transaction_id || `OM-${Date.now()}`);
@@ -281,9 +292,11 @@ export class OrangeMoneyService {
   private mockInitPayment(data: OrangeMoneyInitPaymentDto): OrangeMoneyInitPaymentResponse {
     const transactionId = `OM-TX-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const paymentToken = `TOKEN-${Date.now()}`;
+    const notifToken = `NOTIF-${Date.now()}`;
     return {
-      paymentUrl: `${this.config.get<string>('FRONTEND_URL') || 'http://localhost:3000'}/orders?mock_payment=true&orderId=${data.orderId}&tx=${transactionId}`,
+      paymentUrl: `${this.frontendUrl}/orders?mock_payment=true&orderId=${data.orderId}&tx=${transactionId}`,
       paymentToken,
+      notifToken,
       transactionId,
       status: 'PENDING',
       rawResponse: { simulated: true, orderId: data.orderId, amount: data.amount },

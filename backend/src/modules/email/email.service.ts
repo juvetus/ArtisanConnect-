@@ -186,6 +186,36 @@ export class EmailService {
     });
   }
 
+  async sendNewMessageEmail(data: {
+    to: string;
+    recipientName: string;
+    senderName: string;
+    content: string;
+    messagesUrl: string;
+    hasAttachments?: boolean;
+  }): Promise<boolean> {
+    const attachmentNotice = data.hasAttachments ? '\nCe message contient une pièce jointe.' : '';
+    const preview = data.content.length > 600 ? `${data.content.slice(0, 600)}...` : data.content;
+    const text = `Bonjour ${data.recipientName},\n\nVous avez reçu un nouveau message de ${data.senderName} sur ArtisanConnect.${attachmentNotice}\n\nMessage :\n${preview}\n\nConsulter la conversation : ${data.messagesUrl}\n\nArtisanConnect`;
+
+    return this.send({
+      to: data.to,
+      subject: `[ArtisanConnect] Nouveau message de ${data.senderName}`,
+      text,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #292524; line-height: 1.6;">
+          <h1 style="color: #b45309; margin: 0 0 20px; font-size: 22px;">ArtisanConnect</h1>
+          <p>Bonjour <strong>${this.escapeHtml(data.recipientName)}</strong>,</p>
+          <p>Vous avez reçu un nouveau message de <strong>${this.escapeHtml(data.senderName)}</strong>.</p>
+          ${data.hasAttachments ? '<p>Ce message contient une pièce jointe.</p>' : ''}
+          <blockquote style="margin: 20px 0; padding: 12px 16px; background: #fafaf9; border-left: 4px solid #b45309; color: #44403c; white-space: pre-line;">${this.escapeHtml(preview)}</blockquote>
+          <p><a href="${this.escapeHtml(data.messagesUrl)}" style="background-color: #b45309; color: #ffffff; text-decoration: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; display: inline-block;">Ouvrir la conversation</a></p>
+          <p style="font-size: 12px; color: #78716c;">Ne répondez pas directement à cet e-mail. Utilisez la messagerie ArtisanConnect.</p>
+        </div>
+      `,
+    });
+  }
+
   private getTransporter(): Transporter {
     if (!this.transporter) {
       this.transporter = nodemailer.createTransport({

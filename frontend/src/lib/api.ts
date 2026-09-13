@@ -124,8 +124,15 @@ export const api = {
   },
 
   // Le serveur calcule le montant et la commission à partir de l'annonce.
-  createOrder: (listingId: string, quantity: number, paymentMethod: 'cash' | 'orange_money') =>
-    post<Order>('/orders', { listingId, quantity, paymentMethod }),
+  createOrder: (data: {
+    listingId: string;
+    quantity: number;
+    paymentMethod: 'cash' | 'momo' | 'orange_money';
+    deliveryMethod: 'workshop' | 'home' | 'carrier';
+    deliveryAddress?: string;
+    deliveryLatitude?: number;
+    deliveryLongitude?: number;
+  }) => post<Order>('/orders', data),
 
   buyerOrders: (buyerId: string) => request<Paginated<Order>>(`/orders/buyer/${buyerId}`),
 
@@ -138,6 +145,22 @@ export const api = {
 
   confirmOrangeMoneyTest: (orderId: string) =>
     post<Payment>(`/payments/order/${orderId}/orange-money/confirm-test`),
+
+  initiateMomoPayment: (orderId: string, payerPhone: string) =>
+    post<Payment & { paymentReference?: string | null; redirectUrl?: string | null }>(`/payments/order/${orderId}/momo/initiate`, { payerPhone }),
+
+  confirmMomoPayment: (orderId: string) =>
+    post<Payment>(`/payments/order/${orderId}/momo/confirm`),
+
+  getSubscriptionPlans: () => request<Array<{ id: string; name: string; price: number; currency: string; durationDays: number; description?: string | null }>>('/subscriptions/plans'),
+
+  createSubscription: (planId: string, payerPhone: string) => post<{ id: string; status: string; paymentReference?: string | null; redirectUrl?: string | null; amount: number; currency: string; planId: string }>('/subscriptions/create/' + planId, { payerPhone }),
+
+  confirmSubscriptionPayment: (referenceId: string) =>
+    post<{ id: string; status: string; paymentReference?: string | null; amount: number; currency: string; planId: string }>(`/subscriptions/confirm/${encodeURIComponent(referenceId)}`),
+
+  getMomoPaymentCallback: (referenceId: string) =>
+    request<{ status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'EXPIRED'; amount: number; currency: string; externalId: string; referenceId?: string; transactionId?: string; message?: string }>(`/momo/payment/callback?referenceId=${encodeURIComponent(referenceId)}`),
 
   createReview: (data: { orderId: string; rating: number; comment: string }) =>
     post<Review>('/reviews', data),
@@ -290,7 +313,7 @@ export const api = {
   // --- Workflow escrow Orange Money ---
 
   startWebpayment: (orderId: string) =>
-    post<{ transactionId: string; paymentToken: string; status: 'PENDING' }>(
+    post<{ transactionId: string; paymentToken: string; notifToken?: string; paymentUrl: string; status: 'PENDING' }>(
       `/payments/order/${orderId}/webpayment`,
     ),
 
@@ -309,6 +332,12 @@ export const api = {
   disburse: (orderId: string) => post<Payment>(`/payments/order/${orderId}/disbursement`),
 
   refundOrder: (orderId: string) => post<{ refunded: boolean }>(`/payments/order/${orderId}/refund`),
+
+  createDeliveryRide: (orderId: string) =>
+    post<{ trackingId: string; status: Order['deliveryStatus']; carrierName: string; estimatedCost?: number; trackingUrl?: string }>(`/delivery/orders/${orderId}/ride`),
+
+  getDeliveryStatus: (orderId: string) =>
+    request<{ trackingId: string; status: Order['deliveryStatus']; carrierName: string; estimatedCost?: number; trackingUrl?: string }>(`/delivery/orders/${orderId}/status`),
 
   // --- Notifications ---
 

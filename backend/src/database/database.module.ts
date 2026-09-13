@@ -20,6 +20,9 @@ import {
   ServiceReview,
   ServiceValidationHistory,
   ProgramApplication,
+  Subscription,
+  SubscriptionPlan,
+  Payout,
 } from '../entities/index.js';
 
 @Module({
@@ -33,12 +36,14 @@ import {
         username: configService.get('DB_USERNAME', 'artisan'),
         password: configService.get('DB_PASSWORD', 'artisan_password_dev'),
         database: configService.get('DB_DATABASE', 'artisan_connect'),
-        entities: [User, Listing, Order, Payment, Review, Message, InstitutionalResource, InstitutionalProgram, ArtisanFormalization, Shop, Notification, Service, ServiceOrder, ServiceQuote, ServicePayment, ServiceReview, ServiceValidationHistory, ProgramApplication],
+        entities: [User, Listing, Order, Payment, Review, Message, InstitutionalResource, InstitutionalProgram, ArtisanFormalization, Shop, Notification, Service, ServiceOrder, ServiceQuote, ServicePayment, ServiceReview, ServiceValidationHistory, ProgramApplication, Subscription, SubscriptionPlan, Payout],
         synchronize: configService.get('DB_SYNCHRONIZE', configService.get('NODE_ENV') === 'development' ? 'true' : 'false') === 'true',
         logging: configService.get('NODE_ENV') === 'development',
+        retryAttempts: Number(configService.get('DB_RETRY_ATTEMPTS', 10)),
+        retryDelay: Number(configService.get('DB_RETRY_DELAY', 3000)),
       }),
     }),
-    TypeOrmModule.forFeature([User, Listing, Order, Payment, Review, Message, InstitutionalResource, InstitutionalProgram, ArtisanFormalization, Shop, Notification, Service, ServiceOrder, ServiceQuote, ServicePayment, ServiceReview, ServiceValidationHistory, ProgramApplication]),
+    TypeOrmModule.forFeature([User, Listing, Order, Payment, Review, Message, InstitutionalResource, InstitutionalProgram, ArtisanFormalization, Shop, Notification, Service, ServiceOrder, ServiceQuote, ServicePayment, ServiceReview, ServiceValidationHistory, ProgramApplication, Subscription, SubscriptionPlan, Payout]),
   ],
   exports: [TypeOrmModule],
 })

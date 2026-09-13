@@ -101,17 +101,43 @@ describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
     expect(shop.status).toBe('active');
   });
 
-  it('doit refuser la création si des documents KYC obligatoires manquent', async () => {
+  it('doit garder une boutique revendeur en attente si les preuves sont incomplètes au lancement', async () => {
+    const shop = await service.create('reseller-user-id', {
+      type: 'reseller',
+      name: 'Revendeur incomplet',
+      description: 'Revente objets artisanaux',
+      mobileMoneyNumber: '237699001122',
+      deliveryMode: 'home',
+      kycDocuments: [],
+    });
+
+    expect(shop.status).toBe('pending');
+  });
+
+  it('doit permettre la création sans tous les documents KYC au lancement', async () => {
+    const shop = await service.create('artisan-user-id', {
+      type: 'artisan',
+      name: 'Atelier Incomplet',
+      description: 'Test sans photos',
+      mobileMoneyNumber: '+237699001122',
+      deliveryMode: 'workshop',
+      kycDocuments: [{ label: 'piece_identite', url: '/uploads/cni.jpg' }],
+    });
+
+    expect(shop.status).toBe('pending');
+  });
+
+  it('doit refuser un numéro Mobile Money qui n’est pas camerounais', async () => {
     await expect(
       service.create('artisan-user-id', {
         type: 'artisan',
-        name: 'Atelier Incomplet',
-        description: 'Test sans photos',
-        mobileMoneyNumber: '+237699001122',
+        name: 'Atelier numéro invalide',
+        description: 'Test numéro invalide',
+        mobileMoneyNumber: '+33123456789',
         deliveryMode: 'workshop',
-        kycDocuments: [{ label: 'piece_identite', url: '/uploads/cni.jpg' }],
+        kycDocuments: [],
       }),
-    ).rejects.toThrow(BadRequestException);
+    ).rejects.toThrow('Le numéro Mobile Money doit être un numéro camerounais valide');
   });
 
   it('doit permettre à l’administrateur de valider (approuver) une boutique artisan pending', async () => {

@@ -1,9 +1,10 @@
-﻿import { Controller, Get, Post, Param, Body, ForbiddenException, NotFoundException } from '@nestjs/common';
+﻿import { Controller, Get, Post, Param, Body, ForbiddenException, NotFoundException, Headers, RawBody } from '@nestjs/common';
 import { PaymentsService } from './payments.service.js';
 import { EscrowService } from './escrow.service.js';
 import { OrangeMoneyService } from './orange-money.service.js';
 import { CurrentUser, type AuthUser } from '../auth/current-user.decorator.js';
 import { Public } from '../auth/public.decorator.js';
+import { MomoService, type MomoWebhookHeaders } from '../momo/momo.service.js';
 
 @Controller('payments')
 export class PaymentsController {
@@ -11,6 +12,7 @@ export class PaymentsController {
     private paymentsService: PaymentsService,
     private escrowService: EscrowService,
     private orangeMoneyService: OrangeMoneyService,
+    private momoService: MomoService,
   ) {}
 
   @Get('order/:orderId')
@@ -31,6 +33,31 @@ export class PaymentsController {
   @Post('order/:orderId/orange-money/confirm-test')
   async confirmOrangeMoneyTest(@CurrentUser() user: AuthUser, @Param('orderId') orderId: string) {
     return this.paymentsService.confirmOrangeMoneyTest(orderId, user.id);
+  }
+
+  @Post('order/:orderId/momo/initiate')
+  async initiateMomoPayment(
+    @CurrentUser() user: AuthUser,
+    @Param('orderId') orderId: string,
+    @Body() body: { payerPhone?: string },
+  ) {
+    return this.paymentsService.initiateMomoPayment(orderId, user.id, body.payerPhone);
+  }
+
+  @Post('order/:orderId/momo/confirm')
+  async confirmMomoPayment(@CurrentUser() user: AuthUser, @Param('orderId') orderId: string) {
+    return this.paymentsService.confirmMomoPayment(orderId, user.id);
+  }
+
+  @Public()
+  @Post('momo/webhook')
+  async momoWebhook(
+    @Body() body: Record<string, unknown>,
+    @Headers() headers: MomoWebhookHeaders,
+    @RawBody() rawBody?: Buffer,
+  ) {
+    this.momoService.verifyWebhookSignature(headers, rawBody);
+    return this.paymentsService.handleMomoWebhook(body);
   }
 
   // --- Workflow escrow Orange Money ---
@@ -86,7 +113,7 @@ export class PaymentsController {
   @Public()
   @Post('orange/callback')
   async orangeCallback(@Body() body: Record<string, unknown>) {
-    return this.orangeMoneyService.handleCallback(body);
+    return this.escrowService.handleOrangeCallback(body);
   }
 
   /** Vérification du statut direct d'une transaction Orange Money. */

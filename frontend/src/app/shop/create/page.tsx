@@ -86,6 +86,15 @@ export default function CreateShopPage() {
   const allDocsProvided = requiredDocs.every((req) =>
     docs.some((doc) => doc.label === req.label),
   );
+  const isValidCameroonMobileMoneyNumber = (phone: string) => {
+    const normalized = phone.replace(/[\s().-]/g, '').replace(/^00/, '+');
+    const localNumber = normalized.startsWith('+237')
+      ? normalized.slice(4)
+      : normalized.startsWith('237')
+        ? normalized.slice(3)
+        : normalized;
+    return /^6\d{8}$/.test(localNumber);
+  };
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -167,14 +176,14 @@ export default function CreateShopPage() {
       {step === 2 && (
         <section className="space-y-4 rounded-lg border border-stone-200 bg-white p-6">
           <p className="text-sm text-stone-600">
-            Fournissez toutes les preuves exigées : sans elles, la boutique ne peut pas être activée.
+            Les pièces KYC sont facultatives au lancement. Vous pouvez les ajouter maintenant ou compléter votre dossier plus tard.
           </p>
           {requiredDocs.map((req) => {
             const doc = docs.find((d) => d.label === req.label);
             return (
               <div key={req.label}>
                 <label htmlFor={`doc-${req.label}`} className="block text-sm font-medium">
-                  {req.labelFr} {doc && <span className="text-green-700">✓ fourni</span>}
+                  {req.labelFr} <span className="text-stone-500">(facultatif)</span> {doc && <span className="text-green-700">✓ fourni</span>}
                 </label>
                 <input
                   id={`doc-${req.label}`}
@@ -212,17 +221,18 @@ export default function CreateShopPage() {
           })}
           <div>
             <label htmlFor="momophone" className="block text-sm font-medium">
-              Numéro Mobile Money (vérifié)
+              Numéro Mobile Money camerounais
             </label>
             <input
               id="momophone"
               type="tel"
               required
-              placeholder="+237 6XX XXX XXX"
+              placeholder="Ex: 237699001122"
               value={mobileMoneyNumber}
               onChange={(e) => setMobileMoneyNumber(e.target.value)}
               className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600"
             />
+            <p className="mt-1 text-xs text-stone-500">Format accepté : 6XXXXXXXX, 2376XXXXXXXX ou +2376XXXXXXXX.</p>
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex gap-3">
@@ -235,11 +245,11 @@ export default function CreateShopPage() {
             </button>
             <button
               type="button"
-              disabled={!allDocsProvided || mobileMoneyNumber.trim().length < 9 || uploading !== null}
+              disabled={!isValidCameroonMobileMoneyNumber(mobileMoneyNumber) || uploading !== null}
               onClick={() => setStep(3)}
               className="flex-1 rounded-md bg-amber-700 py-2 font-medium text-white hover:bg-amber-800 disabled:opacity-60"
             >
-              {t('create_shop_continue')}
+              {allDocsProvided ? t('create_shop_continue') : 'Continuer sans pièces'}
             </button>
           </div>
         </section>
@@ -362,8 +372,8 @@ export default function CreateShopPage() {
           </div>
           <p className="text-xs text-stone-500">
             {type === 'artisan'
-              ? "Boutique Artisan : votre demande passera en « En attente de validation » jusqu'à la vérification manuelle."
-              : 'Validation automatique : votre boutique sera active immédiatement si les preuves sont complètes.'}
+              ? "Boutique Artisan : votre demande passera en « En attente de validation ». Les pièces KYC pourront être complétées ensuite."
+              : 'La boutique sera active immédiatement si les preuves sont complètes, sinon elle restera en attente de validation.'}
           </p>
         </section>
       )}

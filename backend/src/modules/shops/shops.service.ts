@@ -57,21 +57,12 @@ export class ShopsService {
     const required = Shop.requiredDocuments(data.type);
     const provided = new Set(data.kycDocuments.map((doc) => doc.label));
     const missing = required.filter((label) => !provided.has(label));
-    if (missing.length > 0) {
-      throw new BadRequestException(
-        `Preuves KYC manquantes : ${missing.join(', ')}. La boutique ne peut pas être activée sans elles.`,
-      );
-    }
-    if (!data.mobileMoneyNumber || data.mobileMoneyNumber.trim().length < 9) {
-      throw new BadRequestException('Un numéro Mobile Money vérifié est obligatoire');
-    }
+    const mobileMoneyNumber = this.normalizeCameroonMobileMoneyNumber(data.mobileMoneyNumber);
 
-    // Règles de validation par type (Étape 4).
-    // Artisan → validation manuelle (phase 1) ; Revendeur et Individuel → automatique
-    // si toutes les preuves fournies (ce qui est garanti par le contrôle ci-dessus).
-    const status: Shop['status'] = data.type === 'artisan' ? 'pending' : 'active';
+    const hasCompleteKyc = missing.length === 0;
+    const status: Shop['status'] = data.type === 'artisan' || !hasCompleteKyc ? 'pending' : 'active';
 
-    const shop = this.shopsRepository.create({ ...data, sellerId, status });
+    const shop = this.shopsRepository.create({ ...data, mobileMoneyNumber, sellerId, status });
     const savedShop = await this.shopsRepository.save(shop);
 
     // Si la boutique artisan nécessite une validation manuelle, notifier tous les admins
@@ -86,7 +77,7 @@ export class ShopsService {
             recipientId: admin.id,
             type: 'shop_review',
             title: 'Nouvelle boutique artisan à valider',
-            content: `${sellerName} a soumis sa boutique « ${savedShop.name} » avec ses preuves KYC.`,
+            content: `${sellerName} a soumis sa boutique « ${savedShop.name} ». Les pièces KYC pourront être complétées après création.`,
             link: '/admin',
             relatedId: savedShop.id,
           });
@@ -95,8 +86,8 @@ export class ShopsService {
             await this.emailService.send({
               to: admin.email,
               subject: `[ArtisanConnect] Nouvelle boutique artisan à valider : ${savedShop.name}`,
-              text: `Bonjour ${admin.name || 'Admin'},\n\n${sellerName} a créé la boutique artisan « ${savedShop.name} ».\nVeuillez vous rendre dans l'espace administration pour vérifier les pièces KYC et valider la boutique.\n\nLien : /admin\n\nArtisanConnect`,
-              html: `<p>Bonjour ${admin.name || 'Admin'},</p><p><strong>${sellerName}</strong> a créé la boutique artisan <strong>« ${savedShop.name} »</strong>.</p><p>Veuillez vous rendre dans l'espace d'administration pour vérifier les pièces KYC et valider la boutique.</p><p><a href="/admin">Accéder au panneau d'administration</a></p><p>ArtisanConnect</p>`,
+              text: `Bonjour ${admin.name || 'Admin'},\n\n${sellerName} a créé la boutique artisan « ${savedShop.name} ».\nLes pièces KYC pourront être complétées après création.\n\nLien : /admin\n\nArtisanConnect`,
+              html: `<p>Bonjour ${admin.name || 'Admin'},</p><p><strong>${sellerName}</strong> a créé la boutique artisan <strong>« ${savedShop.name} »</strong>.</p><p>Les pièces KYC pourront être complétées après création.</p><p><a href="/admin">Accéder au panneau d'administration</a></p><p>ArtisanConnect</p>`,
             });
           }
         }
@@ -106,6 +97,21 @@ export class ShopsService {
     }
 
     return savedShop;
+  }
+
+  private normalizeCameroonMobileMoneyNumber(phone: string): string {
+    const normalized = String(phone || '').replace(/[\s().-]/g, '').replace(/^00/, '+');
+    const withoutCountryCode = normalized.startsWith('+237')
+      ? normalized.slice(4)
+      : normalized.startsWith('237')
+        ? normalized.slice(3)
+        : normalized;
+
+    if (!/^6\d{8}$/.test(withoutCountryCode)) {
+      throw new BadRequestException('Le numéro Mobile Money doit être un numéro camerounais valide');
+    }
+
+    return `+237${withoutCountryCode}`;
   }
 
   async findBySeller(sellerId: string): Promise<Shop[]> {

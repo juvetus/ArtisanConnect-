@@ -49,15 +49,42 @@ export class EscrowService {
       }
 
       payment.orangeMoneyTransactionId = omResult.transactionId;
-      payment.status = 'confirmed'; // bloqué côté plateforme = escrow
+      payment.orangeMoneyPaymentToken = omResult.paymentToken;
+      payment.orangeMoneyNotifToken = omResult.notifToken || null;
+      payment.orangeMoneyPaymentUrl = omResult.paymentUrl;
       await manager.save(payment);
 
       return {
         transactionId: payment.orangeMoneyTransactionId,
         paymentToken: omResult.paymentToken,
+        notifToken: omResult.notifToken,
         paymentUrl: omResult.paymentUrl,
         status: 'PENDING' as const,
       };
+    });
+  }
+
+  async handleOrangeCallback(body: Record<string, unknown>) {
+    const orderId = String(body.order_id || body.orderId || '').trim();
+    if (!orderId) throw new BadRequestException('order_id Orange Money absent');
+
+    return this.dataSource.transaction(async (manager) => {
+      const payment = await manager.findOne(Payment, { where: { orderId } });
+      if (!payment) throw new NotFoundException('Paiement Orange Money introuvable');
+
+      const callback = await this.orangeMoneyService.handleCallback(body, payment.orangeMoneyNotifToken);
+      payment.orangeMoneyTransactionId = callback.transactionId || payment.orangeMoneyTransactionId;
+
+      if (callback.status === 'SUCCESS') {
+        payment.status = 'confirmed';
+        await manager.save(payment);
+        await manager.update(Order, orderId, { status: 'confirmed' });
+        return { success: true, orderId, status: 'SUCCESS', transactionId: payment.orangeMoneyTransactionId };
+      }
+
+      payment.status = 'pending';
+      await manager.save(payment);
+      return { success: true, orderId, status: 'FAILED', transactionId: payment.orangeMoneyTransactionId };
     });
   }
 

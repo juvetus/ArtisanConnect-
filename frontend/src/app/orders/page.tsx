@@ -14,7 +14,7 @@ import type { Order } from '@/lib/types';
 
 /** Journal du workflow escrow côté acheteur. */
 function EscrowSteps({ order }: { order: Order }) {
-  if (order.paymentMethod !== 'orange_money') return null;
+  if (order.paymentMethod !== 'orange_money' && order.paymentMethod !== 'momo') return null;
   const steps = [
     { label: 'Paiement bloqué (escrow)', done: Boolean(order.payment && order.payment.status !== 'pending') },
     { label: 'Vendeur : produit disponible', done: order.sellerConfirmedAvailability },
@@ -45,6 +45,8 @@ export default function OrdersPage() {
     api.buyerOrders(id),
   );
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [momoPhones, setMomoPhones] = useState<Record<string, string>>({});
+  const [momoError, setMomoError] = useState<Record<string, string>>({});
 
   const run = async (id: string, action: () => Promise<unknown>) => {
     setBusyId(id);
@@ -54,6 +56,57 @@ export default function OrdersPage() {
     } finally {
       setBusyId(null);
     }
+  };
+
+  const payWithMomo = async (order: Order) => {
+    const payerPhone = (momoPhones[order.id] || user?.phone || '').trim();
+    if (!payerPhone) {
+      setMomoError((current) => ({ ...current, [order.id]: 'Veuillez saisir votre numéro MoMo.' }));
+      return;
+    }
+
+    setBusyId(order.id);
+    setMomoError((current) => ({ ...current, [order.id]: '' }));
+    try {
+      const payment = await api.initiateMomoPayment(order.id, payerPhone);
+      if (payment.redirectUrl) {
+        window.location.assign(payment.redirectUrl);
+        return;
+      }
+
+      const referenceId = payment.paymentReference || payment.orangeMoneyTransactionId;
+      if (referenceId) {
+        router.push(`/payment/callback?type=payment&referenceId=${encodeURIComponent(referenceId)}`);
+        return;
+      }
+
+      await mutate();
+    } catch (error) {
+      setMomoError((current) => ({
+        ...current,
+        [order.id]: error instanceof Error ? error.message : 'Impossible de lancer le paiement MoMo.',
+      }));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const payWithOrangeMoney = async (order: Order) => {
+    setBusyId(order.id);
+    try {
+      const payment = await api.startWebpayment(order.id);
+      window.location.assign(payment.paymentUrl);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const startCarrierDelivery = async (order: Order) => {
+    await run(order.id, () => api.createDeliveryRide(order.id));
+  };
+
+  const refreshCarrierDelivery = async (order: Order) => {
+    await run(order.id, () => api.getDeliveryStatus(order.id));
   };
 
   useEffect(() => {
@@ -89,9 +142,11 @@ export default function OrdersPage() {
                   {new Date(order.createdAt).toLocaleDateString('fr-FR')}
                 </p>
                 <p className="mt-1 text-sm text-stone-500">
-                  {order.paymentMethod === 'orange_money'
-                    ? 'Paiement Orange Money'
-                    : 'Règlement en espèces à la remise'}
+                  {order.paymentMethod === 'momo'
+                    ? 'Paiement MoMo'
+                    : order.paymentMethod === 'orange_money'
+                      ? 'Paiement Orange Money'
+                      : 'Règlement en espèces à la remise'}
                   {order.payment && (
                     <>
                       {' — '}
@@ -99,6 +154,42 @@ export default function OrdersPage() {
                     </>
                   )}
                 </p>
+                <p className="mt-1 text-sm text-stone-500">
+                  Livraison : {order.deliveryMethod === 'home'
+                    ? `À domicile${order.deliveryAddress ? ` - ${order.deliveryAddress}` : ''}`
+                    : order.deliveryMethod === 'carrier'
+                      ? `Transporteur${order.deliveryAddress ? ` - ${order.deliveryAddress}` : ''}`
+                      : "Retrait à l'atelier"}
+                </p>
+                {order.deliveryMethod === 'carrier' && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-stone-600">
+                    {order.deliveryTrackingId ? (
+                      <>
+                        <span>Suivi {order.deliveryCarrier || 'Gozem'} : {order.deliveryStatus}</span>
+                        {order.deliveryTrackingUrl && (
+                          <a href={order.deliveryTrackingUrl} target="_blank" rel="noreferrer" className="text-amber-700 underline">
+                            Ouvrir le suivi
+                          </a>
+                        )}
+                        <button
+                          onClick={() => void refreshCarrierDelivery(order)}
+                          disabled={busyId === order.id}
+                          className="rounded-md border border-stone-200 px-3 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-60"
+                        >
+                          Actualiser
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => void startCarrierDelivery(order)}
+                        disabled={busyId === order.id}
+                        className="rounded-md bg-stone-900 px-3 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-60"
+                      >
+                        Demander un transporteur
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {order.seller && (
                   <Link
@@ -113,15 +204,38 @@ export default function OrdersPage() {
 
                 <EscrowSteps order={order} />
 
-                {order.paymentMethod === 'orange_money' && order.status !== 'cancelled' && (
+                {(order.paymentMethod === 'momo' || order.paymentMethod === 'orange_money') && order.status !== 'cancelled' && (
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {order.payment?.status === 'pending' && order.status === 'pending' && (
+                    {order.paymentMethod === 'momo' && order.payment?.status === 'pending' && order.status === 'pending' && (
+                      <div className="flex w-full flex-wrap items-start gap-2">
+                        <div>
+                          <label htmlFor={`momo-${order.id}`} className="sr-only">Numéro MoMo</label>
+                          <input
+                            id={`momo-${order.id}`}
+                            type="tel"
+                            value={momoPhones[order.id] ?? user.phone ?? ''}
+                            onChange={(event) => setMomoPhones((current) => ({ ...current, [order.id]: event.target.value }))}
+                            placeholder="237699000000"
+                            className="w-44 rounded-md border border-stone-200 px-3 py-2 text-sm outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-100"
+                          />
+                          {momoError[order.id] && <p className="mt-1 text-xs text-red-600">{momoError[order.id]}</p>}
+                        </div>
+                        <button
+                          onClick={() => void payWithMomo(order)}
+                          disabled={busyId === order.id}
+                          className="rounded-md bg-orange-600 px-3 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-60"
+                        >
+                          Payer avec MoMo
+                        </button>
+                      </div>
+                    )}
+                    {order.paymentMethod === 'orange_money' && order.payment?.status === 'pending' && order.status === 'pending' && (
                       <button
-                        onClick={() => run(order.id, () => api.startWebpayment(order.id))}
+                        onClick={() => void payWithOrangeMoney(order)}
                         disabled={busyId === order.id}
                         className="rounded-md bg-orange-600 px-3 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-60"
                       >
-                        Payer avec Orange Money (bloqué)
+                        Payer avec Orange Money
                       </button>
                     )}
                     {order.carrierVerified && !order.buyerConfirmedReception && (

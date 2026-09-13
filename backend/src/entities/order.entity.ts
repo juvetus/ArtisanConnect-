@@ -30,8 +30,20 @@ export class Order {
   @Column('enum', { enum: ['pending', 'confirmed', 'completed', 'cancelled'], default: 'pending' })
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
 
-  @Column('enum', { enum: ['cash', 'orange_money', 'card'], default: 'cash' })
-  paymentMethod: 'cash' | 'orange_money' | 'card';
+  @Column('enum', { enum: ['cash', 'momo', 'orange_money', 'card'], default: 'cash' })
+  paymentMethod: 'cash' | 'momo' | 'orange_money' | 'card';
+
+  @Column('enum', { enum: ['workshop', 'home', 'carrier'], default: 'workshop' })
+  deliveryMethod: 'workshop' | 'home' | 'carrier';
+
+  @Column({ type: 'text', nullable: true })
+  deliveryAddress: string | null;
+
+  @Column({ type: 'float', nullable: true })
+  deliveryLatitude: number | null;
+
+  @Column({ type: 'float', nullable: true })
+  deliveryLongitude: number | null;
 
   // --- Workflow escrow ---
   /** Le vendeur a confirmé la disponibilité du produit. */
@@ -57,6 +69,21 @@ export class Order {
   /** Identifiant du transporteur (utilisateur rôle transporteur ou admin). */
   @Column({ nullable: true })
   carrierId: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  deliveryCarrier: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  deliveryTrackingId: string | null;
+
+  @Column('enum', { enum: ['pending', 'assigned', 'picking_up', 'in_transit', 'delivered', 'cancelled'], default: 'pending' })
+  deliveryStatus: 'pending' | 'assigned' | 'picking_up' | 'in_transit' | 'delivered' | 'cancelled';
+
+  @Column({ type: 'text', nullable: true })
+  deliveryTrackingUrl: string | null;
+
+  @Column('decimal', { precision: 12, scale: 0, nullable: true })
+  deliveryCost: number | null;
 
   @CreateDateColumn()
   createdAt: Date;

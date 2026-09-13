@@ -6,6 +6,7 @@ import { Review } from './review.entity.js';
 import { Message } from './message.entity.js';
 import { Shop } from './shop.entity.js';
 import { Notification } from './notification.entity.js';
+import { Subscription } from './subscription.entity.js';
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -89,4 +90,7 @@ export class User {
 
   @OneToMany(() => Notification, (notification) => notification.recipient)
   notifications: Relation<Notification>[];
+
+  @OneToMany(() => Subscription, (subscription) => subscription.user)
+  subscriptions: Relation<Subscription>[];
 }

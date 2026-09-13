@@ -9,13 +9,27 @@ export class OrdersController {
   @Post()
   async createOrder(
     @CurrentUser() user: AuthUser,
-    @Body() body: { listingId: string; quantity: number; paymentMethod?: 'cash' | 'orange_money' },
+    @Body() body: {
+      listingId: string;
+      quantity: number;
+      paymentMethod?: 'cash' | 'momo' | 'orange_money';
+      deliveryMethod?: 'workshop' | 'home' | 'carrier';
+      deliveryAddress?: string;
+      deliveryLatitude?: number;
+      deliveryLongitude?: number;
+    },
   ) {
     return this.ordersService.placeOrder(
       user.id,
       body.listingId,
       Number(body.quantity),
       body.paymentMethod ?? 'cash',
+      {
+        deliveryMethod: body.deliveryMethod ?? 'workshop',
+        deliveryAddress: body.deliveryAddress,
+        deliveryLatitude: body.deliveryLatitude,
+        deliveryLongitude: body.deliveryLongitude,
+      },
     );
   }
 

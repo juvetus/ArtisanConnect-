@@ -23,7 +23,12 @@ export default function ListingPage() {
   );
 
   const [quantity, setQuantity] = useState(1);
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'orange_money'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'momo' | 'orange_money'>('cash');
+  const [deliveryMethod, setDeliveryMethod] = useState<'workshop' | 'home' | 'carrier'>('workshop');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [payerPhone, setPayerPhone] = useState('');
+  const [paymentOpen, setPaymentOpen] = useState(true);
+  const [deliveryOpen, setDeliveryOpen] = useState(true);
   const [ordering, setOrdering] = useState(false);
   const [error, setError] = useState('');
   const [zoomIndex, setZoomIndex] = useState<number | null>(null);
@@ -46,13 +51,42 @@ export default function ListingPage() {
       return;
     }
     if (!listing) return;
+    if (paymentMethod === 'momo' && !payerPhone.trim()) {
+      setError('Veuillez saisir votre numéro MoMo.');
+      return;
+    }
+    if (deliveryMethod !== 'workshop' && !deliveryAddress.trim()) {
+      setError('Veuillez saisir une adresse de livraison.');
+      return;
+    }
 
     setOrdering(true);
     setError('');
     try {
-      const order = await api.createOrder(listing.id, quantity, paymentMethod);
+      const order = await api.createOrder({
+        listingId: listing.id,
+        quantity,
+        paymentMethod,
+        deliveryMethod,
+        deliveryAddress: deliveryMethod !== 'workshop' ? deliveryAddress : undefined,
+      });
+      if (paymentMethod === 'momo') {
+        const payment = await api.initiateMomoPayment(order.id, payerPhone);
+        if (payment.redirectUrl) {
+          window.location.assign(payment.redirectUrl);
+          return;
+        }
+
+        const referenceId = payment.paymentReference || payment.orangeMoneyTransactionId;
+        if (referenceId) {
+          router.push(`/payment/callback?type=payment&referenceId=${encodeURIComponent(referenceId)}`);
+          return;
+        }
+      }
       if (paymentMethod === 'orange_money') {
-        await api.confirmOrangeMoneyTest(order.id);
+        const orangePayment = await api.startWebpayment(order.id);
+        window.location.assign(orangePayment.paymentUrl);
+        return;
       }
       router.push('/orders');
     } catch (err) {
@@ -76,6 +110,8 @@ export default function ListingPage() {
 
   const isOwnListing = user?.id === listing.sellerId;
   const total = Number(listing.price) * quantity;
+  const paymentLabel = paymentMethod === 'cash' ? 'Espèces' : paymentMethod === 'momo' ? 'MoMo' : 'Orange Money';
+  const deliveryLabel = deliveryMethod === 'home' ? 'Livraison à domicile' : deliveryMethod === 'carrier' ? 'Transporteur' : "Retrait à l'atelier";
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
@@ -149,40 +185,162 @@ export default function ListingPage() {
           <span>{formatXAF(total)}</span>
         </div>
 
-        <fieldset className="mt-6 space-y-2">
-          <legend className="text-sm font-medium">Mode de paiement</legend>
-          <label className="flex cursor-pointer items-center gap-3 rounded-md border border-stone-200 p-3 text-sm hover:border-amber-600">
-            <input
-              type="radio"
-              name="paymentMethod"
-              value="cash"
-              checked={paymentMethod === 'cash'}
-              onChange={() => setPaymentMethod('cash')}
-            />
+        <section className="mt-6 rounded-md border border-stone-200">
+          <button
+            type="button"
+            onClick={() => setPaymentOpen((open) => !open)}
+            aria-expanded={paymentOpen}
+            className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left"
+          >
             <span>
-              <strong>Paiement en espèces</strong>
-              <span className="block text-xs text-stone-500">À la remise de la commande</span>
+              <span className="block text-sm font-medium">Mode de paiement</span>
+              <span className="block text-xs text-stone-500">{paymentLabel}</span>
             </span>
-          </label>
-          <label className="flex cursor-pointer items-center gap-3 rounded-md border border-stone-200 p-3 text-sm hover:border-orange-500">
-            <input
-              type="radio"
-              name="paymentMethod"
-              value="orange_money"
-              checked={paymentMethod === 'orange_money'}
-              onChange={() => setPaymentMethod('orange_money')}
-            />
+            <span className="text-lg text-stone-500">{paymentOpen ? '-' : '+'}</span>
+          </button>
+          {paymentOpen && (
+            <fieldset className="space-y-2 border-t border-stone-100 p-3 pt-2">
+              <legend className="sr-only">Mode de paiement</legend>
+              <label className="flex cursor-pointer items-center gap-3 rounded-md border border-stone-200 p-3 text-sm hover:border-amber-600">
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="cash"
+                  checked={paymentMethod === 'cash'}
+                  onChange={() => setPaymentMethod('cash')}
+                />
+                <span>
+                  <strong>Paiement en espèces</strong>
+                  <span className="block text-xs text-stone-500">À la remise de la commande</span>
+                </span>
+              </label>
+              <label className="flex cursor-pointer items-center gap-3 rounded-md border border-stone-200 p-3 text-sm hover:border-orange-500">
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="momo"
+                  checked={paymentMethod === 'momo'}
+                  onChange={() => setPaymentMethod('momo')}
+                />
+                <span>
+                  <strong>Payer avec MoMo</strong>
+                  <span className="block text-xs text-stone-500">Demande de paiement envoyée sur votre téléphone</span>
+                </span>
+              </label>
+              <label className="flex cursor-pointer items-center gap-3 rounded-md border border-stone-200 p-3 text-sm hover:border-orange-500">
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="orange_money"
+                  checked={paymentMethod === 'orange_money'}
+                  onChange={() => setPaymentMethod('orange_money')}
+                />
+                <span>
+                  <strong>Orange Money</strong>
+                  <span className="block text-xs text-stone-500">Mode test local activé</span>
+                </span>
+              </label>
+            </fieldset>
+          )}
+        </section>
+
+        <section className="mt-4 rounded-md border border-stone-200">
+          <button
+            type="button"
+            onClick={() => setDeliveryOpen((open) => !open)}
+            aria-expanded={deliveryOpen}
+            className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left"
+          >
             <span>
-              <strong>Orange Money</strong>
-              <span className="block text-xs text-stone-500">Mode test local activé</span>
+              <span className="block text-sm font-medium">Mode de livraison</span>
+              <span className="block text-xs text-stone-500">{deliveryLabel}</span>
             </span>
-          </label>
-        </fieldset>
+            <span className="text-lg text-stone-500">{deliveryOpen ? '-' : '+'}</span>
+          </button>
+          {deliveryOpen && (
+            <fieldset className="space-y-2 border-t border-stone-100 p-3 pt-2">
+              <legend className="sr-only">Mode de livraison</legend>
+              <label className="flex cursor-pointer items-center gap-3 rounded-md border border-stone-200 p-3 text-sm hover:border-amber-600">
+                <input
+                  type="radio"
+                  name="deliveryMethod"
+                  value="workshop"
+                  checked={deliveryMethod === 'workshop'}
+                  onChange={() => setDeliveryMethod('workshop')}
+                />
+                <span>
+                  <strong>Retrait à l&apos;atelier</strong>
+                  <span className="block text-xs text-stone-500">Vous récupérez la commande chez l&apos;artisan</span>
+                </span>
+              </label>
+              <label className="flex cursor-pointer items-center gap-3 rounded-md border border-stone-200 p-3 text-sm hover:border-amber-600">
+                <input
+                  type="radio"
+                  name="deliveryMethod"
+                  value="home"
+                  checked={deliveryMethod === 'home'}
+                  onChange={() => setDeliveryMethod('home')}
+                />
+                <span>
+                  <strong>Livraison à domicile</strong>
+                  <span className="block text-xs text-stone-500">Adresse complète et repère requis</span>
+                </span>
+              </label>
+              <label className="flex cursor-pointer items-center gap-3 rounded-md border border-stone-200 p-3 text-sm hover:border-amber-600">
+                <input
+                  type="radio"
+                  name="deliveryMethod"
+                  value="carrier"
+                  checked={deliveryMethod === 'carrier'}
+                  onChange={() => setDeliveryMethod('carrier')}
+                />
+                <span>
+                  <strong>Transporteur</strong>
+                  <span className="block text-xs text-stone-500">Livraison suivie par un transporteur partenaire</span>
+                </span>
+              </label>
+            </fieldset>
+          )}
+        </section>
+
+        {deliveryMethod !== 'workshop' && (
+          <div className="mt-4">
+            <label htmlFor="deliveryAddress" className="block text-sm font-medium">
+              Adresse de livraison
+            </label>
+            <textarea
+              id="deliveryAddress"
+              value={deliveryAddress}
+              onChange={(event) => setDeliveryAddress(event.target.value)}
+              rows={3}
+              placeholder="Ville, quartier, repère, numéro joignable"
+              className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
+            />
+          </div>
+        )}
+
+        {paymentMethod === 'momo' && (
+          <div className="mt-4">
+            <label htmlFor="payerPhone" className="block text-sm font-medium">
+              Numéro MoMo
+            </label>
+            <input
+              id="payerPhone"
+              type="tel"
+              value={payerPhone}
+              onChange={(event) => setPayerPhone(event.target.value)}
+              placeholder="Ex: 237699000000"
+              className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600"
+            />
+          </div>
+        )}
 
         <div className="mt-4 rounded-md bg-amber-50 p-3 text-sm text-amber-900">
           {paymentMethod === 'cash'
             ? "Paiement en espèces à la remise. L'artisan confirmera la réception du règlement."
-            : "Simulation Orange Money : aucune transaction réelle n'est effectuée en mode test."}
+            : paymentMethod === 'momo'
+              ? "Vous recevrez une demande de validation MoMo. Le paiement sera confirmé par webhook sécurisé."
+              : "Orange Money reste disponible en mode test local."}
         </div>
 
         {error && <p className="mt-4 text-sm text-red-600">{error}</p>}

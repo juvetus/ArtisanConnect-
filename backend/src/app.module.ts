@@ -25,6 +25,9 @@ import { ContactModule } from './modules/contact/contact.module.js';
 import { ProgramApplicationsModule } from './modules/program-applications/program-applications.module.js';
 import { DeliveryModule } from './modules/delivery/delivery.module.js';
 import { StorageModule } from './modules/storage/storage.module.js';
+import { MomoModule } from './modules/momo/momo.module.js';
+import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module.js';
+import { PayoutsModule } from './modules/payouts/payouts.module.js';
 
 @Module({
   imports: [
@@ -53,6 +56,9 @@ import { StorageModule } from './modules/storage/storage.module.js';
     ProgramApplicationsModule,
     DeliveryModule,
     StorageModule,
+    MomoModule,
+    SubscriptionsModule,
+    PayoutsModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: JwtAuthGuard }],

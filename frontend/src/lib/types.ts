@@ -65,6 +65,7 @@ export const SHOP_OPTIONAL_DOCS: Record<ShopType, { label: string; labelFr: stri
 };
 export type OrderStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled';
 export type PaymentStatus = 'pending' | 'confirmed' | 'captured' | 'refunded';
+export type DeliveryMethod = 'workshop' | 'home' | 'carrier';
 
 export interface User {
   id: string;
@@ -110,7 +111,16 @@ export interface Order {
   totalPrice: string;
   platformFee: string;
   status: OrderStatus;
-  paymentMethod: 'cash' | 'orange_money' | 'card';
+  paymentMethod: 'cash' | 'momo' | 'orange_money' | 'card';
+  deliveryMethod: DeliveryMethod;
+  deliveryAddress?: string | null;
+  deliveryLatitude?: number | null;
+  deliveryLongitude?: number | null;
+  deliveryCarrier?: string | null;
+  deliveryTrackingId?: string | null;
+  deliveryStatus: 'pending' | 'assigned' | 'picking_up' | 'in_transit' | 'delivered' | 'cancelled';
+  deliveryTrackingUrl?: string | null;
+  deliveryCost?: string | null;
   sellerConfirmedAvailability: boolean;
   carrierPickedUp: boolean;
   carrierVerified: boolean;
@@ -123,7 +133,7 @@ export interface Payment {
   id: string;
   orderId: string;
   amount: string;
-  method: 'cash' | 'orange_money' | 'stripe';
+  method: 'cash' | 'momo' | 'orange_money' | 'stripe';
   status: PaymentStatus;
   cashConfirmedAt?: string | null;
   orangeMoneyTransactionId?: string | null;

@@ -217,6 +217,21 @@ export default function DashboardPage() {
   const listings = data?.listings ?? [];
   const orders = data?.orders ?? [];
 
+  const paymentCard = (
+    <div className="rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-5 shadow-sm">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">Abonnement</p>
+          <h3 className="mt-2 text-xl font-semibold text-stone-900">Premium Artisan</h3>
+          <p className="mt-1 text-sm text-stone-600">5 000 FCFA / mois • accès premium • paiements automatiques</p>
+        </div>
+        <Link href="/payment?type=subscription" className="rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-white hover:bg-amber-800 transition">
+          Payer avec MoMo
+        </Link>
+      </div>
+    </div>
+  );
+
   const revenue = orders
     .filter((o) => o.status === 'completed')
     .reduce((sum, o) => sum + Number(o.totalPrice), 0);

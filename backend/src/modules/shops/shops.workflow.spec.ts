@@ -4,8 +4,8 @@ import { AdminService } from '../admin/admin.service.js';
 import { Shop } from '../../entities/shop.entity.js';
 
 describe('Vérification du flux de validation manuelle des boutiques Artisan', () => {
-  it('garantit les règles KYC et le cycle de vie complet', () => {
-    // 1. Preuves KYC obligatoires pour les artisans
+  it('garantit la liste des preuves KYC recommandées', () => {
+    // 1. Preuves KYC recommandées pour les artisans
     const requiredArtisanDocs = Shop.requiredDocuments('artisan');
     expect(requiredArtisanDocs).toEqual([
       'piece_identite',

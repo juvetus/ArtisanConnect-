@@ -16,3 +16,6 @@ export { ServicePayment } from './service-payment.entity.js';
 export { ServiceReview } from './service-review.entity.js';
 export { ServiceValidationHistory } from './service-validation-history.entity.js';
 export { ProgramApplication } from './program-application.entity.js';
+export { Subscription } from './subscription.entity.js';
+export { SubscriptionPlan } from './subscription-plan.entity.js';
+export { Payout } from './payout.entity.js';
