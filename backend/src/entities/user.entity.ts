@@ -18,8 +18,8 @@ export class User {
   @Column({ select: false })
   passwordHash: string;
 
-  @Column('enum', { enum: ['artisan', 'client', 'institution', 'admin'], default: 'client' })
-  role: 'artisan' | 'client' | 'institution' | 'admin';
+  @Column('enum', { enum: ['artisan', 'client', 'institution', 'admin', 'editor', 'viewer'], default: 'client' })
+  role: 'artisan' | 'client' | 'institution' | 'admin' | 'editor' | 'viewer';
 
   @Column({ nullable: true })
   name: string;

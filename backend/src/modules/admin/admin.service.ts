@@ -129,6 +129,51 @@ export class AdminService implements OnModuleInit {
     });
   }
 
+  async createUser(data: {
+    name: string;
+    email: string;
+    password: string;
+    role: 'admin' | 'editor' | 'viewer' | 'artisan' | 'client' | 'institution';
+    gender?: 'female' | 'male' | 'cooperative' | 'other';
+  }) {
+    const name = data.name?.trim();
+    const email = data.email?.toLowerCase().trim();
+    const password = data.password || '';
+    const allowedRoles = ['admin', 'editor', 'viewer', 'artisan', 'client', 'institution'] as const;
+
+    if (!name || !email || !password) {
+      throw new BadRequestException('Nom, e-mail et mot de passe sont obligatoires');
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new BadRequestException('Adresse e-mail invalide');
+    }
+    if (password.length < 8) {
+      throw new BadRequestException('Le mot de passe doit contenir au moins 8 caractères');
+    }
+    if (!allowedRoles.includes(data.role)) {
+      throw new BadRequestException('Rôle invalide');
+    }
+    const existing = await this.users.findOne({ where: { email } });
+    if (existing) {
+      throw new BadRequestException('Cet e-mail est déjà associé à un compte');
+    }
+
+    const user = await this.users.save(
+      this.users.create({
+        email,
+        passwordHash: await bcrypt.hash(password, 10),
+        name,
+        role: data.role,
+        gender: data.role === 'artisan' ? data.gender ?? null : null,
+        verifiedEmail: true,
+        isActive: true,
+      }),
+    );
+
+    const { passwordHash: _passwordHash, ...safeUser } = user as User & { passwordHash?: string };
+    return safeUser;
+  }
+
   async listListings() {
     return this.listings.find({
       relations: { seller: true },
@@ -150,7 +195,7 @@ export class AdminService implements OnModuleInit {
     return this.listings.findOne({ where: { id }, relations: { seller: true } });
   }
 
-  async setUserRole(id: string, role: 'artisan' | 'client') {
+  async setUserRole(id: string, role: 'admin' | 'editor' | 'viewer' | 'artisan' | 'client' | 'institution') {
     await this.users.update(id, { role });
     return this.users.findOne({ where: { id } });
   }

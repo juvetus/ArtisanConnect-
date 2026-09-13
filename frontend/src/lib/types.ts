@@ -1,4 +1,4 @@
-export type Role = 'artisan' | 'client' | 'institution' | 'admin';
+export type Role = 'artisan' | 'client' | 'institution' | 'admin' | 'editor' | 'viewer';
 export type ListingType = 'product' | 'service';
 export type ShopType = 'artisan' | 'reseller' | 'individual';
 export type ShopStatus = 'pending' | 'active' | 'rejected' | 'suspended';

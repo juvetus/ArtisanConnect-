@@ -195,6 +195,9 @@ export const api = {
 
   adminUsers: () => request<User[]>('/admin/users'),
 
+  adminCreateUser: (data: { name: string; email: string; password: string; role: Role; gender?: 'female' | 'male' | 'cooperative' | 'other' }) =>
+    post<User>('/admin/users', data),
+
   adminListings: () => request<Listing[]>('/admin/listings'),
 
   adminOrders: () => request<Order[]>('/admin/orders'),
@@ -202,7 +205,7 @@ export const api = {
   adminSetListingStatus: (id: string, status: Listing['status']) =>
     patch<Listing>(`/admin/listings/${id}/status`, { status }),
 
-  adminSetUserRole: (id: string, role: 'artisan' | 'client') =>
+  adminSetUserRole: (id: string, role: Role) =>
     patch<User>(`/admin/users/${id}/role`, { role }),
 
   adminSetUserStatus: (id: string, isActive: boolean) =>

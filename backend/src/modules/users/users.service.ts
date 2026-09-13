@@ -89,7 +89,7 @@ export class UsersService {
     });
   }
 
-  async create(email: string, password: string, name: string, role: 'artisan' | 'client' | 'institution' = 'client', gender?: 'female' | 'male' | 'cooperative' | 'other'): Promise<User> {
+  async create(email: string, password: string, name: string, role: 'artisan' | 'client' | 'institution' | 'admin' | 'editor' | 'viewer' = 'client', gender?: 'female' | 'male' | 'cooperative' | 'other'): Promise<User> {
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = this.usersRepository.create({
       email,

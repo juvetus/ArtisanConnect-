@@ -8,7 +8,7 @@ import { useAuth } from '@/lib/auth-context';
 import { formatXAF } from '@/lib/format';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Pagination } from '@/components/Pagination';
-import type { AdminStats, Listing, Order, Shop, User } from '@/lib/types';
+import type { AdminStats, Listing, Order, Role, Shop, User } from '@/lib/types';
 
 interface ServiceDashboardStats {
   stats: {
@@ -20,6 +20,19 @@ interface ServiceDashboardStats {
   };
 }
 
+const ADMIN_CREATABLE_ROLES: { value: Role; label: string }[] = [
+  { value: 'admin', label: 'Admin' },
+  { value: 'editor', label: 'Éditeur' },
+  { value: 'viewer', label: 'Viewer' },
+  { value: 'client', label: 'Client' },
+  { value: 'artisan', label: 'Artisan / vendeur' },
+  { value: 'institution', label: 'Institution' },
+];
+
+function roleLabel(role: Role) {
+  return ADMIN_CREATABLE_ROLES.find((item) => item.value === role)?.label ?? role;
+}
+
 export default function AdminPage() {
   const { user, ready } = useAuth();
   const router = useRouter();
@@ -29,6 +42,12 @@ export default function AdminPage() {
   const [listingsPage, setListingsPage] = useState(0);
   const [shopsPage, setShopsPage] = useState(0);
   const [recentOrdersPage, setRecentOrdersPage] = useState(0);
+  const [newUser, setNewUser] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'viewer' as Role,
+  });
   const PAGE_SIZE = 10;
 
   const { data, isLoading, mutate } = useSWR(
@@ -60,10 +79,19 @@ export default function AdminPage() {
     await mutate();
   };
 
-  const changeRole = async (member: User) => {
-    const role = member.role === 'artisan' ? 'client' : 'artisan';
+  const changeRole = async (member: User, role: Role) => {
     await api.adminSetUserRole(member.id, role);
     await mutate();
+  };
+
+  const createUser = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    await runAdminAction(async () => {
+      await api.adminCreateUser(newUser);
+      setNewUser({ name: '', email: '', password: '', role: 'viewer' });
+      setUsersPage(0);
+      setView('users');
+    });
   };
 
   const runAdminAction = async (action: () => Promise<unknown>) => {
@@ -186,63 +214,110 @@ export default function AdminPage() {
       )}
 
       {view === 'users' && (
-        <section className="overflow-hidden rounded-lg border border-stone-200 bg-white">
-          <div className="border-b border-stone-200 p-5">
-            <h2 className="font-semibold">Utilisateurs ({data.users.length})</h2>
-            <p className="mt-1 text-sm text-stone-600">Les mots de passe ne sont jamais exposés.</p>
-          </div>
-          <div className="divide-y divide-stone-100">
-            {data.users.slice(usersPage * PAGE_SIZE, (usersPage + 1) * PAGE_SIZE).map((member) => (
-              <div key={member.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
-                <div>
-                  <p className="font-medium">{member.name}</p>
-                  <p className="text-sm text-stone-600">{member.email}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="rounded-full bg-stone-100 px-3 py-1 text-xs capitalize">{member.role}</span>
-                  {member.gender && (
-                    <span className="rounded-full bg-rose-50 px-2 py-0.5 text-xs text-rose-700 capitalize">
-                      {member.gender === 'female' ? 'Femme' : member.gender === 'cooperative' ? 'Coopérative' : member.gender}
-                    </span>
-                  )}
-                  {member.isActive === false && <span className="rounded-full bg-red-100 px-3 py-1 text-xs text-red-700">Désactivé</span>}
-                  {member.role !== 'admin' && (
-                    <>
-                      <button onClick={() => changeRole(member)} className="text-sm text-amber-700 underline">
-                        Passer {member.role === 'artisan' ? 'client' : 'artisan'}
-                      </button>
-                      <button
-                        onClick={() => void runAdminAction(() => api.adminSetUserStatus(member.id, member.isActive === false))}
-                        className="text-sm text-orange-700 underline"
-                      >
-                        {member.isActive === false ? 'Réactiver' : 'Désactiver'}
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm(`Supprimer définitivement ${member.name} ?`)) void runAdminAction(() => api.adminDeleteUser(member.id));
-                        }}
-                        className="text-sm text-red-700 underline"
-                      >
-                        Supprimer
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-          {data.users.length > PAGE_SIZE && (
-            <div className="p-4 border-t border-stone-100">
-              <Pagination
-                page={usersPage}
-                hasPrevious={usersPage > 0}
-                hasNext={(usersPage + 1) * PAGE_SIZE < data.users.length}
-                onPrevious={() => setUsersPage((p) => Math.max(0, p - 1))}
-                onNext={() => setUsersPage((p) => p + 1)}
+        <div className="space-y-4">
+          <section className="rounded-lg border border-stone-200 bg-white p-5">
+            <h2 className="font-semibold">Ajouter un utilisateur</h2>
+            <p className="mt-1 text-sm text-stone-600">Réservé aux administrateurs. Le mot de passe initial doit être transmis par un canal sûr.</p>
+            <form onSubmit={createUser} className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_180px_180px_auto]">
+              <input
+                required
+                value={newUser.name}
+                onChange={(event) => setNewUser((current) => ({ ...current, name: event.target.value }))}
+                placeholder="Nom"
+                className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
               />
+              <input
+                required
+                type="email"
+                value={newUser.email}
+                onChange={(event) => setNewUser((current) => ({ ...current, email: event.target.value }))}
+                placeholder="email@exemple.cm"
+                className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
+              />
+              <input
+                required
+                type="password"
+                minLength={8}
+                value={newUser.password}
+                onChange={(event) => setNewUser((current) => ({ ...current, password: event.target.value }))}
+                placeholder="Mot de passe"
+                className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
+              />
+              <select
+                value={newUser.role}
+                onChange={(event) => setNewUser((current) => ({ ...current, role: event.target.value as Role }))}
+                className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
+              >
+                {ADMIN_CREATABLE_ROLES.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}
+              </select>
+              <button className="rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-white hover:bg-amber-800">
+                Ajouter
+              </button>
+            </form>
+          </section>
+
+          <section className="overflow-hidden rounded-lg border border-stone-200 bg-white">
+            <div className="border-b border-stone-200 p-5">
+              <h2 className="font-semibold">Utilisateurs ({data.users.length})</h2>
+              <p className="mt-1 text-sm text-stone-600">Les mots de passe ne sont jamais exposés.</p>
             </div>
-          )}
-        </section>
+            <div className="divide-y divide-stone-100">
+              {data.users.slice(usersPage * PAGE_SIZE, (usersPage + 1) * PAGE_SIZE).map((member) => (
+                <div key={member.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
+                  <div>
+                    <p className="font-medium">{member.name}</p>
+                    <p className="text-sm text-stone-600">{member.email}</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="rounded-full bg-stone-100 px-3 py-1 text-xs">{roleLabel(member.role)}</span>
+                    {member.gender && (
+                      <span className="rounded-full bg-rose-50 px-2 py-0.5 text-xs text-rose-700 capitalize">
+                        {member.gender === 'female' ? 'Femme' : member.gender === 'cooperative' ? 'Coopérative' : member.gender}
+                      </span>
+                    )}
+                    {member.isActive === false && <span className="rounded-full bg-red-100 px-3 py-1 text-xs text-red-700">Désactivé</span>}
+                    {member.role !== 'admin' && (
+                      <>
+                        <select
+                          value={member.role}
+                          onChange={(event) => void runAdminAction(() => changeRole(member, event.target.value as Role))}
+                          className="rounded-md border border-stone-200 px-2 py-1 text-sm"
+                        >
+                          {ADMIN_CREATABLE_ROLES.filter((role) => role.value !== 'admin').map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}
+                        </select>
+                        <button
+                          onClick={() => void runAdminAction(() => api.adminSetUserStatus(member.id, member.isActive === false))}
+                          className="text-sm text-orange-700 underline"
+                        >
+                          {member.isActive === false ? 'Réactiver' : 'Désactiver'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm(`Supprimer définitivement ${member.name} ?`)) void runAdminAction(() => api.adminDeleteUser(member.id));
+                          }}
+                          className="text-sm text-red-700 underline"
+                        >
+                          Supprimer
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {data.users.length > PAGE_SIZE && (
+              <div className="p-4 border-t border-stone-100">
+                <Pagination
+                  page={usersPage}
+                  hasPrevious={usersPage > 0}
+                  hasNext={(usersPage + 1) * PAGE_SIZE < data.users.length}
+                  onPrevious={() => setUsersPage((p) => Math.max(0, p - 1))}
+                  onNext={() => setUsersPage((p) => p + 1)}
+                />
+              </div>
+            )}
+          </section>
+        </div>
       )}
 
       {view === 'listings' && (

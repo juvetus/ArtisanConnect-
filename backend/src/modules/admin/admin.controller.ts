@@ -52,6 +52,17 @@ export class AdminController {
     return this.adminService.listUsers();
   }
 
+  @Post('users')
+  createUser(@Body() body: {
+    name: string;
+    email: string;
+    password: string;
+    role: 'admin' | 'editor' | 'viewer' | 'artisan' | 'client' | 'institution';
+    gender?: 'female' | 'male' | 'cooperative' | 'other';
+  }) {
+    return this.adminService.createUser(body);
+  }
+
   @Get('listings')
   getListings() {
     return this.adminService.listListings();
@@ -71,7 +82,7 @@ export class AdminController {
   }
 
   @Patch('users/:id/role')
-  updateUserRole(@Param('id') id: string, @Body() body: { role: 'artisan' | 'client' }) {
+  updateUserRole(@Param('id') id: string, @Body() body: { role: 'admin' | 'editor' | 'viewer' | 'artisan' | 'client' | 'institution' }) {
     return this.adminService.setUserRole(id, body.role);
   }
 
