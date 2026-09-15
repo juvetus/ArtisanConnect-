@@ -7,6 +7,7 @@ import { useLanguage } from '@/lib/language-context';
 
 export function BlogArticleContent({ article }: { article: BlogArticle }) {
   const { language } = useLanguage();
+  const hasAiWatermark = article.coverImage.includes('/Copilot_');
   const sections = article.sections[language];
   const copy = language === 'en'
     ? {
@@ -31,6 +32,7 @@ export function BlogArticleContent({ article }: { article: BlogArticle }) {
       <Link href="/blog" className="text-sm font-semibold text-amber-800 hover:text-amber-950">{copy.back}</Link>
       <div className="relative mt-8 aspect-[16/8] overflow-hidden bg-stone-200">
         <Image src={article.coverImage} alt={article.coverAlt[language]} fill priority sizes="(min-width: 768px) 768px, 100vw" className="object-cover" />
+        {hasAiWatermark ? <span aria-hidden className="pointer-events-none absolute right-[1%] top-[1%] h-[8%] w-[17%] rounded-full bg-stone-900/95" /> : null}
       </div>
       <header className="mt-8 border-b border-stone-200 pb-8">
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-amber-700">{article.category[language]}</p>

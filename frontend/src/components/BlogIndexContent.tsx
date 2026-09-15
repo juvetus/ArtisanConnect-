@@ -36,6 +36,7 @@ export function BlogIndexContent() {
           <article key={article.slug} className={`flex flex-col border border-stone-200 bg-white p-6 ${index === 0 ? 'md:col-span-2 lg:col-span-2' : ''}`}>
             <Link href={`/blog/${article.slug}`} className="group relative -mx-6 -mt-6 mb-6 block aspect-[16/9] overflow-hidden bg-stone-200">
               <Image src={article.coverImage} alt={article.coverAlt[language]} fill priority={index === 0} sizes={index === 0 ? '(min-width: 1024px) 66vw, (min-width: 768px) 66vw, 100vw' : '(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw'} className="object-cover transition duration-500 group-hover:scale-105" />
+              {article.coverImage.includes('/Copilot_') ? <span aria-hidden className="pointer-events-none absolute right-[1%] top-[1%] h-[8%] w-[17%] rounded-full bg-stone-900/95" /> : null}
             </Link>
             <div className="flex items-center justify-between gap-3 text-xs font-semibold uppercase tracking-wide text-amber-700">
               <span>{article.category[language]}</span>
