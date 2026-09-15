@@ -95,10 +95,13 @@ export function Header() {
             {t('nav_services')}
           </Link>
           <Link href="/how-it-works" className={navLinkClass('/how-it-works')}>
-            Comment ça marche
+            {t('nav_how_it_works')}
           </Link>
           <Link href="/blog" className={navLinkClass('/blog')}>
             Blog
+          </Link>
+          <Link href="/institutions" className={navLinkClass('/institutions')}>
+            {t('nav_institutions')}
           </Link>
           {!ready ? null : user ? (
             <>
