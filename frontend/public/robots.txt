@@ -6,5 +6,15 @@ Disallow: /messages
 Disallow: /notifications
 Disallow: /orders
 Disallow: /payment
+Disallow: /artisan
+Disallow: /formalization
+Disallow: /institution
+Disallow: /resources
+Disallow: /shop/create
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /verify-email
 
 Sitemap: https://artisanconnectcm.info/sitemap.xml

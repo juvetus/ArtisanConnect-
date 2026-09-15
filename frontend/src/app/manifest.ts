@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'ArtisanConnect',
     short_name: 'ArtisanConnect',
-    description: 'La place de marche des artisans, createurs et prestataires locaux au Cameroun.',
+    description: 'Marketplace artisanale au Cameroun pour acheter des produits artisanaux et trouver des services d’artisans locaux.',
     start_url: '/',
     scope: '/',
     display: 'standalone',
