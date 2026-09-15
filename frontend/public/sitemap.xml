@@ -37,6 +37,18 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://artisanconnectcm.info/clients</loc>
+    <lastmod>2026-09-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://artisanconnectcm.info/artisans</loc>
+    <lastmod>2026-09-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://artisanconnectcm.info/blog/acheter-artisanat-local-cameroun-guide</loc>
     <lastmod>2026-09-12</lastmod>
     <changefreq>monthly</changefreq>

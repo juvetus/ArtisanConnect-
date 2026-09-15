@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useLanguage } from '@/lib/language-context';
 
 const benefitIcons = ['◈', '↗', '▣'];
@@ -36,7 +37,12 @@ export default function InstitutionsPage() {
               </Link>
             </div>
           </div>
-          <div className="min-h-72 bg-[url('/images/hero-artisan.jpg')] bg-cover bg-center" role="img" aria-label="Artisan camerounais dans son atelier" />
+          <div className="relative flex min-h-72 items-center justify-center overflow-hidden bg-stone-950 p-2 lg:min-h-full" role="img" aria-label="Partenariat entre institutions, ONG et artisans camerounais pour le développement de l’artisanat">
+            <div className="relative w-full max-w-[42rem]">
+              <Image src="/images/partenaire.png" alt="Partenariat entre institutions, ONG et artisans camerounais pour le développement de l’artisanat" width={1536} height={1024} className="block max-h-[34rem] w-full object-contain" />
+              <span aria-hidden className="pointer-events-none absolute right-[1%] top-[1%] h-[8%] w-[17%] rounded-full bg-stone-900/95" />
+            </div>
+          </div>
         </div>
       </section>
 

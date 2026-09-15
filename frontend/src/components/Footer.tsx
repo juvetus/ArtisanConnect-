@@ -22,6 +22,8 @@ export function Footer() {
             <Link href="/" className="hover:text-white">{t('nav_listings')}</Link>
             <Link href="/how-it-works" className="hover:text-white">{t('nav_how_it_works')}</Link>
             <Link href="/institutions" className="hover:text-white">{t('nav_institutions')}</Link>
+            <Link href="/clients" className="hover:text-white">{t('nav_clients')}</Link>
+            <Link href="/artisans" className="hover:text-white">{t('nav_vendors')}</Link>
             <Link href="/contact" className="hover:text-white">{t('nav_contact')}</Link>
           </div>
         </div>
