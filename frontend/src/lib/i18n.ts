@@ -340,6 +340,7 @@ export const TRANSLATIONS = {
     nav_login: 'Login',
     nav_register: 'Register',
     nav_logout: 'Logout',
+    nav_how_it_works: 'How it works',
 
     // Hero / Home
     hero_title: 'Cameroonian craftsmanship, at your fingertips',
