@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Geist } from "next/font/google";
 import type { ReactNode } from "react";
 import "./globals.css";
@@ -124,6 +125,20 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
   return (
     <html lang="fr" className={`${geistSans.variable} h-full antialiased`}>
+      <head>
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-GEKQP3TNC4"
+          strategy="beforeInteractive"
+        />
+        <Script id="google-analytics" strategy="beforeInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){window.dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-GEKQP3TNC4');
+          `}
+        </Script>
+      </head>
       <body className="flex min-h-full flex-col bg-stone-50 text-stone-900">
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
         <ServiceWorkerRegistration />
