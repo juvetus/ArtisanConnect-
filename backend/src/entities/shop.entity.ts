@@ -57,10 +57,10 @@ export class Shop {
   @Column()
   mobileMoneyNumber: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   momoNumber: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   orangeMoneyNumber: string | null;
 
   @Column('enum', { enum: ['momo', 'orange_money', 'both'], default: 'both' })
