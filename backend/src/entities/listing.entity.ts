@@ -43,6 +43,12 @@ export class Listing {
   @Column({ default: 0 })
   stock: number; // Pour les produits
 
+  @Column('simple-array', { nullable: true })
+  acceptedPaymentMethods: ('cash' | 'momo' | 'orange_money')[];
+
+  @Column('simple-array', { nullable: true })
+  deliveryMethods: ('workshop' | 'home' | 'carrier')[];
+
   @Column({ nullable: true })
   availability: string; // Pour les services
 

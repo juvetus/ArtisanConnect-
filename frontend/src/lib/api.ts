@@ -70,10 +70,12 @@ const delete_ = <T>(path: string) =>
   request<T>(path, { method: 'DELETE' });
 
 export const api = {
-  register: (data: { email: string; password: string; name: string; role: Role; gender?: 'female' | 'male' | 'cooperative' | 'other' }) =>
-    post<User>('/auth/register', data),
+  register: (data: { email?: string; phone?: string; password: string; name: string; role: Role; gender?: 'female' | 'male' | 'cooperative' | 'other' }) =>
+    post<User & { developmentOtp?: string }>('/auth/register', data),
 
-  login: (data: { email: string; password: string }) => post<AuthSession>('/auth/login', data),
+  login: (data: { identifier: string; password: string }) => post<AuthSession>('/auth/login', data),
+
+  verifyPhone: (phone: string, code: string) => post<{ success: boolean; message: string; user: User }>('/auth/verify-phone', { phone, code }),
 
   verifyEmail: (token: string) => post<{ success: boolean; message: string; user: User }>('/auth/verify-email', { token }),
 
@@ -82,6 +84,8 @@ export const api = {
   forgotPassword: (email: string) => post<{ success: boolean; message: string }>('/auth/forgot-password', { email }),
 
   resetPassword: (token: string, password: string) => post<{ success: boolean; message: string }>('/auth/reset-password', { token, password }),
+
+    updateProfile: (id: string, data: { name?: string; phone?: string; whatsappPhone?: string; location?: string; bio?: string }) => patch<User>(`/users/${id}`, data),
 
   sendContactMessage: async (data: { name: string; email: string; subject: string; message: string; city?: string; neighborhood?: string }, files: File[] = []) => {
     const form = new FormData();
@@ -202,6 +206,10 @@ export const api = {
 
   adminOrders: () => request<Order[]>('/admin/orders'),
 
+  adminCancelOrder: (id: string) => patch<Order>(`/admin/orders/${id}/cancel`, {}),
+
+  adminRefundOrder: (id: string) => patch<Order>(`/admin/orders/${id}/refund`, {}),
+
   adminSetListingStatus: (id: string, status: Listing['status']) =>
     patch<Listing>(`/admin/listings/${id}/status`, { status }),
 
@@ -276,7 +284,11 @@ export const api = {
     latitude?: number;
     longitude?: number;
     mobileMoneyNumber: string;
+    momoNumber?: string;
+    orangeMoneyNumber?: string;
+    mobileMoneyProvider?: 'momo' | 'orange_money' | 'both';
     deliveryMode: 'workshop' | 'home';
+    deliveryMethods?: ('workshop' | 'home' | 'carrier')[];
     kycDocuments: { label: string; url: string; publicId?: string; resourceType?: string; format?: string }[];
     isWomenLed?: boolean;
     isCooperative?: boolean;
@@ -296,7 +308,7 @@ export const api = {
 
   myShops: () => request<Shop[]>('/shops/mine'),
 
-  updateShop: (id: string, data: { name?: string; description?: string; category?: string; city?: string; neighborhood?: string; market?: string; latitude?: number; longitude?: number; deliveryMode?: 'workshop' | 'home'; isWomenLed?: boolean; isCooperative?: boolean }) =>
+  updateShop: (id: string, data: { name?: string; description?: string; category?: string; city?: string; neighborhood?: string; market?: string; latitude?: number; longitude?: number; deliveryMode?: 'workshop' | 'home'; deliveryMethods?: ('workshop' | 'home' | 'carrier')[]; mobileMoneyNumber?: string; momoNumber?: string; orangeMoneyNumber?: string; mobileMoneyProvider?: 'momo' | 'orange_money' | 'both'; isWomenLed?: boolean; isCooperative?: boolean }) =>
     patch<Shop>(`/shops/${id}`, data),
 
   setShopActive: (id: string, active: boolean) => patch<Shop>(`/shops/${id}/status`, { active }),

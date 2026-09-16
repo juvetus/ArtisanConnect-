@@ -64,6 +64,10 @@ export class ShopsController {
       latitude?: number;
       longitude?: number;
       mobileMoneyNumber: string;
+      momoNumber?: string;
+      orangeMoneyNumber?: string;
+      mobileMoneyProvider?: 'momo' | 'orange_money' | 'both';
+      deliveryMethods?: ('workshop' | 'home' | 'carrier')[];
       deliveryMode: 'workshop' | 'home';
       kycDocuments: { label: string; url: string }[];
       isWomenLed?: boolean;
@@ -98,7 +102,7 @@ export class ShopsController {
   async update(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,
-    @Body() body: { name?: string; description?: string; category?: string; city?: string; neighborhood?: string; market?: string; latitude?: number; longitude?: number; deliveryMode?: 'workshop' | 'home'; isWomenLed?: boolean; isCooperative?: boolean },
+    @Body() body: { name?: string; description?: string; category?: string; city?: string; neighborhood?: string; market?: string; latitude?: number; longitude?: number; deliveryMode?: 'workshop' | 'home'; deliveryMethods?: ('workshop' | 'home' | 'carrier')[]; mobileMoneyNumber?: string; momoNumber?: string; orangeMoneyNumber?: string; mobileMoneyProvider?: 'momo' | 'orange_money' | 'both'; isWomenLed?: boolean; isCooperative?: boolean },
   ) {
     return this.shopsService.update(id, user.id, body);
   }

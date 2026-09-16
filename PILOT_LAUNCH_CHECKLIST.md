@@ -1,5 +1,7 @@
 # Checklist phase pilote controlee
 
+Checklist complémentaire pour l'authentification e-mail/téléphone : [CHECKLIST_AUTH_PILOTE.md](./CHECKLIST_AUTH_PILOTE.md).
+
 ## Positionnement pilote
 
 Objectif : lancer ArtisanConnect avec un perimetre controle, sans attendre les cles API de paiement et transporteur.

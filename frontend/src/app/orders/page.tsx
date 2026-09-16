@@ -12,6 +12,25 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { ReviewSection } from '@/components/ReviewSection';
 import type { Order } from '@/lib/types';
 
+function whatsappNumber(phone: string) {
+  const digits = phone.replace(/\D/g, '');
+  if (digits.startsWith('237')) return digits;
+  if (digits.startsWith('0')) return `237${digits.slice(1)}`;
+  return digits;
+}
+
+function sellerWhatsappHref(order: Order) {
+  const phone = (order.seller?.whatsappPhone ?? order.seller?.phone)?.trim();
+  if (!phone) return null;
+  const number = whatsappNumber(phone);
+  if (number.length < 9) return null;
+  const item = order.listing?.title ?? 'ma commande';
+  const message = encodeURIComponent(
+    `Bonjour ${order.seller?.name ?? ''}, je vous contacte au sujet de ma commande ${order.id.slice(0, 8)} pour « ${item} » sur ArtisanConnect.`,
+  );
+  return `https://wa.me/${number}?text=${message}`;
+}
+
 /** Journal du workflow escrow côté acheteur. */
 function EscrowSteps({ order }: { order: Order }) {
   if (order.paymentMethod !== 'orange_money' && order.paymentMethod !== 'momo') return null;
@@ -192,12 +211,24 @@ export default function OrdersPage() {
                 )}
 
                 {order.seller && (
-                  <Link
-                    href={`/messages?to=${order.sellerId}`}
-                    className="mt-2 inline-block text-sm text-amber-700 underline"
-                  >
-                    Contacter l&apos;artisan
-                  </Link>
+                  <div className="mt-2 flex flex-wrap items-center gap-3">
+                    <Link
+                      href={`/messages?to=${order.sellerId}`}
+                      className="text-sm text-amber-700 underline"
+                    >
+                      Contacter l&apos;artisan par message
+                    </Link>
+                    {sellerWhatsappHref(order) ? (
+                      <a
+                        href={sellerWhatsappHref(order) ?? undefined}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700"
+                      >
+                        WhatsApp
+                      </a>
+                    ) : null}
+                  </div>
                 )}
 
                 {order.status === 'completed' && <ReviewSection orderId={order.id} />}

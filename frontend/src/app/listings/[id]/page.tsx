@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/auth-context';
 import { categoryLabel } from '@/lib/categories';
 import { formatXAF } from '@/lib/format';
 import { resolveMediaUrl } from '@/lib/media';
+import { whatsappHref } from '@/lib/whatsapp';
 
 export default function ListingPage() {
   const { id } = useParams<{ id: string }>();
@@ -44,6 +45,17 @@ export default function ListingPage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [zoomIndex, images.length]);
+
+  /* Synchronise the initial buyer choices with the seller's accepted options. */
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (!listing) return;
+    const payments = listing.acceptedPaymentMethods?.length ? listing.acceptedPaymentMethods : ['cash', 'momo', 'orange_money'] as const;
+    const deliveries = listing.deliveryMethods?.length ? listing.deliveryMethods : ['workshop', 'home', 'carrier'] as const;
+    if (!payments.includes(paymentMethod)) setPaymentMethod(payments[0]);
+    if (!deliveries.includes(deliveryMethod)) setDeliveryMethod(deliveries[0]);
+  }, [listing, paymentMethod, deliveryMethod]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleOrder = async () => {
     if (!user) {
@@ -110,8 +122,11 @@ export default function ListingPage() {
 
   const isOwnListing = user?.id === listing.sellerId;
   const total = Number(listing.price) * quantity;
+  const acceptedPayments = listing.acceptedPaymentMethods?.length ? listing.acceptedPaymentMethods : ['cash', 'momo', 'orange_money'] as const;
+  const acceptedDeliveries = listing.deliveryMethods?.length ? listing.deliveryMethods : ['workshop', 'home', 'carrier'] as const;
   const paymentLabel = paymentMethod === 'cash' ? 'Espèces' : paymentMethod === 'momo' ? 'MoMo' : 'Orange Money';
   const deliveryLabel = deliveryMethod === 'home' ? 'Livraison à domicile' : deliveryMethod === 'carrier' ? 'Transporteur' : "Retrait à l'atelier";
+  const sellerWhatsapp = whatsappHref(listing.seller?.whatsappPhone ?? listing.seller?.phone, `Bonjour ${listing.seller?.name ?? ''}, je suis intéressé par votre annonce « ${listing.title} » sur ArtisanConnect.`);
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
@@ -150,12 +165,12 @@ export default function ListingPage() {
                 : 'Pas encore d’avis'}
             </p>
             {user && !isOwnListing && (
-              <Link
-                href={`/messages?to=${listing.sellerId}`}
-                className="mt-3 inline-block text-sm text-amber-700 underline"
-              >
-                Contacter l&apos;artisan
-              </Link>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <Link href={`/messages?to=${listing.sellerId}`} className="text-sm text-amber-700 underline">
+                  Contacter l&apos;artisan par message
+                </Link>
+                {sellerWhatsapp ? <a href={sellerWhatsapp} target="_blank" rel="noreferrer" className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700">WhatsApp</a> : null}
+              </div>
             )}
           </div>
         )}
@@ -201,7 +216,7 @@ export default function ListingPage() {
           {paymentOpen && (
             <fieldset className="space-y-2 border-t border-stone-100 p-3 pt-2">
               <legend className="sr-only">Mode de paiement</legend>
-              <label className="flex cursor-pointer items-center gap-3 rounded-md border border-stone-200 p-3 text-sm hover:border-amber-600">
+              {acceptedPayments.includes('cash') && <label className="flex cursor-pointer items-center gap-3 rounded-md border border-stone-200 p-3 text-sm hover:border-amber-600">
                 <input
                   type="radio"
                   name="paymentMethod"
@@ -213,8 +228,8 @@ export default function ListingPage() {
                   <strong>Paiement en espèces</strong>
                   <span className="block text-xs text-stone-500">À la remise de la commande</span>
                 </span>
-              </label>
-              <label className="flex cursor-pointer items-center gap-3 rounded-md border border-stone-200 p-3 text-sm hover:border-orange-500">
+              </label>}
+              {acceptedPayments.includes('momo') && <label className="flex cursor-pointer items-center gap-3 rounded-md border border-stone-200 p-3 text-sm hover:border-orange-500">
                 <input
                   type="radio"
                   name="paymentMethod"
@@ -226,8 +241,8 @@ export default function ListingPage() {
                   <strong>Payer avec MoMo</strong>
                   <span className="block text-xs text-stone-500">Demande de paiement envoyée sur votre téléphone</span>
                 </span>
-              </label>
-              <label className="flex cursor-pointer items-center gap-3 rounded-md border border-stone-200 p-3 text-sm hover:border-orange-500">
+              </label>}
+              {acceptedPayments.includes('orange_money') && <label className="flex cursor-pointer items-center gap-3 rounded-md border border-stone-200 p-3 text-sm hover:border-orange-500">
                 <input
                   type="radio"
                   name="paymentMethod"
@@ -239,7 +254,7 @@ export default function ListingPage() {
                   <strong>Orange Money</strong>
                   <span className="block text-xs text-stone-500">Mode test local activé</span>
                 </span>
-              </label>
+              </label>}
             </fieldset>
           )}
         </section>
@@ -260,7 +275,7 @@ export default function ListingPage() {
           {deliveryOpen && (
             <fieldset className="space-y-2 border-t border-stone-100 p-3 pt-2">
               <legend className="sr-only">Mode de livraison</legend>
-              <label className="flex cursor-pointer items-center gap-3 rounded-md border border-stone-200 p-3 text-sm hover:border-amber-600">
+              {acceptedDeliveries.includes('workshop') && <label className="flex cursor-pointer items-center gap-3 rounded-md border border-stone-200 p-3 text-sm hover:border-amber-600">
                 <input
                   type="radio"
                   name="deliveryMethod"
@@ -272,8 +287,8 @@ export default function ListingPage() {
                   <strong>Retrait à l&apos;atelier</strong>
                   <span className="block text-xs text-stone-500">Vous récupérez la commande chez l&apos;artisan</span>
                 </span>
-              </label>
-              <label className="flex cursor-pointer items-center gap-3 rounded-md border border-stone-200 p-3 text-sm hover:border-amber-600">
+              </label>}
+              {acceptedDeliveries.includes('home') && <label className="flex cursor-pointer items-center gap-3 rounded-md border border-stone-200 p-3 text-sm hover:border-amber-600">
                 <input
                   type="radio"
                   name="deliveryMethod"
@@ -285,8 +300,8 @@ export default function ListingPage() {
                   <strong>Livraison à domicile</strong>
                   <span className="block text-xs text-stone-500">Adresse complète et repère requis</span>
                 </span>
-              </label>
-              <label className="flex cursor-pointer items-center gap-3 rounded-md border border-stone-200 p-3 text-sm hover:border-amber-600">
+              </label>}
+              {acceptedDeliveries.includes('carrier') && <label className="flex cursor-pointer items-center gap-3 rounded-md border border-stone-200 p-3 text-sm hover:border-amber-600">
                 <input
                   type="radio"
                   name="deliveryMethod"
@@ -298,7 +313,7 @@ export default function ListingPage() {
                   <strong>Transporteur</strong>
                   <span className="block text-xs text-stone-500">Livraison suivie par un transporteur partenaire</span>
                 </span>
-              </label>
+              </label>}
             </fieldset>
           )}
         </section>

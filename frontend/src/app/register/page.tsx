@@ -3,10 +3,11 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { ApiError } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
 import type { Role } from '@/lib/types';
+import { PHONE_COUNTRIES } from '@/lib/countries';
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -14,6 +15,11 @@ export default function RegisterPage() {
   const router = useRouter();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [contactType, setContactType] = useState<'email' | 'phone'>('email');
+  const [phone, setPhone] = useState('');
+  const [phoneCountry, setPhoneCountry] = useState('+237');
+  const [phoneOtp, setPhoneOtp] = useState('');
+  const [phoneOtpExpected, setPhoneOtpExpected] = useState<string | null>(null);
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<Role>('client');
   const [gender, setGender] = useState<'female' | 'male' | 'cooperative' | 'other'>('female');
@@ -25,7 +31,11 @@ export default function RegisterPage() {
     setError('');
     setPending(true);
     try {
-      await register({ name, email, password, role, gender });
+      const result = await register({ name, email: contactType === 'email' ? email : undefined, phone: contactType === 'phone' ? `${phoneCountry}${phone}` : undefined, password, role, gender });
+      if (contactType === 'phone') {
+        setPhoneOtpExpected(result.developmentOtp ?? null);
+        return;
+      }
       router.push(role === 'artisan' ? '/dashboard' : role === 'institution' ? '/institution' : '/');
     } catch (err) {
       if (err instanceof ApiError) {
@@ -41,6 +51,15 @@ export default function RegisterPage() {
       }
     } finally {
       setPending(false);
+    }
+  };
+
+  const verifyPhone = async () => {
+    try {
+      await api.verifyPhone(`${phoneCountry}${phone}`, phoneOtp);
+      router.push('/login');
+    } catch (error) {
+      setError(error instanceof ApiError ? error.message : 'Code de vérification invalide ou expiré.');
     }
   };
 
@@ -74,6 +93,12 @@ export default function RegisterPage() {
               {value === 'client' ? t('role_client') : value === 'artisan' ? t('role_artisan') : t('role_institution')}
             </label>
           ))}
+        </fieldset>
+
+        <fieldset className="grid grid-cols-2 gap-2">
+          <legend className="mb-2 text-sm font-medium">Créer avec</legend>
+          <button type="button" onClick={() => setContactType('email')} className={`rounded-md border px-3 py-2 text-sm ${contactType === 'email' ? 'border-amber-600 bg-amber-50' : 'border-stone-300'}`}>Email</button>
+          <button type="button" onClick={() => setContactType('phone')} className={`rounded-md border px-3 py-2 text-sm ${contactType === 'phone' ? 'border-amber-600 bg-amber-50' : 'border-stone-300'}`}>Téléphone</button>
         </fieldset>
 
         <div>
@@ -115,7 +140,7 @@ export default function RegisterPage() {
           </div>
         )}
 
-        <div>
+        {contactType === 'email' ? <div>
           <label htmlFor="email" className="block text-sm font-medium">
             {t('login_email')}
           </label>
@@ -127,7 +152,16 @@ export default function RegisterPage() {
             onChange={(e) => setEmail(e.target.value)}
             className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600"
           />
-        </div>
+        </div> : <div>
+          <label htmlFor="phone" className="block text-sm font-medium">Numéro de téléphone</label>
+          <div className="mt-1 flex gap-2">
+            <select value={phoneCountry} onChange={(e) => setPhoneCountry(e.target.value)} className="w-36 rounded-md border border-stone-300 px-2 py-2 text-sm outline-none focus:border-amber-600" aria-label="Pays et indicatif">
+              {PHONE_COUNTRIES.map((country) => <option key={`${country.code}-${country.dialCode}`} value={country.dialCode}>{country.name} ({country.dialCode})</option>)}
+            </select>
+            <input id="phone" type="tel" required value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))} placeholder="6XX XXX XXX" className="min-w-0 flex-1 rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600" />
+          </div>
+          <p className="mt-1 text-xs text-stone-500">Choisissez le pays puis saisissez le numéro sans l’indicatif.</p>
+        </div>}
 
         <div>
           <label htmlFor="password" className="block text-sm font-medium">
@@ -147,13 +181,13 @@ export default function RegisterPage() {
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
-        <button
+        {phoneOtpExpected ? <div className="space-y-3 rounded-md bg-amber-50 p-4"><p className="text-sm text-stone-700">Code OTP de test : <strong>{phoneOtpExpected}</strong></p><input value={phoneOtp} onChange={(e) => setPhoneOtp(e.target.value)} placeholder="Code à 6 chiffres" className="w-full rounded-md border border-stone-300 px-3 py-2" /><button type="button" onClick={() => void verifyPhone()} className="w-full rounded-md bg-green-700 py-2 font-medium text-white">Vérifier le numéro</button></div> : <button
           type="submit"
           disabled={pending}
           className="w-full rounded-md bg-amber-700 py-2 font-medium text-white hover:bg-amber-800 disabled:opacity-60"
         >
           {pending ? t('action_loading') : t('register_submit')}
-        </button>
+        </button>}
 
         <p className="text-center text-sm text-stone-600">
           {t('register_already_account')}{' '}

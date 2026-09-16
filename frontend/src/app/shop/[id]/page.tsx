@@ -3,6 +3,7 @@ import { api } from '@/lib/api';
 import { formatXAF } from '@/lib/format';
 import { categoryLabel } from '@/lib/categories';
 import { resolveMediaUrl } from '@/lib/media';
+import { whatsappHref } from '@/lib/whatsapp';
 
 export default async function ShopPublicPage({ params }: { params: { id: string } }) {
   let data: { shop: any; listings: any[] } | null = null;
@@ -21,6 +22,7 @@ export default async function ShopPublicPage({ params }: { params: { id: string 
   }
   if (!data || !data.shop) return notFound();
   const { shop, listings } = data;
+  const shopWhatsapp = whatsappHref(shop.seller?.whatsappPhone ?? shop.seller?.phone, `Bonjour ${shop.seller?.name ?? shop.name}, je souhaite découvrir vos créations sur ArtisanConnect.`);
 
   return (
     <main className="mx-auto max-w-3xl p-6">
@@ -32,6 +34,7 @@ export default async function ShopPublicPage({ params }: { params: { id: string 
           <span className="ml-3">{ratingData.average ? `★ ${ratingData.average}/5` : 'Pas encore noté'} ({ratingData.count} avis)</span>
           {shop.verifiedBadge && <span className="ml-2 text-emerald-600">✔ Vendeur vérifié</span>}
         </div>
+        {shopWhatsapp ? <a href={shopWhatsapp} target="_blank" rel="noreferrer" className="mt-4 inline-flex rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700">Contacter la boutique sur WhatsApp</a> : null}
       </section>
       <section className="mb-8 rounded-lg border border-stone-200 bg-white p-6">
         <h2 className="mb-4 text-lg font-semibold">Avis sur l’artisan</h2>

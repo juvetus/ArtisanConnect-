@@ -47,7 +47,11 @@ export default function CreateShopPage() {
   const [isWomenLed, setIsWomenLed] = useState(false);
   const [isCooperative, setIsCooperative] = useState(false);
   const [mobileMoneyNumber, setMobileMoneyNumber] = useState('');
-  const [deliveryMode, setDeliveryMode] = useState<'workshop' | 'home'>('workshop');
+  const [momoNumber, setMomoNumber] = useState('');
+  const [orangeMoneyNumber, setOrangeMoneyNumber] = useState('');
+  const [mobileMoneyProvider, setMobileMoneyProvider] = useState<'momo' | 'orange_money' | 'both'>('both');
+  const [whatsappPhone, setWhatsappPhone] = useState('');
+  const [deliveryMethods, setDeliveryMethods] = useState<('workshop' | 'home' | 'carrier')[]>(['workshop', 'home']);
   const [docs, setDocs] = useState<KycDocument[]>([]);
   const [uploading, setUploading] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -61,6 +65,7 @@ export default function CreateShopPage() {
     if (user?.gender === 'cooperative') {
       setIsCooperative(true);
     }
+    if (user?.whatsappPhone || user?.phone) setWhatsappPhone(user.whatsappPhone ?? user.phone ?? '');
   }, [ready, user, router]);
 
   const requiredDocs = SHOP_REQUIRED_DOCS[type];
@@ -102,11 +107,16 @@ export default function CreateShopPage() {
         longitude: longitude ?? undefined,
         category,
         mobileMoneyNumber,
-        deliveryMode,
+        momoNumber: momoNumber || undefined,
+        orangeMoneyNumber: orangeMoneyNumber || undefined,
+        mobileMoneyProvider,
+        deliveryMode: deliveryMethods[0] === 'home' ? 'home' : 'workshop',
+        deliveryMethods,
         kycDocuments: docs,
         isWomenLed,
         isCooperative,
       });
+      if (user?.id && whatsappPhone.trim()) await api.updateProfile(user.id, { whatsappPhone: whatsappPhone.trim() });
       router.push('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'La création de la boutique a échoué.');
@@ -211,20 +221,28 @@ export default function CreateShopPage() {
             );
           })}
           <div>
-            <label htmlFor="momophone" className="block text-sm font-medium">
-              Numéro camerounais
-            </label>
-            <input
-              id="momophone"
-              type="tel"
-              required
-              placeholder="Ex: 00237 2 22 65 43 21"
-              value={mobileMoneyNumber}
-              onChange={(e) => setMobileMoneyNumber(e.target.value)}
-              className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600"
-            />
-            <p className="mt-1 text-xs text-stone-500">Formats acceptés : 6XXXXXXXX, 2XXXXXXXX, 237XXXXXXXXX, +237XXXXXXXXX ou 00237XXXXXXXXX.</p>
+            <label htmlFor="whatsapp-phone" className="block text-sm font-medium">Numéro WhatsApp pour les clients</label>
+            <input id="whatsapp-phone" type="tel" required value={whatsappPhone} onChange={(e) => setWhatsappPhone(e.target.value)} placeholder="+237 6XX XXX XXX ou +33 6 12 34 56 78" className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600" />
+            <p className="mt-1 text-xs text-stone-500">Ce numéro sera utilisé par les boutons WhatsApp de vos annonces et services.</p>
           </div>
+          <div>
+            <label htmlFor="mobile-money-provider" className="block text-sm font-medium">Moyen Mobile Money accepté</label>
+            <select id="mobile-money-provider" value={mobileMoneyProvider} onChange={(event) => setMobileMoneyProvider(event.target.value as typeof mobileMoneyProvider)} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600">
+              <option value="both">MoMo et Orange Money</option>
+              <option value="momo">MoMo uniquement</option>
+              <option value="orange_money">Orange Money uniquement</option>
+            </select>
+            <p className="mt-1 text-xs text-stone-500">Ce choix concerne les paiements. Le numéro WhatsApp est géré séparément dans votre profil.</p>
+          </div>
+          {(mobileMoneyProvider === 'momo' || mobileMoneyProvider === 'both') ? <div>
+            <label htmlFor="momo-phone" className="block text-sm font-medium">Numéro MoMo</label>
+            <input id="momo-phone" type="tel" required placeholder="+237..." value={momoNumber} onChange={(e) => { setMomoNumber(e.target.value); setMobileMoneyNumber(e.target.value); }} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600" />
+          </div> : null}
+          {(mobileMoneyProvider === 'orange_money' || mobileMoneyProvider === 'both') ? <div>
+            <label htmlFor="orange-phone" className="block text-sm font-medium">Numéro Orange Money</label>
+            <input id="orange-phone" type="tel" required placeholder="+237..." value={orangeMoneyNumber} onChange={(e) => { setOrangeMoneyNumber(e.target.value); if (!momoNumber) setMobileMoneyNumber(e.target.value); }} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600" />
+          </div> : null}
+          <p className="text-xs text-stone-500">Saisissez un numéro pour chaque moyen de paiement sélectionné.</p>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex gap-3">
             <button
@@ -301,15 +319,19 @@ export default function CreateShopPage() {
               <label htmlFor="shop-delivery" className="block text-sm font-medium">
                 {t('create_shop_delivery')}
               </label>
-              <select
-                id="shop-delivery"
-                value={deliveryMode}
-                onChange={(e) => setDeliveryMode(e.target.value as 'workshop' | 'home')}
-                className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600"
-              >
-                <option value="workshop">{t('create_shop_workshop')}</option>
-                <option value="home">{t('create_shop_home')}</option>
-              </select>
+              <div className="mt-1 grid gap-2 sm:grid-cols-3">
+                {([
+                  ['workshop', t('create_shop_workshop')],
+                  ['home', t('create_shop_home')],
+                  ['carrier', 'Transporteur'],
+                ] as const).map(([value, label]) => (
+                  <label key={value} className="flex items-center gap-2 rounded-md border border-stone-200 p-2 text-sm">
+                    <input type="checkbox" checked={deliveryMethods.includes(value)} onChange={() => setDeliveryMethods((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value])} />
+                    {label}
+                  </label>
+                ))}
+              </div>
+              {!deliveryMethods.length ? <p className="mt-1 text-xs text-red-700">Sélectionnez au moins un mode.</p> : null}
             </div>
           </div>
           <div className="space-y-3">

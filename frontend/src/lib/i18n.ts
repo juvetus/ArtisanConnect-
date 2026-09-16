@@ -27,6 +27,7 @@ export const TRANSLATIONS = {
     nav_institutions: 'Institutions',
     nav_clients: 'Clients',
     nav_vendors: 'Vendeurs',
+    nav_profile: 'Mon profil',
 
     // Hero / Home
     hero_title: 'Le savoir-faire camerounais, à portée de main',
@@ -469,6 +470,7 @@ export const TRANSLATIONS = {
     nav_institutions: 'Institutions',
     nav_clients: 'Clients',
     nav_vendors: 'Vendors',
+    nav_profile: 'My profile',
 
     // Hero / Home
     hero_title: 'Cameroonian craftsmanship, at your fingertips',

@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException, ConflictException, BadRequestExcepti
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
+import { createHash } from 'crypto';
 import { UsersService } from '../users/users.service.js';
 import { EmailService } from '../email/email.service.js';
 import type { User } from '../../entities/user.entity.js';
@@ -41,33 +42,57 @@ export class AuthService {
     return sent;
   }
 
-  async register(email: string, password: string, name: string, role: 'artisan' | 'client' | 'institution' = 'client', gender?: 'female' | 'male' | 'cooperative' | 'other') {
-    const existing = await this.usersService.findByEmail(email);
+  private normalizePhone(phone: string) {
+    const trimmed = phone.trim();
+    if (trimmed.startsWith('+')) return `+${trimmed.slice(1).replace(/\D/g, '')}`;
+    if (trimmed.startsWith('00')) return `+${trimmed.slice(2).replace(/\D/g, '')}`;
+
+    const digits = trimmed.replace(/\D/g, '');
+    if (digits.startsWith('237')) return `+${digits}`;
+    return `+237${digits.replace(/^0/, '')}`;
+  }
+
+  async register(contact: { email?: string; phone?: string }, password: string, name: string, role: 'artisan' | 'client' | 'institution' = 'client', gender?: 'female' | 'male' | 'cooperative' | 'other') {
+    const email = contact.email?.trim().toLowerCase() || null;
+    const phone = contact.phone ? this.normalizePhone(contact.phone) : null;
+    if (!email && !phone) throw new BadRequestException('Un email ou un numéro de téléphone est requis');
+    const existing = email ? await this.usersService.findByEmail(email) : await this.usersService.findByPhone(phone!);
     if (existing) {
-      throw new ConflictException('Email already registered');
+      throw new ConflictException(email ? 'Email already registered' : 'Phone already registered');
     }
 
-    const user = await this.usersService.create(email, password, name, role, gender);
+    const storedEmail = email ?? `${phone!.replace('+', '')}@phone.artisanconnect.local`;
+    const user = await this.usersService.create(storedEmail, password, name, role, gender);
+    if (phone) await this.usersService.update(user.id, { phone, whatsappPhone: phone });
 
     // Envoi de l'email de confirmation en arrière-plan sans bloquer l'inscription
-    try {
-      await this.sendVerificationEmailForUser(user);
-    } catch (error) {
-      this.logger.error(`Erreur lors de l'envoi du mail de vérification : ${(error as Error).message}`);
+    let developmentOtp: string | undefined;
+    if (phone) {
+      developmentOtp = await this.sendPhoneVerificationForUser(user.id, phone);
+    } else {
+      try {
+        await this.sendVerificationEmailForUser(user);
+      } catch (error) {
+        this.logger.error(`Erreur lors de l'envoi du mail de vérification : ${(error as Error).message}`);
+      }
     }
 
     return {
       id: user.id,
       email: user.email,
+      phone,
       name: user.name,
       role: user.role,
       gender: user.gender,
       verifiedEmail: false,
+      verifiedPhone: false,
+      ...(developmentOtp ? { developmentOtp } : {}),
     };
   }
 
-  async login(email: string, password: string) {
-    const user = await this.usersService.findByEmailWithPassword(email);
+  async login(identifier: string, password: string) {
+    const normalized = identifier.includes('@') ? identifier.toLowerCase().trim() : this.normalizePhone(identifier);
+    const user = await this.usersService.findByIdentifierWithPassword(normalized);
     
     if (!user || !user.isActive) {
       throw new UnauthorizedException('Invalid credentials');
@@ -86,12 +111,32 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
+        phone: user.phone,
+        whatsappPhone: user.whatsappPhone,
         name: user.name,
         role: user.role,
         gender: user.gender,
         verifiedEmail: user.verifiedEmail ?? false,
+        verifiedPhone: user.verifiedPhone ?? false,
       },
     };
+  }
+
+  private async sendPhoneVerificationForUser(userId: string, phone: string) {
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    await this.usersService.setPhoneVerification(userId, createHash('sha256').update(code).digest('hex'), new Date(Date.now() + 10 * 60 * 1000));
+    this.logger.log(`Phone OTP for ${phone}: ${code}`);
+    return this.config.get('PHONE_OTP_MODE', 'mock') === 'mock' && this.config.get('NODE_ENV') !== 'production' ? code : undefined;
+  }
+
+  async verifyPhone(phone: string, code: string) {
+    const user = await this.usersService.findByPhone(this.normalizePhone(phone));
+    if (!user) throw new BadRequestException('Numéro introuvable');
+    const candidate = createHash('sha256').update(code).digest('hex');
+    const record = await this.usersService.findByPhoneVerification(user.id);
+    if (!record || !record.phoneVerificationExpires || !record.phoneVerificationCodeHash || record.phoneVerificationExpires < new Date() || record.phoneVerificationCodeHash !== candidate) throw new BadRequestException('Code invalide ou expiré');
+    const updated = await this.usersService.markPhoneVerified(user.id);
+    return { success: true, message: 'Votre numéro a été vérifié avec succès.', user: { ...updated, verifiedPhone: true } };
   }
 
   async verifyEmail(token: string) {

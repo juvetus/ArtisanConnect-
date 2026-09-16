@@ -64,15 +64,15 @@ export default function HomePage() {
       <section className="overflow-hidden rounded-xl bg-stone-900 text-white">
         <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="px-6 py-10 lg:px-8">
-            <p className="text-sm font-semibold uppercase tracking-wide text-amber-300">Marketplace artisanale camerounaise</p>
-            <h1 className="mt-3 text-3xl font-semibold leading-tight md:text-4xl">Trouvez les meilleurs artisans du Cameroun.</h1>
+            <p className="text-sm font-semibold uppercase tracking-wide text-amber-300">{t('home_market_badge')}</p>
+            <h1 className="mt-3 text-3xl font-semibold leading-tight md:text-4xl">{t('home_market_title')}</h1>
             <p className="mt-3 max-w-2xl text-stone-200">
-              Commandez des produits faits main, demandez un service ou échangez directement avec un artisan local.
+              {t('home_market_subtitle')}
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <a href="#produits-populaires" className="rounded-lg bg-amber-600 px-5 py-3 text-sm font-semibold text-white hover:bg-amber-700">Voir les produits</a>
-              <a href="/services" className="rounded-lg bg-white px-5 py-3 text-sm font-semibold text-stone-900 hover:bg-stone-100">Demander un service</a>
-              <a href="/how-it-works" className="rounded-lg border border-white/30 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10">Comment ça marche</a>
+              <a href="#produits-populaires" className="rounded-lg bg-amber-600 px-5 py-3 text-sm font-semibold text-white hover:bg-amber-700">{t('home_cta_products')}</a>
+              <a href="/services" className="rounded-lg bg-white px-5 py-3 text-sm font-semibold text-stone-900 hover:bg-stone-100">{t('home_cta_service')}</a>
+              <a href="/how-it-works" className="rounded-lg border border-white/30 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10">{t('home_cta_how')}</a>
             </div>
           </div>
           <div className="min-h-64 bg-[url('/images/african-market-artisan-stockcake.jpg')] bg-cover bg-center" aria-hidden />
@@ -81,10 +81,10 @@ export default function HomePage() {
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          ['Produits artisanaux', 'Vannerie, textile, sculpture, décoration', 'vannerie'],
-          ['Services artisans', 'Couture, menuiserie, plomberie, électricité', 'couture'],
-          ['Créatrices locales', 'Mise en avant des femmes artisanes', 'mode'],
-          ['Coopératives & GIC', 'Groupements et structures collectives', 'ameublement'],
+          [t('home_category_products_title'), t('home_category_products_desc'), 'vannerie'],
+          [t('home_category_services_title'), t('home_category_services_desc'), 'couture'],
+          [t('home_category_women_title'), t('home_category_women_desc'), 'mode'],
+          [t('home_category_coops_title'), t('home_category_coops_desc'), 'ameublement'],
         ].map(([title, description, category]) => (
           <button
             key={title}
@@ -104,15 +104,15 @@ export default function HomePage() {
           <img src="/images/infusing-personal-style-into-your-craft-market-stall.jpg" alt="Stand de créations artisanales avec textiles et objets décoratifs" className="h-36 w-full rounded-lg object-cover" />
         </div>
         <div className="flex flex-col justify-center p-2 lg:p-6">
-          <p className="text-sm font-medium uppercase tracking-wide text-amber-700">Aperçu marketplace</p>
-          <h2 className="mt-2 text-2xl font-semibold text-stone-900">Une vitrine vivante pour les artisans camerounais</h2>
+          <p className="text-sm font-medium uppercase tracking-wide text-amber-700">{t('home_visual_badge')}</p>
+          <h2 className="mt-2 text-2xl font-semibold text-stone-900">{t('home_visual_title')}</h2>
           <p className="mt-3 text-sm leading-6 text-stone-600">
-            ArtisanConnect met en scène les produits, les stands, les ateliers et les services locaux pour donner envie de découvrir, comparer et contacter rapidement un artisan.
+            {t('home_visual_desc')}
           </p>
           <div className="mt-5 flex flex-wrap gap-2 text-sm">
-            <span className="rounded-full bg-amber-50 px-3 py-1 text-amber-800">Produits visibles</span>
-            <span className="rounded-full bg-stone-100 px-3 py-1 text-stone-700">Artisans identifiés</span>
-            <span className="rounded-full bg-green-50 px-3 py-1 text-green-800">Contact WhatsApp</span>
+            <span className="rounded-full bg-amber-50 px-3 py-1 text-amber-800">{t('home_visual_product_badge')}</span>
+            <span className="rounded-full bg-stone-100 px-3 py-1 text-stone-700">{t('home_visual_artisans_badge')}</span>
+            <span className="rounded-full bg-green-50 px-3 py-1 text-green-800">{t('home_visual_whatsapp_badge')}</span>
           </div>
         </div>
       </section>
@@ -120,10 +120,10 @@ export default function HomePage() {
       <section id="produits-populaires" className="space-y-4">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <p className="text-sm font-medium uppercase tracking-wide text-amber-700">Produits populaires</p>
-            <h2 className="text-2xl font-semibold text-stone-900">Des créations uniques, prêtes à commander</h2>
+            <p className="text-sm font-medium uppercase tracking-wide text-amber-700">{t('home_featured_products_badge')}</p>
+            <h2 className="text-2xl font-semibold text-stone-900">{t('home_featured_products_title')}</h2>
           </div>
-          <a href="#catalogue" className="text-sm font-medium text-amber-700 hover:text-amber-800">Voir le catalogue</a>
+          <a href="#catalogue" className="text-sm font-medium text-amber-700 hover:text-amber-800">{t('home_view_catalog')}</a>
         </div>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {featuredProducts.map((listing) => (
@@ -134,9 +134,9 @@ export default function HomePage() {
 
       <section className="grid gap-5 rounded-xl border border-stone-200 bg-white p-6 lg:grid-cols-[0.8fr_1.2fr]">
         <div>
-          <p className="text-sm font-medium uppercase tracking-wide text-amber-700">Artisans en vedette</p>
-          <h2 className="mt-2 text-2xl font-semibold text-stone-900">Des professionnels passionnés, prêts à vous servir</h2>
-          <p className="mt-2 text-sm text-stone-600">Pour le pilote, ces profils donnent un aperçu du type d’artisans que la plateforme met en avant.</p>
+          <p className="text-sm font-medium uppercase tracking-wide text-amber-700">{t('home_featured_artisans_badge')}</p>
+          <h2 className="mt-2 text-2xl font-semibold text-stone-900">{t('home_featured_artisans_title')}</h2>
+          <p className="mt-2 text-sm text-stone-600">{t('home_featured_artisans_desc')}</p>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
           {demoArtisans.map((artisan) => (
@@ -146,7 +146,7 @@ export default function HomePage() {
                 <h3 className="font-semibold text-stone-900">{artisan.name}</h3>
                 <p className="mt-1 text-xs font-medium uppercase tracking-wide text-amber-700">{artisan.specialty}</p>
                 <p className="mt-1 text-sm text-stone-600">{artisan.city}</p>
-                <a href="/contact" className="mt-3 inline-block text-sm font-medium text-amber-700 underline">Contacter</a>
+                <a href="/contact" className="mt-3 inline-block text-sm font-medium text-amber-700 underline">{t('home_contact_artisan')}</a>
               </div>
             </article>
           ))}
@@ -155,10 +155,10 @@ export default function HomePage() {
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          ['Artisans vérifiés', 'Validation progressive des boutiques et profils.'],
-          ['Paiement adapté', 'Cash, MoMo et Orange Money selon le pilote.'],
-          ['Livraison possible', 'Atelier, domicile ou transporteur partenaire.'],
-          ['Accompagnement digital', 'Formalisation, visibilité et services numériques.'],
+          [t('home_trust_verified_title'), t('home_trust_verified_desc')],
+          [t('home_trust_payment_title'), t('home_trust_payment_desc')],
+          [t('home_trust_delivery_title'), t('home_trust_delivery_desc')],
+          [t('home_trust_digital_title'), t('home_trust_digital_desc')],
         ].map(([title, description]) => (
           <div key={title} className="rounded-lg border border-stone-200 bg-white p-5">
             <p className="font-semibold text-stone-900">{title}</p>
@@ -169,8 +169,8 @@ export default function HomePage() {
 
       <section id="catalogue" className="space-y-4 border-t border-stone-200 pt-8">
         <div>
-          <p className="text-sm font-medium uppercase tracking-wide text-amber-700">Catalogue</p>
-          <h2 className="text-2xl font-semibold text-stone-900">Rechercher un produit ou une catégorie</h2>
+          <p className="text-sm font-medium uppercase tracking-wide text-amber-700">{t('home_catalog_badge')}</p>
+          <h2 className="text-2xl font-semibold text-stone-900">{t('home_catalog_title')}</h2>
         </div>
         <form onSubmit={handleSearch} className="mt-6 flex max-w-2xl flex-col gap-2 sm:flex-row">
           <div className="relative flex-1">
@@ -283,7 +283,7 @@ export default function HomePage() {
           <>
             {error && (
               <p className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                Le catalogue réel est momentanément indisponible. Les annonces de démonstration restent affichées pour présenter la marketplace.
+                {t('home_catalog_api_fallback')}
               </p>
             )}
             <p className="text-sm text-stone-600">
@@ -291,7 +291,7 @@ export default function HomePage() {
               {filters.q && ` pour « ${filters.q} »`}
               {audienceFilter === 'women' && ` · ${t('filter_women_active')}`}
               {audienceFilter === 'cooperatives' && ` · ${t('filter_coop_active')}`}
-              {!listings.length && !hasFilter && ' · exemples de démonstration'}
+              {!listings.length && !hasFilter && ` · ${t('home_catalog_demo_note')}`}
             </p>
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {(audienceFilter === 'women'

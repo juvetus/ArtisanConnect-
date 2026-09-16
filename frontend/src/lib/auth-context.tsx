@@ -9,8 +9,8 @@ const STORAGE_KEY = 'artisan-connect-session';
 interface AuthContextValue {
   user: User | null;
   ready: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (data: { email: string; password: string; name: string; role: Role; gender?: 'female' | 'male' | 'cooperative' | 'other' }) => Promise<void>;
+  login: (identifier: string, password: string) => Promise<void>;
+  register: (data: { email?: string; phone?: string; password: string; name: string; role: Role; gender?: 'female' | 'male' | 'cooperative' | 'other' }) => Promise<{ developmentOtp?: string }>;
   updateUser: (partial: Partial<User>) => void;
   logout: () => void;
 }
@@ -44,8 +44,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo<AuthContextValue>(() => {
-    const login = async (email: string, password: string) => {
-      const session = await api.login({ email, password });
+    const login = async (identifier: string, password: string) => {
+      const session = await api.login({ identifier, password });
       localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
       setAuthToken(session.accessToken);
       setUser(session.user);
@@ -70,8 +70,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ready,
       login,
       async register(data) {
-        await api.register(data);
-        await login(data.email, data.password);
+        const result = await api.register(data);
+        if (data.email) await login(data.email, data.password);
+        return result;
       },
       updateUser,
       logout() {

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import useSWR from 'swr';
 import { useState } from 'react';
 import { api } from '@/lib/api';
@@ -24,10 +25,23 @@ export default function ServicesCatalogPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
+      <section className="grid overflow-hidden rounded-xl bg-stone-900 text-white lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="flex flex-col justify-center px-6 py-8 lg:px-8">
+          <p className="text-sm font-semibold uppercase tracking-wide text-amber-300">Services artisanaux au Cameroun</p>
+          <h1 className="mt-2 text-3xl font-semibold">Trouvez l’artisan adapté à votre projet</h1>
+          <p className="mt-3 text-sm leading-6 text-stone-200">Découvrez des professionnels pour vos projets du quotidien : création, réparation, aménagement, entretien et prestations sur mesure partout au Cameroun.</p>
+        </div>
+          <div className="relative flex min-h-64 items-center justify-center overflow-hidden bg-stone-950 p-2">
+          <div className="relative w-full max-w-[42rem]">
+            <Image src="/images/couture-1.png" alt="Créatrice camerounaise réalisant une couture sur mesure" width={1536} height={1024} className="block max-h-80 w-full object-contain" />
+            <span aria-hidden className="pointer-events-none absolute right-[1%] top-[1%] h-[8%] w-[17%] rounded-full bg-stone-900/95" />
+          </div>
+        </div>
+      </section>
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-medium uppercase tracking-wide text-amber-700">ArtisanConnect</p>
-          <h1 className="mt-1 text-3xl font-semibold text-stone-900">{t('services_page_title')}</h1>
+          <h2 className="mt-1 text-3xl font-semibold text-stone-900">{t('services_page_title')}</h2>
           <p className="mt-2 text-stone-600">{t('services_page_subtitle')}</p>
         </div>
         <div className="flex flex-wrap gap-2">

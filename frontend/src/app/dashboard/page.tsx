@@ -43,6 +43,8 @@ export default function DashboardPage() {
   const [type, setType] = useState<ListingType>('product');
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('1');
+  const [acceptedPaymentMethods, setAcceptedPaymentMethods] = useState<('cash' | 'momo' | 'orange_money')[]>(['cash', 'momo', 'orange_money']);
+  const [deliveryMethods, setDeliveryMethods] = useState<('workshop' | 'home' | 'carrier')[]>(['workshop', 'home', 'carrier']);
   const [imageUrl, setImageUrl] = useState('');
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -74,6 +76,8 @@ export default function DashboardPage() {
         type,
         price,
         stock: Number(stock),
+        acceptedPaymentMethods,
+        deliveryMethods,
         imageUrl: imageUrls[0] ?? null,
         imageUrls,
         shopId: shopId || undefined,
@@ -101,6 +105,8 @@ export default function DashboardPage() {
     setType(listing.type);
     setPrice(String(listing.price));
     setStock(String(listing.stock));
+    setAcceptedPaymentMethods(listing.acceptedPaymentMethods?.length ? listing.acceptedPaymentMethods : ['cash', 'momo', 'orange_money']);
+    setDeliveryMethods(listing.deliveryMethods?.length ? listing.deliveryMethods : ['workshop', 'home', 'carrier']);
     setImageUrl(listing.imageUrl ?? '');
     setImageUrls(listing.imageUrls?.length ? listing.imageUrls : listing.imageUrl ? [listing.imageUrl] : []);
     setShopId(listing.shopId || '');
@@ -116,6 +122,8 @@ export default function DashboardPage() {
     setType('product');
     setPrice('');
     setStock('1');
+    setAcceptedPaymentMethods(['cash', 'momo', 'orange_money']);
+    setDeliveryMethods(['workshop', 'home', 'carrier']);
     setImageUrl('');
     setImageUrls([]);
     setFormError('');
@@ -156,6 +164,8 @@ export default function DashboardPage() {
         type,
         price,
         stock: Number(stock),
+        acceptedPaymentMethods,
+        deliveryMethods,
         imageUrl: imageUrls[0] ?? null,
         imageUrls,
         shopId: shopId || undefined,
@@ -482,6 +492,38 @@ export default function DashboardPage() {
                 />
               </div>
             </div>
+
+            <fieldset className="mt-5 rounded-md border border-stone-200 p-4">
+              <legend className="px-1 text-sm font-medium">Modes de paiement acceptés</legend>
+              <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                {([
+                  ['cash', 'Espèces'],
+                  ['momo', 'MoMo'],
+                  ['orange_money', 'Orange Money'],
+                ] as const).map(([value, label]) => (
+                  <label key={value} className="flex items-center gap-2 rounded-md border border-stone-200 p-3 text-sm">
+                    <input type="checkbox" checked={acceptedPaymentMethods.includes(value)} onChange={() => setAcceptedPaymentMethods((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value])} />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
+            <fieldset className="mt-4 rounded-md border border-stone-200 p-4">
+              <legend className="px-1 text-sm font-medium">Types de livraison proposés</legend>
+              <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                {([
+                  ['workshop', "Retrait à l'atelier"],
+                  ['home', 'Livraison à domicile'],
+                  ['carrier', 'Transporteur'],
+                ] as const).map(([value, label]) => (
+                  <label key={value} className="flex items-center gap-2 rounded-md border border-stone-200 p-3 text-sm">
+                    <input type="checkbox" checked={deliveryMethods.includes(value)} onChange={() => setDeliveryMethods((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value])} />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
 
             <div>
               <label htmlFor="images" className="block text-sm font-medium">

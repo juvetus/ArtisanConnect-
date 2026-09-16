@@ -36,9 +36,9 @@ export function Header() {
   };
 
   return (
-    <header className="border-b border-stone-200 bg-white">
-      <div className="relative mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-4 px-6 py-4">
-        <div className="flex items-center gap-4">
+    <header className="border-b border-stone-200 bg-white md:fixed md:inset-y-0 md:left-0 md:z-40 md:flex md:w-64 md:flex-col md:border-r md:border-b-0">
+      <div className="relative mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-4 px-6 py-4 md:h-full md:min-h-0 md:flex-col md:items-stretch md:justify-start md:gap-6 md:px-4 md:py-6">
+        <div className="flex items-center gap-4 md:justify-between">
           <Link href="/" className="text-lg font-semibold tracking-tight text-stone-900">
             Artisan<span className="text-amber-700">Connect</span>
           </Link>
@@ -86,7 +86,7 @@ export function Header() {
         <nav
           id="main-navigation"
           onClick={() => setMenuOpen(false)}
-          className={`${menuOpen ? 'flex' : 'hidden'} order-3 w-full flex-col items-stretch gap-1 border-t border-stone-200 pt-3 text-sm md:order-none md:flex md:flex-1 md:w-auto md:flex-row md:items-center md:justify-end md:gap-1 md:border-0 md:pt-0 md:text-[13px] [&>a]:whitespace-nowrap [&>a]:px-2 [&>a]:py-2 [&>button]:whitespace-nowrap [&>button]:px-2 [&>button]:py-2`}
+          className={`${menuOpen ? 'flex' : 'hidden'} order-3 max-h-[calc(100vh-8rem)] min-w-0 w-full min-h-0 flex-col items-stretch gap-1 overflow-auto border-t border-stone-200 pt-3 text-sm md:order-none md:flex md:max-h-none md:w-full md:flex-1 md:flex-col md:items-stretch md:justify-start md:gap-1 md:overflow-y-auto md:border-t-0 md:border-0 md:pt-0 md:text-sm [&>a]:shrink-0 [&>a]:whitespace-nowrap [&>a]:px-2 [&>a]:py-2 [&>button]:shrink-0 [&>button]:whitespace-nowrap [&>button]:px-2 [&>button]:py-2`}
         >
           <Link href="/" className={navLinkClass('/')}>
             Annonces
@@ -173,6 +173,9 @@ export function Header() {
                   {t('nav_institution_space')}
                 </Link>
               )}
+              <Link href="/profile" className={navLinkClass('/profile')}>
+                {t('nav_profile')}
+              </Link>
               <Link
                 href="/notifications"
                 className={`relative ${navLinkClass('/notifications')}`}

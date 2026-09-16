@@ -48,6 +48,10 @@ export class ShopsService {
       latitude?: number;
       longitude?: number;
       mobileMoneyNumber: string;
+      momoNumber?: string;
+      orangeMoneyNumber?: string;
+      mobileMoneyProvider?: 'momo' | 'orange_money' | 'both';
+      deliveryMethods?: ('workshop' | 'home' | 'carrier')[];
       deliveryMode: 'workshop' | 'home';
       kycDocuments: { label: string; url: string }[];
       isWomenLed?: boolean;
@@ -62,7 +66,13 @@ export class ShopsService {
     const hasCompleteKyc = missing.length === 0;
     const status: Shop['status'] = data.type === 'artisan' || !hasCompleteKyc ? 'pending' : 'active';
 
-    const shop = this.shopsRepository.create({ ...data, mobileMoneyNumber, sellerId, status });
+    const provider = data.mobileMoneyProvider ?? 'both';
+    if ((provider === 'momo' || provider === 'both') && !data.momoNumber && !data.mobileMoneyNumber) throw new BadRequestException('Le numéro MoMo est requis');
+    if ((provider === 'orange_money' || provider === 'both') && !data.orangeMoneyNumber && !data.mobileMoneyNumber) throw new BadRequestException('Le numéro Orange Money est requis');
+    const fallbackNumber = data.mobileMoneyNumber;
+    const momoNumber = data.momoNumber ? this.normalizeCameroonPhoneNumber(data.momoNumber) : fallbackNumber ? this.normalizeCameroonPhoneNumber(fallbackNumber) : null;
+    const orangeMoneyNumber = data.orangeMoneyNumber ? this.normalizeCameroonPhoneNumber(data.orangeMoneyNumber) : fallbackNumber ? this.normalizeCameroonPhoneNumber(fallbackNumber) : null;
+    const shop = this.shopsRepository.create({ ...data, mobileMoneyNumber: momoNumber ?? orangeMoneyNumber!, momoNumber, orangeMoneyNumber, mobileMoneyProvider: provider, deliveryMethods: data.deliveryMethods?.length ? data.deliveryMethods : [data.deliveryMode ?? 'workshop'], sellerId, status });
     const savedShop = await this.shopsRepository.save(shop);
 
     // Si la boutique artisan nécessite une validation manuelle, notifier tous les admins
@@ -145,12 +155,16 @@ export class ShopsService {
   async update(
     id: string,
     sellerId: string,
-    data: Partial<Pick<Shop, 'name' | 'description' | 'category' | 'deliveryMode'>>,
+    data: Partial<Pick<Shop, 'name' | 'description' | 'category' | 'deliveryMode' | 'deliveryMethods' | 'mobileMoneyNumber' | 'momoNumber' | 'orangeMoneyNumber' | 'mobileMoneyProvider'>>,
   ): Promise<Shop | null> {
     const shop = await this.shopsRepository.findOne({ where: { id } });
     if (!shop) throw new NotFoundException('Boutique introuvable');
     if (shop.sellerId !== sellerId) throw new ForbiddenException('Cette boutique ne vous appartient pas');
-    await this.shopsRepository.update(id, data);
+    const updateData = { ...data };
+    if (updateData.mobileMoneyNumber) updateData.mobileMoneyNumber = this.normalizeCameroonPhoneNumber(updateData.mobileMoneyNumber);
+    if (updateData.momoNumber) updateData.momoNumber = this.normalizeCameroonPhoneNumber(updateData.momoNumber);
+    if (updateData.orangeMoneyNumber) updateData.orangeMoneyNumber = this.normalizeCameroonPhoneNumber(updateData.orangeMoneyNumber);
+    await this.shopsRepository.update(id, updateData);
     return this.findById(id);
   }
 

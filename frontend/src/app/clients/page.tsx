@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useLanguage } from '@/lib/language-context';
 
 const benefitIcons = ['◇', '✓', '→'];
@@ -27,7 +28,12 @@ export default function ClientsPage() {
               <Link href="/register" className="rounded-lg border border-white/30 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10">{t('clients_register')}</Link>
             </div>
           </div>
-          <div className="min-h-72 bg-[url('/images/african-marketplace-artisan-stockcake.jpg')] bg-cover bg-center" role="img" aria-label="Produits artisanaux camerounais sur un marché" />
+          <div className="relative flex min-h-72 items-center justify-center overflow-hidden bg-stone-950 p-2" role="img" aria-label="Clients découvrant des produits artisanaux camerounais avec ArtisanConnect">
+            <div className="relative w-full max-w-[42rem]">
+              <Image src="/images/client.png" alt="Clients découvrant des produits artisanaux camerounais avec ArtisanConnect" width={1536} height={1024} className="block max-h-[34rem] w-full object-contain" />
+              <span aria-hidden className="pointer-events-none absolute right-[1%] top-[1%] h-[8%] w-[17%] rounded-full bg-stone-900/95" />
+            </div>
+          </div>
         </div>
       </section>
       <p className="mx-auto max-w-3xl text-center text-lg font-medium leading-8 text-stone-700">{t('clients_proof')}</p>

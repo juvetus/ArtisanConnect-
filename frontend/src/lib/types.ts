@@ -25,7 +25,11 @@ export interface Shop {
   latitude?: number | null;
   longitude?: number | null;
   mobileMoneyNumber: string;
+  momoNumber?: string | null;
+  orangeMoneyNumber?: string | null;
+  mobileMoneyProvider?: 'momo' | 'orange_money' | 'both';
   deliveryMode: 'workshop' | 'home';
+  deliveryMethods?: ('workshop' | 'home' | 'carrier')[] | null;
   kycDocuments: KycDocument[];
   mobileMoneyVerified: boolean;
   status: ShopStatus;
@@ -76,6 +80,7 @@ export interface User {
   bio?: string;
   location?: string;
   phone?: string;
+  whatsappPhone?: string;
   verifiedEmail?: boolean;
   isActive?: boolean;
 }
@@ -95,6 +100,8 @@ export interface Listing {
   imageUrls?: string[] | null;
   status: 'active' | 'inactive';
   stock: number;
+  acceptedPaymentMethods?: ('cash' | 'momo' | 'orange_money')[] | null;
+  deliveryMethods?: ('workshop' | 'home' | 'carrier')[] | null;
   createdAt: string;
 }
 

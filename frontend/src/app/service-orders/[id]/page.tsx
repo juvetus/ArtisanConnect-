@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import type { ServiceOrder, ServicePayment, ServiceQuote, ServiceReview } from '@/lib/types';
+import { whatsappHref } from '@/lib/whatsapp';
 
 export default function ServiceOrderQuotePage() {
   const params = useParams<{ id: string }>();
@@ -149,6 +150,7 @@ export default function ServiceOrderQuotePage() {
   const isClient = user.id === order.clientId;
   const canQuote = isArtisan && order.status === 'sent_to_artisan' && !quote;
   const canRespond = isClient && quote?.status === 'pending';
+  const artisanWhatsapp = isClient ? whatsappHref(order.artisan?.whatsappPhone ?? order.artisan?.phone, `Bonjour ${order.artisan?.name ?? ''}, je vous contacte au sujet de ma demande « ${order.service?.title ?? 'service'} » sur ArtisanConnect.`) : null;
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -165,6 +167,7 @@ export default function ServiceOrderQuotePage() {
         >
           Ouvrir la messagerie de la commande
         </Link>
+        {artisanWhatsapp ? <a href={artisanWhatsapp} target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700">Contacter l&apos;artisan sur WhatsApp</a> : null}
         <div className="mt-3 flex flex-wrap gap-3">
           <button onClick={() => void api.downloadServiceOrderPdf(order.id)} className="text-sm font-medium text-stone-700 underline">Télécharger la commande PDF</button>
           {quote ? <button onClick={() => void api.downloadServiceQuotePdf(order.id)} className="text-sm font-medium text-stone-700 underline">Télécharger le devis PDF</button> : null}

@@ -10,7 +10,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const { t } = useLanguage();
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
@@ -20,7 +20,7 @@ export default function LoginPage() {
     setError('');
     setPending(true);
     try {
-      await login(email, password);
+      await login(identifier, password);
       router.push('/');
     } catch {
       setError('Email ou mot de passe incorrect / Incorrect email or password.');
@@ -36,15 +36,15 @@ export default function LoginPage() {
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4 rounded-lg border border-stone-200 bg-white p-6">
         <div>
-          <label htmlFor="email" className="block text-sm font-medium">
-            {t('login_email')}
+          <label htmlFor="identifier" className="block text-sm font-medium">
+            Email ou numéro de téléphone
           </label>
           <input
-            id="email"
-            type="email"
+            id="identifier"
+            type="text"
             required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
             className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600"
           />
         </div>

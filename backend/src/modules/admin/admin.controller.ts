@@ -73,6 +73,16 @@ export class AdminController {
     return this.adminService.listOrders();
   }
 
+  @Patch('orders/:id/cancel')
+  cancelOrder(@Param('id') id: string) {
+    return this.adminService.cancelOrder(id);
+  }
+
+  @Patch('orders/:id/refund')
+  refundOrder(@Param('id') id: string) {
+    return this.adminService.refundOrder(id);
+  }
+
   @Patch('listings/:id/status')
   updateListingStatus(
     @Param('id') id: string,

@@ -36,6 +36,18 @@ export class User {
   @Column({ nullable: true })
   phone: string;
 
+  @Column({ nullable: true })
+  whatsappPhone: string;
+
+  @Column({ default: false })
+  verifiedPhone: boolean;
+
+  @Column({ type: 'varchar', nullable: true, select: false })
+  phoneVerificationCodeHash: string | null;
+
+  @Column({ type: 'timestamp', nullable: true, select: false })
+  phoneVerificationExpires: Date | null;
+
   @Column({ type: 'varchar', nullable: true })
   gender: 'female' | 'male' | 'cooperative' | 'other' | null;
 

@@ -55,7 +55,7 @@ function roleLabel(role: Role) {
 export default function AdminPage() {
   const { user, ready } = useAuth();
   const router = useRouter();
-  const [view, setView] = useState<'overview' | 'users' | 'listings' | 'shops'>('overview');
+  const [view, setView] = useState<'overview' | 'users' | 'listings' | 'shops' | 'orders'>('overview');
   const [actionError, setActionError] = useState('');
   const [usersPage, setUsersPage] = useState(0);
   const [listingsPage, setListingsPage] = useState(0);
@@ -78,14 +78,15 @@ export default function AdminPage() {
   const { data, isLoading, mutate } = useSWR(
     user?.role === 'admin' ? 'admin-console' : null,
     async () => {
-      const [overview, users, listings, shops, serviceDashboard] = await Promise.all([
+      const [overview, users, listings, shops, adminOrders, serviceDashboard] = await Promise.all([
         api.adminOverview(),
         api.adminUsers(),
         api.adminListings(),
         api.adminShops(),
+        api.adminOrders(),
         api.getServiceDashboardStats(),
       ]);
-      return { overview, users, listings, shops, serviceDashboard: serviceDashboard as ServiceDashboardStats };
+      return { overview, users, listings, shops, adminOrders, serviceDashboard: serviceDashboard as ServiceDashboardStats };
     },
   );
 
@@ -171,6 +172,7 @@ export default function AdminPage() {
             ['shops', 'Boutiques'],
             ['users', 'Utilisateurs'],
             ['listings', 'Annonces'],
+            ['orders', 'Commandes'],
           ].map(([value, label]) => (
             <button
               key={value}
@@ -225,6 +227,14 @@ export default function AdminPage() {
           onPageChange={setShopsPage}
           onReview={async (id, approve) => { await api.adminReviewShop(id, approve); await mutate(); }}
           onAction={runAdminAction}
+        />
+      )}
+
+      {view === 'orders' && (
+        <AdminOrders
+          orders={data.adminOrders}
+          onCancel={(id) => runAdminAction(async () => { await api.adminCancelOrder(id); })}
+          onRefund={(id) => runAdminAction(async () => { await api.adminRefundOrder(id); })}
         />
       )}
 
@@ -640,7 +650,7 @@ function ShopsAdmin({
         <div className="border-b border-stone-200 p-5">
           <h2 className="font-semibold">Validation des boutiques & Preuves KYC ({shops.length})</h2>
           <p className="mt-1 text-sm text-stone-600">
-            Vérifiez les pièces justificatives, photos d'atelier et vidéos téléversées par les vendeurs avant validation.
+            Vérifiez les pièces justificatives, photos d&apos;atelier et vidéos téléversées par les vendeurs avant validation.
           </p>
         </div>
         <div className="divide-y divide-stone-100">
@@ -805,7 +815,7 @@ function ShopsAdmin({
                                   rel="noopener noreferrer"
                                   className="mt-1 text-[10px] text-amber-700 underline hover:text-amber-900"
                                 >
-                                  Ouvrir l'original ↗
+                                  Ouvrir l&apos;original ↗
                                 </a>
                               </div>
                             );
@@ -925,6 +935,89 @@ function RecentOrders({
             onPrevious={() => onPageChange((p) => Math.max(0, p - 1))}
             onNext={() => onPageChange((p) => p + 1)}
           />
+        </div>
+      )}
+    </section>
+  );
+}
+
+function AdminOrders({
+  orders,
+  onCancel,
+  onRefund,
+}: {
+  orders: Order[];
+  onCancel: (id: string) => Promise<void>;
+  onRefund: (id: string) => Promise<void>;
+}) {
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState<Order['status'] | 'all'>('all');
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const normalizedSearch = search.trim().toLowerCase();
+  const filteredOrders = orders.filter((order) => {
+    const haystack = [order.id, order.listing?.title, order.buyer?.name, order.buyer?.email, order.seller?.name, order.seller?.email, order.paymentMethod]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    return (!normalizedSearch || haystack.includes(normalizedSearch)) && (status === 'all' || order.status === status);
+  });
+
+  return (
+    <section className="space-y-4 rounded-lg border border-stone-200 bg-white p-5">
+      <div>
+        <h2 className="font-semibold">Gestion des commandes ({filteredOrders.length}/{orders.length})</h2>
+        <p className="mt-1 text-sm text-stone-600">Recherchez une commande, consultez tous ses détails, annulez-la ou enregistrez un remboursement.</p>
+      </div>
+      <div className="grid gap-3 md:grid-cols-[1fr_220px]">
+        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="ID, client, vendeur, article, e-mail..." className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600" />
+        <select value={status} onChange={(event) => setStatus(event.target.value as Order['status'] | 'all')} className="rounded-md border border-stone-300 px-3 py-2 text-sm">
+          <option value="all">Tous les statuts</option>
+          <option value="pending">En attente</option>
+          <option value="confirmed">Confirmées</option>
+          <option value="completed">Terminées</option>
+          <option value="cancelled">Annulées</option>
+        </select>
+      </div>
+      {!filteredOrders.length ? <p className="rounded-md bg-stone-50 p-4 text-sm text-stone-600">Aucune commande ne correspond à votre recherche.</p> : (
+        <div className="divide-y divide-stone-100">
+          {filteredOrders.map((order) => {
+            const isExpanded = expanded === order.id;
+            const canCancel = order.status !== 'cancelled' && order.status !== 'completed';
+            const canRefund = order.payment?.status === 'confirmed' || order.payment?.status === 'captured';
+            return (
+              <article key={order.id} className="py-4 first:pt-0 last:pb-0">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="font-medium">{order.listing?.title ?? 'Annonce supprimée'}</p>
+                    <p className="text-sm text-stone-600">{order.buyer?.name ?? 'Client'} → {order.seller?.name ?? 'Vendeur'} · {formatXAF(order.totalPrice)}</p>
+                    <p className="text-xs text-stone-500">Réf. {order.id} · {new Date(order.createdAt).toLocaleString('fr-FR')}</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <StatusBadge status={order.status} />
+                    <button onClick={() => setExpanded(isExpanded ? null : order.id)} className="rounded-md border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50">
+                      {isExpanded ? 'Réduire' : 'Voir les détails'}
+                    </button>
+                  </div>
+                </div>
+                {isExpanded ? (
+                  <div className="mt-4 grid gap-3 rounded-md bg-stone-50 p-4 text-sm text-stone-700 sm:grid-cols-2">
+                    <p><strong>Client :</strong> {order.buyer?.name} · {order.buyer?.email}</p>
+                    <p><strong>Vendeur :</strong> {order.seller?.name} · {order.seller?.email}</p>
+                    <p><strong>Quantité :</strong> {order.quantity}</p>
+                    <p><strong>Paiement :</strong> {order.paymentMethod} · {order.payment?.status ?? 'non créé'}</p>
+                    <p><strong>Livraison :</strong> {order.deliveryMethod} {order.deliveryAddress ? `· ${order.deliveryAddress}` : ''}</p>
+                    <p><strong>Suivi :</strong> {order.deliveryStatus}{order.deliveryTrackingId ? ` · ${order.deliveryTrackingId}` : ''}</p>
+                    {order.cancellationReason ? <p className="sm:col-span-2"><strong>Motif :</strong> {order.cancellationReason}</p> : null}
+                    <div className="flex flex-wrap gap-2 sm:col-span-2">
+                      {canCancel ? <button onClick={() => { if (window.confirm('Annuler cette commande et restituer le stock ?')) void onCancel(order.id); }} className="rounded-md bg-red-600 px-3 py-2 text-xs font-medium text-white hover:bg-red-700">Annuler la commande</button> : null}
+                      {canRefund ? <button onClick={() => { if (window.confirm('Enregistrer le remboursement de ce paiement ?')) void onRefund(order.id); }} className="rounded-md bg-amber-700 px-3 py-2 text-xs font-medium text-white hover:bg-amber-800">Rembourser</button> : null}
+                      {!canCancel && !canRefund ? <span className="text-xs text-stone-500">Aucune action disponible pour cette commande.</span> : null}
+                    </div>
+                  </div>
+                ) : null}
+              </article>
+            );
+          })}
         </div>
       )}
     </section>

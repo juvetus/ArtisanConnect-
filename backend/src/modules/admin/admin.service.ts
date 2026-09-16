@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import bcrypt from 'bcrypt';
 import { InstitutionalProgram, InstitutionalResource, Listing, Order, Payment, ProgramApplication, ServiceOrder, Shop, User } from '../../entities/index.js';
 import { ShopsService } from '../shops/shops.service.js';
@@ -18,6 +18,7 @@ export class AdminService implements OnModuleInit {
     @InjectRepository(InstitutionalResource) private resources: Repository<InstitutionalResource>,
     @InjectRepository(InstitutionalProgram) private programs: Repository<InstitutionalProgram>,
     @InjectRepository(ProgramApplication) private applications: Repository<ProgramApplication>,
+    private dataSource: DataSource,
     private shopsService: ShopsService,
     private config: ConfigService,
   ) {}
@@ -187,6 +188,37 @@ export class AdminService implements OnModuleInit {
       relations: { buyer: true, seller: true, listing: true, payment: true },
       order: { createdAt: 'DESC' },
       take: 100,
+    });
+  }
+
+  async cancelOrder(id: string) {
+    return this.dataSource.transaction(async (manager) => {
+      const order = await manager.findOne(Order, { where: { id } });
+      if (!order) throw new NotFoundException('Commande introuvable');
+      if (order.status === 'completed') throw new BadRequestException('Une commande terminée ne peut pas être annulée');
+      if (order.status !== 'cancelled') {
+        await manager.increment(Listing, { id: order.listingId }, 'stock', order.quantity);
+        await manager.update(Order, id, { status: 'cancelled' });
+      }
+      return this.orders.findOne({ where: { id }, relations: { buyer: true, seller: true, listing: true, payment: true } });
+    });
+  }
+
+  async refundOrder(id: string) {
+    return this.dataSource.transaction(async (manager) => {
+      const order = await manager.findOne(Order, { where: { id }, relations: { payment: true } });
+      if (!order) throw new NotFoundException('Commande introuvable');
+      if (!order.payment) throw new BadRequestException('Aucun paiement associé à cette commande');
+      if (!['confirmed', 'captured'].includes(order.payment.status)) {
+        throw new BadRequestException('Seuls les paiements confirmés peuvent être remboursés');
+      }
+      order.payment.status = 'refunded';
+      await manager.save(Payment, order.payment);
+      if (order.status !== 'cancelled' && order.status !== 'completed') {
+        await manager.increment(Listing, { id: order.listingId }, 'stock', order.quantity);
+        await manager.update(Order, id, { status: 'cancelled' });
+      }
+      return this.orders.findOne({ where: { id }, relations: { buyer: true, seller: true, listing: true, payment: true } });
     });
   }
 

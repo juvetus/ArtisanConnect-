@@ -130,9 +130,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <LanguageProvider>
           <AuthProvider>
             <Header />
-            <EmailVerificationBanner />
-            <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
-            <Footer />
+            <div className="md:ml-64">
+              <EmailVerificationBanner />
+              <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
+              <Footer />
+            </div>
             <WhatsAppFloatingButton />
           </AuthProvider>
         </LanguageProvider>

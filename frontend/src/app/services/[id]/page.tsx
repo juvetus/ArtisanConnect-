@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import type { Service } from '@/lib/types';
+import { whatsappHref } from '@/lib/whatsapp';
 const LocationPicker = dynamic(() => import('@/components/LocationPicker').then((module) => module.LocationPicker), { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-md bg-stone-100" /> });
 
 export default function ServiceOrderPage() {
@@ -88,6 +89,7 @@ export default function ServiceOrderPage() {
 
   if (loading) return <p className="text-stone-600">Chargement du service...</p>;
   if (!service) return <p className="text-red-700">Service indisponible.</p>;
+  const artisanWhatsapp = whatsappHref(service.artisan?.whatsappPhone ?? service.artisan?.phone, `Bonjour ${service.artisan?.name ?? ''}, je suis intéressé par votre service « ${service.title} » sur ArtisanConnect.`);
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
@@ -99,6 +101,7 @@ export default function ServiceOrderPage() {
             <p className="text-sm font-medium uppercase tracking-wide text-amber-700">Service approuvé</p>
             <h1 className="mt-1 text-3xl font-semibold text-stone-900">{service.title}</h1>
             <p className="mt-2 text-stone-600">Par {service.artisan?.name ?? 'Artisan'}</p>
+            {artisanWhatsapp ? <a href={artisanWhatsapp} target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700">Contacter sur WhatsApp</a> : null}
           </div>
           <div className="text-right text-sm text-stone-600">
             <p>{service.estimatedDays} jours estimés</p>

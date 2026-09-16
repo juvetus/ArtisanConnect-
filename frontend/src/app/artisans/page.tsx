@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useLanguage } from '@/lib/language-context';
 
 const benefitIcons = ['↗', '▦', '✦'];
@@ -19,7 +20,12 @@ export default function ArtisansPage() {
       <section className="overflow-hidden rounded-xl bg-stone-900 text-white">
         <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="px-6 py-12 lg:px-10 lg:py-16"><p className="text-sm font-semibold uppercase tracking-wide text-amber-300">{t('vendors_badge')}</p><h1 className="mt-4 max-w-2xl text-3xl font-semibold leading-tight md:text-5xl">{t('vendors_title')}</h1><p className="mt-5 max-w-2xl text-base leading-7 text-stone-200">{t('vendors_subtitle')}</p><div className="mt-8 flex flex-wrap gap-3"><Link href="/register" className="rounded-lg bg-amber-600 px-5 py-3 text-sm font-semibold text-white hover:bg-amber-700">{t('vendors_register')}</Link><Link href="/contact" className="rounded-lg border border-white/30 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10">{t('institutions_contact')}</Link></div></div>
-          <div className="min-h-72 bg-[url('/images/hero-artisan.jpg')] bg-cover bg-center" role="img" aria-label="Artisan camerounais dans son atelier" />
+          <div className="relative flex min-h-72 items-center justify-center overflow-hidden bg-stone-950 p-2" role="img" aria-label="Artisans et vendeurs camerounais développant leur activité avec ArtisanConnect">
+            <div className="relative w-full max-w-[42rem]">
+              <Image src="/images/vendeur.png" alt="Artisans et vendeurs camerounais développant leur activité avec ArtisanConnect" width={1536} height={1024} className="block max-h-[34rem] w-full object-contain" />
+              <span aria-hidden className="pointer-events-none absolute right-[1%] top-[1%] h-[8%] w-[17%] rounded-full bg-stone-900/95" />
+            </div>
+          </div>
         </div>
       </section>
       <p className="mx-auto max-w-3xl text-center text-lg font-medium leading-8 text-stone-700">{t('vendors_proof')}</p>

@@ -1,7 +1,12 @@
+'use client';
+
+import { useLanguage } from '@/lib/language-context';
+
 const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '237699000000';
 
 export function WhatsAppFloatingButton() {
-  const message = encodeURIComponent('Bonjour ArtisanConnect, j’ai besoin d’aide.');
+  const { t } = useLanguage();
+  const message = encodeURIComponent(t('whatsapp_default_message'));
   const href = `https://wa.me/${WHATSAPP_NUMBER.replace(/\D/g, '')}?text=${message}`;
 
   return (
@@ -9,7 +14,7 @@ export function WhatsAppFloatingButton() {
       href={href}
       target="_blank"
       rel="noreferrer"
-      aria-label="Contacter ArtisanConnect sur WhatsApp"
+      aria-label={t('whatsapp_aria_label')}
       className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-green-600 text-sm font-bold text-white shadow-lg ring-4 ring-white transition hover:bg-green-700 focus:outline-none focus:ring-green-200"
     >
       WA

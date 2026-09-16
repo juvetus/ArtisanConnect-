@@ -57,9 +57,21 @@ export class Shop {
   @Column()
   mobileMoneyNumber: string;
 
+  @Column({ nullable: true })
+  momoNumber: string | null;
+
+  @Column({ nullable: true })
+  orangeMoneyNumber: string | null;
+
+  @Column('enum', { enum: ['momo', 'orange_money', 'both'], default: 'both' })
+  mobileMoneyProvider: 'momo' | 'orange_money' | 'both';
+
   /** Mode de livraison proposé par la boutique. */
   @Column('enum', { enum: ['workshop', 'home'], default: 'workshop' })
   deliveryMode: 'workshop' | 'home';
+
+  @Column('simple-array', { nullable: true })
+  deliveryMethods: ('workshop' | 'home' | 'carrier')[];
 
   /** Preuves KYC : les documents Cloudinary privés utilisent publicId/resourceType. */
   @Column({ type: 'jsonb', default: [] })

@@ -9,14 +9,14 @@ export class AuthController {
 
   @Public()
   @Post('register')
-  async register(@Body() body: { email: string; password: string; name: string; role?: 'artisan' | 'client' | 'institution'; gender?: 'female' | 'male' | 'cooperative' | 'other' }) {
-    return this.authService.register(body.email, body.password, body.name, body.role, body.gender);
+  async register(@Body() body: { email?: string; phone?: string; password: string; name: string; role?: 'artisan' | 'client' | 'institution'; gender?: 'female' | 'male' | 'cooperative' | 'other' }) {
+    return this.authService.register(body, body.password, body.name, body.role, body.gender);
   }
 
   @Public()
   @Post('login')
-  async login(@Body() body: { email: string; password: string }) {
-    return this.authService.login(body.email, body.password);
+  async login(@Body() body: { identifier: string; password: string }) {
+    return this.authService.login(body.identifier, body.password);
   }
 
   @Public()
@@ -29,6 +29,12 @@ export class AuthController {
   @Get('verify-email')
   async verifyEmailGet(@Query('token') token: string) {
     return this.authService.verifyEmail(token);
+  }
+
+  @Public()
+  @Post('verify-phone')
+  async verifyPhone(@Body() body: { phone: string; code: string }) {
+    return this.authService.verifyPhone(body.phone, body.code);
   }
 
   @Public()

@@ -59,6 +59,11 @@ export class OrdersService {
         throw new BadRequestException(`Stock insuffisant : ${listing.stock} disponible(s)`);
       }
 
+      const acceptedPayments = listing.acceptedPaymentMethods?.length ? listing.acceptedPaymentMethods : ['cash', 'momo', 'orange_money'];
+      const acceptedDeliveries = listing.deliveryMethods?.length ? listing.deliveryMethods : ['workshop', 'home', 'carrier'];
+      if (!acceptedPayments.includes(paymentMethod)) throw new BadRequestException('Ce mode de paiement n’est pas accepté pour cette annonce');
+      if (!acceptedDeliveries.includes(delivery.deliveryMethod)) throw new BadRequestException('Ce mode de livraison n’est pas proposé pour cette annonce');
+
       const unitPrice = Number(listing.price);
       const totalPrice = Math.round(unitPrice * quantity);
 
