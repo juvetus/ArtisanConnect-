@@ -263,7 +263,10 @@ export const api = {
   institutionReviewApplication: (id: string, status: ProgramApplicationStatus, notes?: string) =>
     patch<ProgramApplication>(`/program-applications/${id}/status`, { status, notes }),
 
-  shopPublic: (id: string) => request<{ shop: Shop; listings: Listing[] }>(`/shops/${id}/public`),
+  shopPublic: async (id: string) => {
+    const data = await request<{ shop: Shop; listings: Listing[] } | [{ shop: Shop; listings: Listing[] }]>(`/shops/${id}/public`);
+    return Array.isArray(data) ? data[0] : data;
+  },
 
   institutionReviewFormalization: (id: string, status: ArtisanFormalization['status'], notes?: string) =>
     patch<ArtisanFormalization>(`/institutions/formalizations/${id}/status`, { status, notes }),
