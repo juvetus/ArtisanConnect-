@@ -76,11 +76,11 @@ export default function AdminPage() {
   const PAGE_SIZE = 10;
 
   const { data, isLoading, mutate } = useSWR(
-    user?.role === 'admin' ? 'admin-console' : null,
+    user && ['admin', 'editor', 'viewer'].includes(user.role) ? ['admin-console', user.id] : null,
     async () => {
       const [overview, users, listings, shops, adminOrders, serviceDashboard] = await Promise.all([
         api.adminOverview(),
-        api.adminUsers(),
+        user?.role === 'admin' ? api.adminUsers() : Promise.resolve([] as User[]),
         api.adminListings(),
         api.adminShops(),
         api.adminOrders(),
@@ -91,10 +91,10 @@ export default function AdminPage() {
   );
 
   useEffect(() => {
-    if (ready && user?.role !== 'admin') router.replace('/');
+    if (ready && (!user || !['admin', 'editor', 'viewer'].includes(user.role))) router.replace('/');
   }, [ready, user, router]);
 
-  if (!ready || user?.role !== 'admin' || isLoading || !data) {
+  if (!ready || !user || !['admin', 'editor', 'viewer'].includes(user.role) || isLoading || !data) {
     return <p className="text-stone-600">Chargement de l&apos;administration…</p>;
   }
 
@@ -169,9 +169,9 @@ export default function AdminPage() {
         <div className="flex rounded-lg border border-stone-200 bg-white p-1 text-sm">
           {[
             ['overview', 'Synthèse'],
-            ['shops', 'Boutiques'],
-            ['users', 'Utilisateurs'],
-            ['listings', 'Annonces'],
+            ...(user.role !== 'viewer' ? [['shops', 'Boutiques']] : []),
+            ...(user.role === 'admin' ? [['users', 'Utilisateurs']] : []),
+            ...(user.role !== 'viewer' ? [['listings', 'Annonces']] : []),
             ['orders', 'Commandes'],
           ].map(([value, label]) => (
             <button
@@ -217,6 +217,30 @@ export default function AdminPage() {
         ))}
       </section>
 
+      <section className="rounded-lg border border-amber-200 bg-amber-50/60 p-6">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-stone-900">Indicateurs du pilote vendeur</h2>
+            <p className="mt-1 text-sm text-stone-600">Données cumulées des boutiques actives.</p>
+          </div>
+          <span className="text-xs font-medium uppercase tracking-wide text-amber-800">Lecture équipe admin</span>
+        </div>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          {[
+            ['Boutiques actives', stats.activeShops ?? 0],
+            ['Vues boutique', stats.shopViews ?? 0],
+            ['Contacts WhatsApp', stats.whatsappContacts ?? 0],
+            ['Partages', stats.shopShares ?? 0],
+            ['Ventes réussies', stats.successfulSales ?? 0],
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-md border border-amber-100 bg-white p-4">
+              <p className="text-sm text-stone-600">{label}</p>
+              <p className="mt-2 text-2xl font-semibold text-stone-900">{value}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {actionError && <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{actionError}</p>}
 
       {view === 'shops' && (
@@ -225,6 +249,7 @@ export default function AdminPage() {
           page={shopsPage}
           pageSize={PAGE_SIZE}
           onPageChange={setShopsPage}
+          canDelete={user.role === 'admin'}
           onReview={async (id, approve) => { await api.adminReviewShop(id, approve); await mutate(); }}
           onAction={runAdminAction}
         />
@@ -233,6 +258,7 @@ export default function AdminPage() {
       {view === 'orders' && (
         <AdminOrders
           orders={data.adminOrders}
+          canManage={user.role === 'admin'}
           onCancel={(id) => runAdminAction(async () => { await api.adminCancelOrder(id); })}
           onRefund={(id) => runAdminAction(async () => { await api.adminRefundOrder(id); })}
         />
@@ -499,14 +525,14 @@ export default function AdminPage() {
                   >
                     {listing.status === 'active' ? 'Désactiver' : 'Réactiver'}
                   </button>
-                  <button
+                  {user.role === 'admin' ? <button
                     onClick={() => {
                       if (confirm(`Supprimer définitivement l'annonce « ${listing.title} » ?`)) void runAdminAction(() => api.adminDeleteListing(listing.id));
                     }}
                     className="rounded-md bg-red-50 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
                   >
                     Supprimer
-                  </button>
+                  </button> : null}
                 </div>
               </div>
             ))}
@@ -612,6 +638,7 @@ function ShopsAdmin({
   onPageChange,
   onReview,
   onAction,
+  canDelete,
 }: {
   shops: Shop[];
   page: number;
@@ -619,6 +646,7 @@ function ShopsAdmin({
   onPageChange: (newPage: number | ((p: number) => number)) => void;
   onReview: (id: string, approve: boolean) => Promise<void>;
   onAction: (action: () => Promise<unknown>) => Promise<void>;
+  canDelete: boolean;
 }) {
   const [activeDoc, setActiveDoc] = useState<{ url: string; label: string; shopName: string } | null>(null);
   const [expandedShops, setExpandedShops] = useState<Record<string, boolean>>({});
@@ -711,12 +739,12 @@ function ShopsAdmin({
                   </div>
                   {shop.status === 'pending' && (
                     <div className="flex gap-2">
-                      <button
+                      {canDelete ? <button
                         onClick={() => onReview(shop.id, true)}
                         className="rounded-md bg-green-700 px-4 py-2 text-sm font-semibold text-white hover:bg-green-800 shadow-sm"
                       >
                         Approuver la boutique
-                      </button>
+                      </button> : null}
                       <button
                         onClick={() => {
                           const reason = prompt('Motif du rejet (optionnel) :');
@@ -943,10 +971,12 @@ function RecentOrders({
 
 function AdminOrders({
   orders,
+  canManage,
   onCancel,
   onRefund,
 }: {
   orders: Order[];
+  canManage: boolean;
   onCancel: (id: string) => Promise<void>;
   onRefund: (id: string) => Promise<void>;
 }) {
@@ -1009,9 +1039,9 @@ function AdminOrders({
                     <p><strong>Suivi :</strong> {order.deliveryStatus}{order.deliveryTrackingId ? ` · ${order.deliveryTrackingId}` : ''}</p>
                     {order.cancellationReason ? <p className="sm:col-span-2"><strong>Motif :</strong> {order.cancellationReason}</p> : null}
                     <div className="flex flex-wrap gap-2 sm:col-span-2">
-                      {canCancel ? <button onClick={() => { if (window.confirm('Annuler cette commande et restituer le stock ?')) void onCancel(order.id); }} className="rounded-md bg-red-600 px-3 py-2 text-xs font-medium text-white hover:bg-red-700">Annuler la commande</button> : null}
-                      {canRefund ? <button onClick={() => { if (window.confirm('Enregistrer le remboursement de ce paiement ?')) void onRefund(order.id); }} className="rounded-md bg-amber-700 px-3 py-2 text-xs font-medium text-white hover:bg-amber-800">Rembourser</button> : null}
-                      {!canCancel && !canRefund ? <span className="text-xs text-stone-500">Aucune action disponible pour cette commande.</span> : null}
+                      {canManage && canCancel ? <button onClick={() => { if (window.confirm('Annuler cette commande et restituer le stock ?')) void onCancel(order.id); }} className="rounded-md bg-red-600 px-3 py-2 text-xs font-medium text-white hover:bg-red-700">Annuler la commande</button> : null}
+                      {canManage && canRefund ? <button onClick={() => { if (window.confirm('Enregistrer le remboursement de ce paiement ?')) void onRefund(order.id); }} className="rounded-md bg-amber-700 px-3 py-2 text-xs font-medium text-white hover:bg-amber-800">Rembourser</button> : null}
+                      {(!canManage || (!canCancel && !canRefund)) ? <span className="text-xs text-stone-500">Lecture seule.</span> : null}
                     </div>
                   </div>
                 ) : null}

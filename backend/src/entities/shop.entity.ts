@@ -88,6 +88,15 @@ export class Shop {
   rejectionReason: string | null;
 
   /** Badge "Vendeur vérifié" après 3 ventes réussies. */
+  @Column({ default: 0 })
+  views: number;
+
+  @Column({ default: 0 })
+  whatsappContactClicks: number;
+
+  @Column({ default: 0 })
+  whatsappShareClicks: number;
+
   @Column({ default: false })
   verifiedBadge: boolean;
 

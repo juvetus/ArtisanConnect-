@@ -19,3 +19,4 @@ export { ProgramApplication } from './program-application.entity.js';
 export { Subscription } from './subscription.entity.js';
 export { SubscriptionPlan } from './subscription-plan.entity.js';
 export { Payout } from './payout.entity.js';
+export { CustomerRequest } from './customer-request.entity.js';

@@ -87,6 +87,8 @@ export const api = {
 
     updateProfile: (id: string, data: { name?: string; phone?: string; whatsappPhone?: string; location?: string; bio?: string }) => patch<User>(`/users/${id}`, data),
 
+    getUser: (id: string) => request<User>(`/users/${id}`),
+
   sendContactMessage: async (data: { name: string; email: string; subject: string; message: string; city?: string; neighborhood?: string }, files: File[] = []) => {
     const form = new FormData();
     Object.entries(data).forEach(([key, value]) => form.append(key, value ?? ''));
@@ -308,6 +310,13 @@ export const api = {
 
   myShops: () => request<Shop[]>('/shops/mine'),
 
+  myShopMetrics: () => request<Record<string, { views: number; whatsappContactClicks: number; whatsappShareClicks: number }>>('/shops/mine/metrics'),
+
+  shopMetrics: (id: string) => request<{ views: number; whatsappContactClicks: number; whatsappShareClicks: number }>(`/shops/${id}/metrics`),
+
+  incrementShopMetric: (id: string, metric: 'views' | 'whatsappContactClicks' | 'whatsappShareClicks', delta = 1) =>
+    post<{ views: number; whatsappContactClicks: number; whatsappShareClicks: number }>(`/shops/${id}/metrics`, { metric, delta }),
+
   updateShop: (id: string, data: { name?: string; description?: string; category?: string; city?: string; neighborhood?: string; market?: string; latitude?: number; longitude?: number; deliveryMode?: 'workshop' | 'home'; deliveryMethods?: ('workshop' | 'home' | 'carrier')[]; mobileMoneyNumber?: string; momoNumber?: string; orangeMoneyNumber?: string; mobileMoneyProvider?: 'momo' | 'orange_money' | 'both'; isWomenLed?: boolean; isCooperative?: boolean }) =>
     patch<Shop>(`/shops/${id}`, data),
 
@@ -449,6 +458,13 @@ export const api = {
     },
 
     getMyServiceOrders: () => request(`/service-orders/mine`),
+
+    createCustomerRequest: (data: { category: string; city: string; neighborhood?: string; description: string; budgetMin?: number; budgetMax?: number; requestedDate?: string }) => post('/customer-requests', data),
+    getMyCustomerRequests: () => request<{ id: string; category: string; city: string; description: string; status: string; responses?: { artisanId: string; artisan?: { name?: string; phone?: string; whatsappPhone?: string } | null; price?: number; days?: number; message: string; status?: 'accepted' | 'rejected' }[] }[]>('/customer-requests/mine'),
+    getOpenCustomerRequests: (filters: { category?: string; city?: string } = {}) => request<{ id: string; category: string; city: string; neighborhood?: string | null; description: string; budgetMin?: number | null; budgetMax?: number | null; status: string; matchScore?: number }[]>(`/customer-requests/artisan/open?category=${encodeURIComponent(filters.category ?? '')}&city=${encodeURIComponent(filters.city ?? '')}`),
+    getCustomerRequestStats: () => request<{ requestsReceived: number; responsesSent: number; openRequests: number; averageResponseMinutes: number }>('/customer-requests/artisan/stats'),
+    respondToCustomerRequest: (id: string, data: { price?: number; days?: number; message: string }) => post(`/customer-requests/${id}/respond`, data),
+    decideCustomerRequestResponse: (id: string, artisanId: string, decision: 'accepted' | 'rejected') => post(`/customer-requests/${id}/responses/${artisanId}/decision`, { decision }),
 
     getPendingServiceOrders: () => request(`/service-orders/admin/pending`),
 

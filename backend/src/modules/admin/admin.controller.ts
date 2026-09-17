@@ -1,5 +1,5 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Res, UseGuards } from '@nestjs/common';
-import { AdminGuard } from '../auth/admin.guard.js';
+import { Body, Controller, Delete, ForbiddenException, Get, Param, Patch, Post, Res, UseGuards } from '@nestjs/common';
+import { AdminPanelGuard } from '../auth/admin-panel.guard.js';
 import { AdminService } from './admin.service.js';
 import { EmailService } from '../email/email.service.js';
 import { CurrentUser, type AuthUser } from '../auth/current-user.decorator.js';
@@ -7,13 +7,21 @@ import { PdfService } from '../reports/pdf.service.js';
 import type { Response } from 'express';
 
 @Controller('admin')
-@UseGuards(AdminGuard)
+@UseGuards(AdminPanelGuard)
 export class AdminController {
   constructor(
     private readonly adminService: AdminService,
     private readonly emailService: EmailService,
     private readonly pdfService: PdfService,
   ) {}
+
+  private assertAdmin(user: AuthUser) {
+    if (user.role !== 'admin') throw new ForbiddenException('Action réservée aux administrateurs');
+  }
+
+  private assertEditor(user: AuthUser) {
+    if (!['admin', 'editor'].includes(user.role)) throw new ForbiddenException('Action réservée aux administrateurs et éditeurs');
+  }
 
   @Get('overview')
   getOverview() {
@@ -29,7 +37,8 @@ export class AdminController {
   }
 
   @Post('email/test')
-  async sendTestEmail(@Body('to') to: string) {
+  async sendTestEmail(@CurrentUser() user: AuthUser, @Body('to') to: string) {
+    this.assertAdmin(user);
     if (!to?.trim()) {
       return { sent: false, message: 'Une adresse e-mail est requise' };
     }
@@ -48,18 +57,20 @@ export class AdminController {
   }
 
   @Get('users')
-  getUsers() {
+  getUsers(@CurrentUser() user: AuthUser) {
+    this.assertAdmin(user);
     return this.adminService.listUsers();
   }
 
   @Post('users')
-  createUser(@Body() body: {
+  createUser(@CurrentUser() user: AuthUser, @Body() body: {
     name: string;
     email: string;
     password: string;
     role: 'admin' | 'editor' | 'viewer' | 'artisan' | 'client' | 'institution';
     gender?: 'female' | 'male' | 'cooperative' | 'other';
   }) {
+    this.assertAdmin(user);
     return this.adminService.createUser(body);
   }
 
@@ -74,35 +85,42 @@ export class AdminController {
   }
 
   @Patch('orders/:id/cancel')
-  cancelOrder(@Param('id') id: string) {
+  cancelOrder(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    this.assertAdmin(user);
     return this.adminService.cancelOrder(id);
   }
 
   @Patch('orders/:id/refund')
-  refundOrder(@Param('id') id: string) {
+  refundOrder(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    this.assertAdmin(user);
     return this.adminService.refundOrder(id);
   }
 
   @Patch('listings/:id/status')
   updateListingStatus(
+    @CurrentUser() user: AuthUser,
     @Param('id') id: string,
     @Body() body: { status: 'active' | 'inactive' },
   ) {
+    this.assertEditor(user);
     return this.adminService.setListingStatus(id, body.status);
   }
 
   @Patch('users/:id/role')
-  updateUserRole(@Param('id') id: string, @Body() body: { role: 'admin' | 'editor' | 'viewer' | 'artisan' | 'client' | 'institution' }) {
+  updateUserRole(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() body: { role: 'admin' | 'editor' | 'viewer' | 'artisan' | 'client' | 'institution' }) {
+    this.assertAdmin(user);
     return this.adminService.setUserRole(id, body.role);
   }
 
   @Patch('users/:id/status')
-  updateUserStatus(@Param('id') id: string, @Body() body: { isActive: boolean }) {
+  updateUserStatus(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() body: { isActive: boolean }) {
+    this.assertAdmin(user);
     return this.adminService.setUserActive(id, body.isActive);
   }
 
   @Delete('users/:id')
   deleteUser(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    this.assertAdmin(user);
     return this.adminService.deleteUser(id, user.id);
   }
 
@@ -112,22 +130,26 @@ export class AdminController {
   }
 
   @Patch('shops/:id/review')
-  reviewShop(@Param('id') id: string, @Body() body: { approve: boolean; reason?: string }) {
+  reviewShop(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() body: { approve: boolean; reason?: string }) {
+    this.assertEditor(user);
     return this.adminService.reviewShop(id, body.approve, body.reason);
   }
 
   @Patch('shops/:id/status')
-  updateShopStatus(@Param('id') id: string, @Body() body: { status: 'active' | 'suspended' }) {
+  updateShopStatus(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() body: { status: 'active' | 'suspended' }) {
+    this.assertEditor(user);
     return this.adminService.setShopStatus(id, body.status);
   }
 
   @Delete('shops/:id')
-  deleteShop(@Param('id') id: string) {
+  deleteShop(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    this.assertAdmin(user);
     return this.adminService.deleteShop(id);
   }
 
   @Delete('listings/:id')
-  deleteListing(@Param('id') id: string) {
+  deleteListing(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    this.assertAdmin(user);
     return this.adminService.deleteListing(id);
   }
 }

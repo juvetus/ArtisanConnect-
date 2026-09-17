@@ -53,6 +53,7 @@ export class AdminService implements OnModuleInit {
       resources,
       programs,
       programApplications,
+      pilotShops,
     ] = await Promise.all([
       this.users.count(),
       this.users.count({ where: { role: 'artisan' } }),
@@ -71,6 +72,15 @@ export class AdminService implements OnModuleInit {
       this.resources.count({ where: { published: true } }),
       this.programs.count({ where: { status: 'active' } }),
       this.applications.count(),
+      this.shops.find({
+        where: { status: 'active' },
+        select: {
+          views: true,
+          whatsappContactClicks: true,
+          whatsappShareClicks: true,
+          successfulSales: true,
+        },
+      }),
     ]);
 
     // Décompte spécifique pour l'impact de genre & coopératives
@@ -98,6 +108,15 @@ export class AdminService implements OnModuleInit {
     const revenue = completedOrders.reduce((sum, order) => sum + Number(order.totalPrice), 0);
     const platformFees = completedOrders.reduce((sum, order) => sum + Number(order.platformFee), 0);
     const servicePlatformFees = completedServiceOrders.reduce((sum, order) => sum + Number(order.platformFee), 0);
+    const shopMetrics = pilotShops.reduce(
+      (totals, shop) => ({
+        views: totals.views + Number(shop.views ?? 0),
+        whatsappContacts: totals.whatsappContacts + Number(shop.whatsappContactClicks ?? 0),
+        shares: totals.shares + Number(shop.whatsappShareClicks ?? 0),
+        successfulSales: totals.successfulSales + Number(shop.successfulSales ?? 0),
+      }),
+      { views: 0, whatsappContacts: 0, shares: 0, successfulSales: 0 },
+    );
 
     return {
       stats: {
@@ -118,6 +137,11 @@ export class AdminService implements OnModuleInit {
         resources,
         programs,
         programApplications,
+        activeShops: pilotShops.length,
+        shopViews: shopMetrics.views,
+        whatsappContacts: shopMetrics.whatsappContacts,
+        shopShares: shopMetrics.shares,
+        successfulSales: shopMetrics.successfulSales,
       },
       recentOrders,
     };

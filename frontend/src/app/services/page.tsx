@@ -44,6 +44,7 @@ export default function ServicesCatalogPage() {
           <h2 className="mt-1 text-3xl font-semibold text-stone-900">{t('services_page_title')}</h2>
           <p className="mt-2 text-stone-600">{t('services_page_subtitle')}</p>
         </div>
+        <a href="/customer-requests" className="rounded-lg bg-amber-700 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-amber-800">Je cherche un artisan</a>
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setAudienceFilter((prev) => (prev === 'women' ? 'all' : 'women'))}

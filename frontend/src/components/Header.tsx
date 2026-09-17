@@ -159,6 +159,11 @@ export function Header() {
                 </Link>
               )}
               {user.role === 'artisan' && (
+                <Link href="/artisan/customer-requests" className={navLinkClass('/artisan/customer-requests')}>
+                  Opportunités
+                </Link>
+              )}
+              {user.role === 'artisan' && (
                 <Link href="/formalization" className={navLinkClass('/formalization')}>
                   {t('nav_formalization')}
                 </Link>
@@ -176,6 +181,11 @@ export function Header() {
               <Link href="/profile" className={navLinkClass('/profile')}>
                 {t('nav_profile')}
               </Link>
+              {user.role === 'client' && (
+                <Link href="/customer-requests" className={navLinkClass('/customer-requests')}>
+                  Trouver un artisan
+                </Link>
+              )}
               <Link
                 href="/notifications"
                 className={`relative ${navLinkClass('/notifications')}`}

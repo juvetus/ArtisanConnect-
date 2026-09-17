@@ -127,6 +127,8 @@ export default function ListingPage() {
   const paymentLabel = paymentMethod === 'cash' ? 'Espèces' : paymentMethod === 'momo' ? 'MoMo' : 'Orange Money';
   const deliveryLabel = deliveryMethod === 'home' ? 'Livraison à domicile' : deliveryMethod === 'carrier' ? 'Transporteur' : "Retrait à l'atelier";
   const sellerWhatsapp = whatsappHref(listing.seller?.whatsappPhone ?? listing.seller?.phone, `Bonjour ${listing.seller?.name ?? ''}, je suis intéressé par votre annonce « ${listing.title} » sur ArtisanConnect.`);
+  const shareUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://artisanconnectcm.info'}/listings/${listing.id}`;
+  const shareWhatsapp = `https://wa.me/?text=${encodeURIComponent(`Découvrez « ${listing.title} » sur ArtisanConnect : ${shareUrl}`)}`;
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
@@ -172,6 +174,9 @@ export default function ListingPage() {
                 {sellerWhatsapp ? <a href={sellerWhatsapp} target="_blank" rel="noreferrer" className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700">WhatsApp</a> : null}
               </div>
             )}
+            <a href={shareWhatsapp} target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-md border border-green-600 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-50">
+              Partager sur WhatsApp
+            </a>
           </div>
         )}
       </div>

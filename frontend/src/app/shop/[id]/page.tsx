@@ -4,6 +4,7 @@ import { formatXAF } from '@/lib/format';
 import { categoryLabel } from '@/lib/categories';
 import { resolveMediaUrl } from '@/lib/media';
 import { whatsappHref } from '@/lib/whatsapp';
+import { ShopPublicCard } from '@/components/ShopPublicCard';
 
 export default async function ShopPublicPage({ params }: { params: { id: string } }) {
   let data: { shop: any; listings: any[] } | null = null;
@@ -25,22 +26,22 @@ export default async function ShopPublicPage({ params }: { params: { id: string 
   const shopWhatsapp = whatsappHref(shop.seller?.whatsappPhone ?? shop.seller?.phone, `Bonjour ${shop.seller?.name ?? shop.name}, je souhaite découvrir vos créations sur ArtisanConnect.`);
   const shopUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://artisanconnectcm.info'}/shop/${shop.id}`;
   const shareShopWhatsapp = `https://wa.me/?text=${encodeURIComponent(`Découvrez la boutique « ${shop.name} » sur ArtisanConnect : ${shopUrl}`)}`;
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(shopUrl)}`;
 
   return (
     <main className="mx-auto max-w-3xl p-6">
-      <section className="mb-8 rounded-lg border border-stone-200 bg-white p-6">
-        <h1 className="text-2xl font-bold">{shop.name}</h1>
-        <div className="mt-2 text-stone-700">{shop.description}</div>
-        <div className="mt-4 text-sm text-stone-600">
-          <span>Boutique {shop.type}</span>
-          <span className="ml-3">{ratingData.average ? `★ ${ratingData.average}/5` : 'Pas encore noté'} ({ratingData.count} avis)</span>
-          {shop.verifiedBadge && <span className="ml-2 text-emerald-600">✔ Vendeur vérifié</span>}
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {shopWhatsapp ? <a href={shopWhatsapp} target="_blank" rel="noreferrer" className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700">Contacter la boutique sur WhatsApp</a> : null}
-          <a href={shareShopWhatsapp} target="_blank" rel="noreferrer" className="rounded-md border border-green-600 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-50">Partager la boutique</a>
-        </div>
-      </section>
+      <ShopPublicCard
+        shopId={shop.id}
+        shopName={shop.name}
+        description={shop.description}
+        shopType={shop.type}
+        averageRating={ratingData.average}
+        ratingCount={ratingData.count}
+        verifiedBadge={Boolean(shop.verifiedBadge)}
+        shopWhatsapp={shopWhatsapp}
+        shareShopWhatsapp={shareShopWhatsapp}
+        qrCodeUrl={qrCodeUrl}
+      />
       <section className="mb-8 rounded-lg border border-stone-200 bg-white p-6">
         <h2 className="mb-4 text-lg font-semibold">Avis sur l’artisan</h2>
         {!reviewsData?.[0]?.length ? <p className="text-sm text-stone-600">Aucun avis pour le moment.</p> : <div className="space-y-4">{reviewsData[0].map((review: any) => <article key={review.id} className="border-b border-stone-100 pb-3 last:border-0"><p className="font-medium">{'★'.repeat(review.rating)}<span className="text-stone-300">{'★'.repeat(5 - review.rating)}</span></p><p className="mt-1 text-sm text-stone-700">{review.comment || 'Aucun commentaire'}</p><p className="mt-1 text-xs text-stone-500">{review.reviewer?.name || 'Client'} · {new Date(review.createdAt).toLocaleDateString('fr-FR')}</p></article>)}</div>}

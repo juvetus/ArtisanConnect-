@@ -72,6 +72,7 @@ export default function HomePage() {
             <div className="mt-6 flex flex-wrap gap-3">
               <a href="#produits-populaires" className="rounded-lg bg-amber-600 px-5 py-3 text-sm font-semibold text-white hover:bg-amber-700">{t('home_cta_products')}</a>
               <a href="/services" className="rounded-lg bg-white px-5 py-3 text-sm font-semibold text-stone-900 hover:bg-stone-100">{t('home_cta_service')}</a>
+              <a href="/customer-requests" className="rounded-lg border border-amber-300 px-5 py-3 text-sm font-semibold text-amber-100 hover:bg-amber-800">{t('home_cta_find_artisan')}</a>
               <a href="/how-it-works" className="rounded-lg border border-white/30 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10">{t('home_cta_how')}</a>
             </div>
           </div>

@@ -88,6 +88,28 @@ export class ShopsController {
     return this.shopsService.findBySeller(user.id);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('mine/metrics')
+  async mineMetrics(@CurrentUser() user: AuthUser) {
+    return this.shopsService.getMetricsForSeller(user.id);
+  }
+
+  @Get(':id/metrics')
+  async getMetrics(@Param('id') id: string) {
+    return this.shopsService.getMetrics(id);
+  }
+
+  @Post(':id/metrics')
+  async incrementMetric(
+    @Param('id') id: string,
+    @Body() body: { metric: 'views' | 'whatsappContactClicks' | 'whatsappShareClicks'; delta?: number },
+  ) {
+    if (!body.metric || !['views', 'whatsappContactClicks', 'whatsappShareClicks'].includes(body.metric)) {
+      throw new BadRequestException('Métrique invalide');
+    }
+    return this.shopsService.incrementMetric(id, body.metric, Number(body.delta ?? 1));
+  }
+
   @Get(':id/detail')
   async get(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     const shop = await this.shopsService.findById(id);

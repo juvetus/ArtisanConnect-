@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
+import { whatsappHref } from '@/lib/whatsapp';
 
 function Conversation({ otherUserId, serviceOrderId }: { otherUserId: string; serviceOrderId?: string }) {
   const { user } = useAuth();
@@ -13,6 +14,8 @@ function Conversation({ otherUserId, serviceOrderId }: { otherUserId: string; se
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [attachment, setAttachment] = useState<File | null>(null);
+  const { data: contact } = useSWR(otherUserId ? ['message-contact', otherUserId] : null, ([, id]) => api.getUser(id));
+  const whatsapp = whatsappHref(contact?.whatsappPhone ?? contact?.phone, `Bonjour ${contact?.name ?? ''}, je vous contacte via ArtisanConnect.`);
 
   const { data, mutate } = useSWR(
     ['conversation', otherUserId, serviceOrderId],
@@ -43,6 +46,7 @@ function Conversation({ otherUserId, serviceOrderId }: { otherUserId: string; se
 
   return (
     <div className="flex h-[32rem] flex-col rounded-lg border border-stone-200 bg-white">
+      {whatsapp ? <div className="flex items-center justify-between gap-3 border-b border-stone-200 px-4 py-2"><span className="text-xs text-stone-500">Contact direct</span><a href={whatsapp} target="_blank" rel="noreferrer" className="rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700">WhatsApp</a></div> : null}
       <div className="flex-1 space-y-3 overflow-y-auto p-4">
         {messages.length === 0 ? (
           <p className="text-center text-sm text-stone-500">

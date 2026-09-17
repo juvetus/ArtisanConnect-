@@ -196,6 +196,25 @@ describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
     expect(reviewed?.rejectionReason).toBe('Photos d’atelier non conformes');
   });
 
+  it('doit incrémenter une statistique backend de boutique', async () => {
+    const shop = {
+      id: 'shop-uuid-1',
+      sellerId: 'artisan-user-id',
+      status: 'active',
+      viewsCount: 2,
+      whatsappContactClicks: 1,
+      whatsappShareClicks: 0,
+    } as Shop;
+
+    mockShopsRepo.findOne = vi.fn().mockResolvedValue(shop);
+    mockShopsRepo.save = vi.fn().mockImplementation(async (value) => value);
+
+    const result = await service.incrementMetric('shop-uuid-1', 'whatsappContactClicks', 2);
+
+    expect(result.whatsappContactClicks).toBe(3);
+    expect(mockShopsRepo.save).toHaveBeenCalled();
+  });
+
   it('doit bloquer la publication d’annonce si la boutique est encore pending', async () => {
     mockShopsRepo.findOne = vi.fn().mockResolvedValue({
       id: 'shop-uuid-1',

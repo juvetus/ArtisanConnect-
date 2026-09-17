@@ -279,14 +279,3 @@ Pour des questions sur la Phase 1, consultez :
 
 Bon développement ! 🚀
 
-user : 
-test@exemple.com
-Testtest123
-
-testadmin@exemple.com
-Testtest123
-
-Ouvrez http://localhost:3000/login
-Utilisez :
-Email : admin@artisanconnect.cm
-Mot de passe : AdminDev2026!

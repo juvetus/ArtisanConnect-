@@ -117,7 +117,35 @@ Pour un client, un vendeur et une institution :
 - [ ] Valider la livraison.
 - [ ] Laisser un avis.
 
-## 8. Administration
+## 8. Fonctionnalité « Je cherche un artisan »
+
+### Parcours client
+
+- [ ] Ouvrir `/customer-requests` avec un compte client.
+- [ ] Publier une demande avec métier, ville et description.
+- [ ] Vérifier le contrôle de longueur minimale de la description.
+- [ ] Ajouter un budget minimum et maximum.
+- [ ] Vérifier que la demande apparaît dans « Mes demandes ».
+- [ ] Vérifier le statut initial `open`.
+
+### Parcours artisan
+
+- [ ] Ouvrir `/artisan/customer-requests` avec un compte artisan.
+- [ ] Vérifier que seules les demandes compatibles avec les catégories publiées sont proposées.
+- [ ] Vérifier le filtrage par métier.
+- [ ] Vérifier le filtrage par ville.
+- [ ] Répondre avec un prix, un délai et un message.
+- [ ] Vérifier qu'un artisan ne peut pas répondre deux fois à la même demande.
+- [ ] Vérifier qu'une notification est créée pour le client.
+
+### Retour client
+
+- [ ] Vérifier que la réponse apparaît dans la demande client.
+- [ ] Vérifier le nom de l'artisan, le prix et le délai proposés.
+- [ ] Vérifier le bouton WhatsApp si le profil artisan possède un numéro.
+- [ ] Vérifier le fallback vers la messagerie si WhatsApp n'est pas renseigné.
+
+## 9. Administration
 
 - [ ] Se connecter avec un compte admin.
 - [ ] Ouvrir l'onglet Commandes.
@@ -133,7 +161,7 @@ Pour un client, un vendeur et une institution :
 - [ ] Valider une boutique artisan.
 - [ ] Modifier le statut d'une annonce.
 
-## 9. SEO et pages publiques
+## 10. SEO et pages publiques
 
 - [ ] Ouvrir `/clients`.
 - [ ] Ouvrir `/artisans`.
@@ -146,7 +174,7 @@ Pour un client, un vendeur et une institution :
 - [ ] Vérifier `/sitemap.xml`.
 - [ ] Vérifier les titres et descriptions dans le HTML.
 
-## 10. Responsive et navigation
+## 11. Responsive et navigation
 
 - [ ] Tester desktop.
 - [ ] Tester tablette.
@@ -157,7 +185,7 @@ Pour un client, un vendeur et une institution :
 - [ ] Vérifier le bouton WhatsApp flottant.
 - [ ] Vérifier qu'aucun contenu n'est masqué par la navigation.
 
-## 11. Sécurité et données
+## 12. Sécurité et données
 
 - [ ] Aucun secret dans Git.
 - [ ] Aucun mot de passe dans la documentation publique.
@@ -168,7 +196,7 @@ Pour un client, un vendeur et une institution :
 - [ ] Les profils d'un autre utilisateur ne sont pas modifiables.
 - [ ] Les logs ne contiennent pas de mot de passe, clé API ou OTP de production.
 
-## 12. Go / No-Go
+## 13. Go / No-Go
 
 Go uniquement si :
 

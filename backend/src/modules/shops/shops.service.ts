@@ -128,6 +128,51 @@ export class ShopsService {
     return this.shopsRepository.find({ where: { sellerId }, order: { createdAt: 'DESC' } });
   }
 
+  async getMetrics(shopId: string): Promise<{ views: number; whatsappContactClicks: number; whatsappShareClicks: number }> {
+    const shop = await this.shopsRepository.findOne({ where: { id: shopId } });
+    if (!shop) throw new NotFoundException('Boutique introuvable');
+    return {
+      views: Number(shop.views ?? 0),
+      whatsappContactClicks: Number(shop.whatsappContactClicks ?? 0),
+      whatsappShareClicks: Number(shop.whatsappShareClicks ?? 0),
+    };
+  }
+
+  async getMetricsForSeller(sellerId: string): Promise<Record<string, { views: number; whatsappContactClicks: number; whatsappShareClicks: number }>> {
+    const shops = await this.shopsRepository.find({ where: { sellerId } });
+    return shops.reduce<Record<string, { views: number; whatsappContactClicks: number; whatsappShareClicks: number }>>((acc, shop) => {
+      acc[shop.id] = {
+        views: Number(shop.views ?? 0),
+        whatsappContactClicks: Number(shop.whatsappContactClicks ?? 0),
+        whatsappShareClicks: Number(shop.whatsappShareClicks ?? 0),
+      };
+      return acc;
+    }, {});
+  }
+
+  async incrementMetric(
+    shopId: string,
+    metric: 'views' | 'whatsappContactClicks' | 'whatsappShareClicks',
+    delta = 1,
+  ): Promise<{ views: number; whatsappContactClicks: number; whatsappShareClicks: number }> {
+    const shop = await this.shopsRepository.findOne({ where: { id: shopId } });
+    if (!shop) throw new NotFoundException('Boutique introuvable');
+
+    const nextValue = Number(shop[metric] ?? 0) + Number(delta ?? 1);
+    const updated = {
+      ...shop,
+      [metric]: nextValue,
+    };
+
+    await this.shopsRepository.save(updated);
+
+    return {
+      views: Number(updated.views ?? 0),
+      whatsappContactClicks: Number(updated.whatsappContactClicks ?? 0),
+      whatsappShareClicks: Number(updated.whatsappShareClicks ?? 0),
+    };
+  }
+
   /** Vue publique : boutique active + ses annonces actives, sans données sensibles. */
   async findPublicById(id: string): Promise<{ shop: Omit<Shop, 'kycDocuments' | 'mobileMoneyNumber'>; listings: Listing[] } | null> {
     const shop = await this.shopsRepository.findOne({

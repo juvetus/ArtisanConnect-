@@ -25,6 +25,7 @@ export default function NotificationsPage() {
 
   const { data, isLoading, mutate } = useSWR(user ? 'notifications' : null, () =>
     api.notifications(),
+    { refreshInterval: 10000, revalidateOnFocus: true },
   );
 
   useEffect(() => {

@@ -12,7 +12,6 @@ import { formatXAF } from '@/lib/format';
 import { StatusBadge } from '@/components/StatusBadge';
 import type { Listing, ListingType, Order } from '@/lib/types';
 import { resolveMediaUrl } from '@/lib/media';
-
 import type { Shop } from '@/lib/types';
 
 export default function DashboardPage() {
@@ -24,17 +23,20 @@ export default function DashboardPage() {
   const { data, isLoading, mutate } = useSWR(
     isArtisan ? ['atelier', user.id] : null,
     async ([, sellerId]) => {
-      const [listings, [orders]] = await Promise.all([
+      const [listings, [orders], requestStats, serviceOrders] = await Promise.all([
         api.sellerListings(sellerId),
         api.sellerOrders(sellerId),
+        api.getCustomerRequestStats().catch(() => ({ requestsReceived: 0, responsesSent: 0, openRequests: 0, averageResponseMinutes: 0 })),
+        api.getArtisanServiceOrders().catch(() => []),
       ]);
-      return { listings, orders };
+      return { listings, orders, requestStats, serviceOrders };
     },
   );
 
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
 
   const [shops, setShops] = useState<Shop[]>([]);
+  const [shopMetrics, setShopMetrics] = useState<Record<string, { views: number; whatsappContactClicks: number; whatsappShareClicks: number }>>({});
   const [shopId, setShopId] = useState<string>('');
 
   const [title, setTitle] = useState('');
@@ -59,7 +61,15 @@ export default function DashboardPage() {
   // Charger mes boutiques pour la sélection
   useEffect(() => {
     if (user?.role === 'artisan') {
-      api.myShops().then(setShops);
+      Promise.all([
+        api.myShops(),
+        api.myShopMetrics(),
+      ]).then(([myShops, metricsMap]) => {
+        setShops(myShops);
+        setShopMetrics(metricsMap);
+      }).catch(() => {
+        api.myShops().then((myShops) => setShops(myShops));
+      });
     }
   }, [user]);
 
@@ -204,6 +214,52 @@ export default function DashboardPage() {
     }
   };
 
+  const handlePrintCatalogue = () => {
+    const catalogShops = shops.length ? shops : [{ id: 'demo', name: 'Ma boutique', description: 'Catalogue artisanal', city: user?.location ?? 'Cameroun' }];
+    const catalogRows = listings.slice(0, 12).map((listing) => `
+      <div style="border:1px solid #e7e5e4;border-radius:12px;padding:12px;page-break-inside:avoid;">
+        <div style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#78716c;">${categoryLabel(listing.category)}</div>
+        <div style="font-size:18px;font-weight:700;margin-top:4px;">${listing.title}</div>
+        <div style="font-size:14px;color:#44403c;margin-top:8px;">${listing.description}</div>
+        <div style="font-size:18px;font-weight:700;margin-top:10px;">${formatXAF(Number(listing.price))}</div>
+      </div>
+    `).join('');
+
+    const printWindow = window.open('', '_blank', 'width=1000,height=800');
+    if (!printWindow) return;
+
+    printWindow.document.write(`<!doctype html>
+      <html>
+        <head>
+          <title>Catalogue ArtisanConnect</title>
+          <style>
+            body { font-family: Arial, sans-serif; background: #fff; color: #1c1917; margin: 24px; }
+            h1 { margin-bottom: 6px; }
+            .subtitle { color: #57534e; margin-bottom: 20px; }
+            .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+            .shop { margin-bottom: 28px; padding-bottom: 14px; border-bottom: 2px solid #f5f5f4; }
+            .pill { display: inline-block; background: #fef3c7; color: #92400e; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+            @media print { body { margin: 0; } }
+          </style>
+        </head>
+        <body>
+          <h1>Catalogue ArtisanConnect</h1>
+          <div class="subtitle">Boutiques et annonces à partager en atelier ou en événement.</div>
+          ${catalogShops.map((shop) => `
+            <section class="shop">
+              <div class="pill">${shop.name}</div>
+              <p style="margin:10px 0 0;color:#57534e;">${shop.description || 'Boutique artisanale locale'}</p>
+              ${shop.city ? `<p style="margin:8px 0 0;color:#57534e;">Ville : ${shop.city}</p>` : ''}
+              <div class="grid" style="margin-top:16px;">${catalogRows || '<div style="color:#57534e;">Aucune annonce pour le moment.</div>'}</div>
+            </section>
+          `).join('')}
+        </body>
+      </html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => printWindow.print(), 250);
+  };
+
   const runEscrow = async (orderId: string, action: () => Promise<unknown>) => {
     setBusyOrderId(orderId);
     try {
@@ -224,8 +280,23 @@ export default function DashboardPage() {
 
   if (!ready || !isArtisan || isLoading) return <p className="text-stone-600">{t('action_loading')}</p>;
 
-  const listings = data?.listings ?? [];
-  const orders = data?.orders ?? [];
+  const listings = Array.isArray(data?.listings) ? data.listings : [];
+  const orders = Array.isArray(data?.orders) ? data.orders : [];
+  const requestStats: { requestsReceived: number; responsesSent: number; openRequests: number; averageResponseMinutes: number } = data?.requestStats ?? { requestsReceived: 0, responsesSent: 0, openRequests: 0, averageResponseMinutes: 0 };
+  const serviceOrders = Array.isArray(data?.serviceOrders) ? data.serviceOrders : [];
+  const quotesSent = serviceOrders.filter((order: { status?: string }) => ['quote_pending', 'accepted', 'in_progress', 'delivered', 'completed', 'disputed'].includes(order.status ?? '')).length;
+  const responseRate = requestStats.requestsReceived > 0 ? Math.round((requestStats.responsesSent / requestStats.requestsReceived) * 100) : 0;
+  const averageResponseLabel = requestStats.averageResponseMinutes >= 60
+    ? `${Math.round(requestStats.averageResponseMinutes / 60)} h`
+    : `${requestStats.averageResponseMinutes} min`;
+  const totalShopMetrics = shops.reduce((total, shop) => {
+    const metrics = shopMetrics[shop.id] ?? { views: 0, whatsappContactClicks: 0, whatsappShareClicks: 0 };
+    return {
+      views: total.views + metrics.views,
+      whatsappContactClicks: total.whatsappContactClicks + metrics.whatsappContactClicks,
+      whatsappShareClicks: total.whatsappShareClicks + metrics.whatsappShareClicks,
+    };
+  }, { views: 0, whatsappContactClicks: 0, whatsappShareClicks: 0 });
 
   const paymentCard = (
     <div className="rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-5 shadow-sm">
@@ -251,11 +322,19 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-2xl font-semibold">{t('dashboard_title')}</h1>
         <p className="mt-1 text-sm text-stone-600">{t('dashboard_subtitle')}</p>
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {[
             { label: t('dashboard_my_listings'), value: listings.length },
             { label: t('dashboard_orders_received'), value: orders.length },
             { label: 'Encaissé / Revenue', value: formatXAF(revenue) },
+            { label: 'Demandes reçues', value: requestStats.requestsReceived },
+            { label: 'Réponses envoyées', value: requestStats.responsesSent },
+            { label: 'Devis envoyés', value: quotesSent },
+            { label: 'Taux de réponse', value: `${responseRate}%` },
+            { label: 'Délai moyen de réponse', value: averageResponseLabel },
+            { label: 'Vues boutique', value: totalShopMetrics.views },
+            { label: 'Contacts WhatsApp', value: totalShopMetrics.whatsappContactClicks },
+            { label: 'Partages boutique', value: totalShopMetrics.whatsappShareClicks },
           ].map((stat) => (
             <div key={stat.label} className="rounded-lg border border-stone-200 bg-white p-4">
               <p className="text-sm text-stone-600">{stat.label}</p>
@@ -347,6 +426,64 @@ export default function DashboardPage() {
           </ul>
         )}
       </section>
+
+      {shops.length > 0 && (
+        <section className="rounded-lg border border-stone-200 bg-white p-6">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold">QR code de ma boutique</h2>
+              <p className="mt-1 text-sm text-stone-600">
+                Affichez ce code dans votre atelier pour permettre aux clients d&apos;ouvrir votre boutique.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handlePrintCatalogue}
+                className="rounded-md border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-50"
+              >
+                Affiche / catalogue
+              </button>
+              <Link href="/shop/create" className="text-sm font-medium text-amber-700 hover:text-amber-800">
+                Créer une autre boutique
+              </Link>
+            </div>
+          </div>
+          <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {shops.map((shop) => {
+              const metrics = shopMetrics[shop.id] ?? { views: 0, whatsappContactClicks: 0, whatsappShareClicks: 0 };
+              const shopUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://artisanconnectcm.info'}/shop/${shop.id}`;
+              const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(shopUrl)}`;
+              return (
+                <article key={shop.id} className="flex flex-col items-center rounded-md border border-stone-200 p-4 text-center">
+                  <h3 className="font-semibold text-stone-900">{shop.name}</h3>
+                  <div className="mt-3 grid w-full grid-cols-3 gap-2 text-center text-xs text-stone-600">
+                    <div className="rounded bg-stone-100 p-2"><div className="text-[10px] uppercase tracking-wide text-stone-500">Vues</div><div className="mt-1 font-semibold text-stone-900">{metrics.views}</div></div>
+                    <div className="rounded bg-stone-100 p-2"><div className="text-[10px] uppercase tracking-wide text-stone-500">WhatsApp</div><div className="mt-1 font-semibold text-stone-900">{metrics.whatsappContactClicks}</div></div>
+                    <div className="rounded bg-stone-100 p-2"><div className="text-[10px] uppercase tracking-wide text-stone-500">Partages</div><div className="mt-1 font-semibold text-stone-900">{metrics.whatsappShareClicks}</div></div>
+                  </div>
+                  <img
+                    src={qrCodeUrl}
+                    alt={`QR code de la boutique ${shop.name}`}
+                    width={200}
+                    height={200}
+                    className="mt-3 h-48 w-48"
+                  />
+                  <p className="mt-2 break-all text-xs text-stone-500">{shopUrl}</p>
+                  <div className="mt-3 flex flex-wrap justify-center gap-2">
+                    <a href={shopUrl} target="_blank" rel="noreferrer" className="rounded-md border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-50">
+                      Voir la boutique
+                    </a>
+                    <a href={qrCodeUrl} target="_blank" rel="noreferrer" className="rounded-md bg-amber-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-800">
+                      Ouvrir le QR code
+                    </a>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <section className="grid gap-8 lg:grid-cols-2">
         <div>

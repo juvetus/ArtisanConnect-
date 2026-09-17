@@ -39,6 +39,9 @@ export interface Shop {
   isWomenLed?: boolean;
   isCooperative?: boolean;
   successfulSales: number;
+  views?: number;
+  whatsappContactClicks?: number;
+  whatsappShareClicks?: number;
   createdAt: string;
 }
 
@@ -215,6 +218,11 @@ export interface AdminStats {
   resources?: number;
   programs?: number;
   programApplications?: number;
+  activeShops?: number;
+  shopViews?: number;
+  whatsappContacts?: number;
+  shopShares?: number;
+  successfulSales?: number;
 }
 
 export interface AdminOverview {
