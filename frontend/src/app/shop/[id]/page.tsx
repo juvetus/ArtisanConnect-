@@ -11,7 +11,8 @@ export default async function ShopPublicPage({ params }: { params: { id: string 
   let reviewsData: any = null;
   let ratingData: { average: number | null; count: number } = { average: null, count: 0 };
   try {
-    data = await api.shopPublic(params.id);
+    const publicData = await api.shopPublic(params.id);
+    data = Array.isArray(publicData) ? publicData[0] : publicData;
     if (data?.shop?.sellerId) {
       [reviewsData, ratingData] = await Promise.all([
         api.getArtisanServiceReviews(data.shop.sellerId),
