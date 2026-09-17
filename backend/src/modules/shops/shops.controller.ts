@@ -6,6 +6,7 @@ import type { ShopType } from '../../entities/shop.entity.js';
 import { StorageService } from '../storage/storage.service.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { AdminGuard } from '../auth/admin.guard.js';
+import { Public } from '../auth/public.decorator.js';
 
 @Controller('shops')
 export class ShopsController {
@@ -78,6 +79,7 @@ export class ShopsController {
   }
 
   /** Route publique : pas d'auth, expose boutique active + annonces actives uniquement. */
+  @Public()
   @Get(':id/public')
   async getPublic(@Param('id') id: string) {
     return this.shopsService.findPublicById(id);
