@@ -6,12 +6,13 @@ import { resolveMediaUrl } from '@/lib/media';
 import { whatsappHref } from '@/lib/whatsapp';
 import { ShopPublicCard } from '@/components/ShopPublicCard';
 
-export default async function ShopPublicPage({ params }: { params: { id: string } }) {
+export default async function ShopPublicPage({ params }: { params: Promise<{ id: string }> }) {
   let data: { shop: any; listings: any[] } | null = null;
   let reviewsData: any = null;
   let ratingData: { average: number | null; count: number } = { average: null, count: 0 };
   try {
-    const publicData = await api.shopPublic(params.id);
+    const { id } = await params;
+    const publicData = await api.shopPublic(id);
     data = Array.isArray(publicData) ? publicData[0] : publicData;
     if (data?.shop?.sellerId) {
       [reviewsData, ratingData] = await Promise.all([
