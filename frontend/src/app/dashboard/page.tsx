@@ -320,8 +320,22 @@ export default function DashboardPage() {
   return (
     <div className="space-y-10">
       <div>
-        <h1 className="text-2xl font-semibold">{t('dashboard_title')}</h1>
-        <p className="mt-1 text-sm text-stone-600">{t('dashboard_subtitle')}</p>
+        <div className="overflow-hidden rounded-xl border border-amber-200 bg-amber-50">
+          <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-800">{t('dashboard_title')}</p>
+              <h1 className="mt-2 text-2xl font-semibold text-stone-950">{t('dashboard_welcome')}</h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-700">{t('dashboard_welcome_desc')}</p>
+            </div>
+            <Link href="#new-listing" className="inline-flex w-fit items-center rounded-md bg-amber-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-800">
+              {t('dashboard_new_listing')}
+            </Link>
+          </div>
+          <div className="border-t border-amber-200 bg-white/70 px-6 py-3 text-sm text-stone-700">
+            <span className="font-semibold text-stone-900">{t('dashboard_next_step')} :</span> {t('dashboard_next_step_desc')}
+          </div>
+        </div>
+        <p className="mt-4 text-sm text-stone-600">{t('dashboard_subtitle')}</p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {[
             { label: t('dashboard_my_listings'), value: listings.length },
@@ -428,12 +442,13 @@ export default function DashboardPage() {
       </section>
 
       {shops.length > 0 && (
-        <section className="rounded-lg border border-stone-200 bg-white p-6">
+        <section className="rounded-xl border border-amber-200 bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold">QR code de ma boutique</h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-700">Partagez votre savoir-faire</p>
+              <h2 className="mt-1 text-xl font-semibold text-stone-950">Votre boutique, en un scan</h2>
               <p className="mt-1 text-sm text-stone-600">
-                Affichez ce code dans votre atelier pour permettre aux clients d&apos;ouvrir votre boutique.
+                Affichez ce code dans votre atelier, sur votre stand ou dans vos messages. Vos clients pourront découvrir vos créations en quelques secondes.
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -485,7 +500,7 @@ export default function DashboardPage() {
         </section>
       )}
 
-      <section className="grid gap-8 lg:grid-cols-2">
+      <section id="new-listing" className="grid gap-8 lg:grid-cols-2">
         <div>
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-lg font-semibold">

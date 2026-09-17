@@ -147,6 +147,10 @@ export const TRANSLATIONS = {
     // Atelier / Dashboard
     dashboard_title: 'Mon atelier',
     dashboard_subtitle: 'Gérez vos annonces, vos boutiques et suivez vos ventes en cours.',
+    dashboard_welcome: 'Bienvenue dans votre atelier numérique',
+    dashboard_welcome_desc: 'Ajoutez vos créations, partagez votre boutique et répondez rapidement aux clients.',
+    dashboard_next_step: 'Prochaine étape',
+    dashboard_next_step_desc: 'Une boutique bien remplie donne envie de vous contacter.',
     dashboard_my_listings: 'Mes annonces',
     dashboard_new_listing: 'Nouvelle annonce',
     dashboard_edit_listing: 'Modifier l’annonce',
@@ -591,6 +595,10 @@ export const TRANSLATIONS = {
     // Atelier / Dashboard
     dashboard_title: 'My Workshop',
     dashboard_subtitle: 'Manage your listings, shops and track ongoing sales.',
+    dashboard_welcome: 'Welcome to your digital workshop',
+    dashboard_welcome_desc: 'Add your creations, share your shop and reply quickly to customers.',
+    dashboard_next_step: 'Next step',
+    dashboard_next_step_desc: 'A complete shop makes customers more likely to contact you.',
     dashboard_my_listings: 'My Listings',
     dashboard_new_listing: 'New Listing',
     dashboard_edit_listing: 'Edit Listing',
