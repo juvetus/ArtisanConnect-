@@ -1,4 +1,4 @@
-const CACHE_NAME = 'artisanconnect-pwa-v1';
+const CACHE_NAME = 'artisanconnect-pwa-v2';
 const APP_SHELL = ['/', '/manifest.webmanifest', '/icon.svg'];
 
 self.addEventListener('install', (event) => {
@@ -19,6 +19,11 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
   if (!request.url.startsWith(self.location.origin)) return;
+
+  // Dynamic pages and Next.js assets must always come from the active deployment.
+  // Caching them can mix chunks from different releases and produce stale 404s.
+  const isAppShellRequest = APP_SHELL.some((path) => new URL(request.url).pathname === path);
+  if (!isAppShellRequest) return;
 
   event.respondWith(
     fetch(request)
