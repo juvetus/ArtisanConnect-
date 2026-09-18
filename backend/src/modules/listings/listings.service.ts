@@ -1,7 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, Repository } from 'typeorm';
+import { Brackets, MoreThan, Repository } from 'typeorm';
 import { Listing } from '../../entities/index.js';
+
+/** Durée d'une mise en avant et nombre d'annonces sponsorisées simultanément par artisan. */
+export const SPONSORING_DAYS = 7;
+export const MAX_SPONSORED_PER_SELLER = 2;
 
 /** Recherche insensible aux accents sans dépendre de l'extension Postgres `unaccent`. */
 function unaccent(column: string): string {
@@ -78,6 +82,38 @@ export class ListingsService {
     });
   }
 
+  countActiveBySeller(sellerId: string): Promise<number> {
+    return this.listingsRepository.count({ where: { sellerId, status: 'active' } });
+  }
+
+  countSponsoredBySeller(sellerId: string): Promise<number> {
+    return this.listingsRepository.count({
+      where: { sellerId, status: 'active', sponsoredUntil: MoreThan(new Date()) },
+    });
+  }
+
+  /** Met une annonce en avant pour une durée limitée ; réservé à son propriétaire. */
+  async sponsor(listingId: string, sellerId: string, days = SPONSORING_DAYS): Promise<Listing | null> {
+    const listing = await this.listingsRepository.findOne({ where: { id: listingId } });
+    if (!listing) throw new NotFoundException('Annonce introuvable');
+    if (listing.sellerId !== sellerId) throw new ForbiddenException('Cette annonce ne vous appartient pas');
+    if (listing.status !== 'active') throw new BadRequestException('Seule une annonce active peut être mise en avant');
+
+    await this.listingsRepository.update(listingId, {
+      sponsoredUntil: new Date(Date.now() + days * 24 * 60 * 60 * 1000),
+    });
+    return this.findById(listingId);
+  }
+
+  async stopSponsoring(listingId: string, sellerId: string): Promise<Listing | null> {
+    const listing = await this.listingsRepository.findOne({ where: { id: listingId } });
+    if (!listing) throw new NotFoundException('Annonce introuvable');
+    if (listing.sellerId !== sellerId) throw new ForbiddenException('Cette annonce ne vous appartient pas');
+
+    await this.listingsRepository.update(listingId, { sponsoredUntil: null });
+    return this.findById(listingId);
+  }
+
   /**
    * Recherche unifiée du catalogue : texte libre (titre, métier, boutique, quartier),
    * filtres de localisation, de type et de budget.
@@ -130,7 +166,14 @@ export class ListingsService {
     if (Number.isFinite(filters.minPrice)) builder.andWhere('listing.price >= :minPrice', { minPrice: filters.minPrice });
     if (Number.isFinite(filters.maxPrice)) builder.andWhere('listing.price <= :maxPrice', { maxPrice: filters.maxPrice });
 
-    return builder.orderBy('listing.createdAt', 'DESC').skip(skip).take(take).getManyAndCount();
+    return builder
+      // Les annonces sponsorisées passent devant, mais restent signalées comme telles côté client.
+      .addSelect('CASE WHEN listing.sponsoredUntil > now() THEN 0 ELSE 1 END', 'sponsor_rank')
+      .orderBy('sponsor_rank', 'ASC')
+      .addOrderBy('listing.createdAt', 'DESC')
+      .skip(skip)
+      .take(take)
+      .getManyAndCount();
   }
 }
 

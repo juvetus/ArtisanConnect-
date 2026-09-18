@@ -1,22 +1,38 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, Suspense, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { whatsappHref } from '@/lib/whatsapp';
+import { trackEvent } from '@/lib/analytics';
 import { CUSTOMER_REQUEST_STATUS_LABELS } from '@/lib/types';
 
 export default function CustomerRequestsPage() {
+  return (
+    <Suspense fallback={<p className="text-stone-600">Chargement…</p>}>
+      <CustomerRequestsContent />
+    </Suspense>
+  );
+}
+
+function CustomerRequestsContent() {
   const { user, ready } = useAuth();
+  const searchParams = useSearchParams();
   const { data: requests, mutate } = useSWR(user?.role === 'client' ? 'customer-requests' : null, api.getMyCustomerRequests, { refreshInterval: 10000, revalidateOnFocus: true });
-  const [category, setCategory] = useState('');
-  const [city, setCity] = useState('');
-  const [neighborhood, setNeighborhood] = useState('');
+  // Préremplissage depuis la fiche artisan : /customer-requests?category=&city=&neighborhood=
+  const [category, setCategory] = useState(searchParams.get('category') ?? '');
+  const [city, setCity] = useState(searchParams.get('city') ?? '');
+  const [neighborhood, setNeighborhood] = useState(searchParams.get('neighborhood') ?? '');
   const [description, setDescription] = useState('');
   const [budgetMin, setBudgetMin] = useState('');
   const [budgetMax, setBudgetMax] = useState('');
+  const [requestedDate, setRequestedDate] = useState('');
+  const [contactPreference, setContactPreference] = useState<'platform' | 'whatsapp' | 'both'>('platform');
+  const [contactPhone, setContactPhone] = useState('');
+  const [photos, setPhotos] = useState<File[]>([]);
   const [notice, setNotice] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -46,11 +62,32 @@ export default function CustomerRequestsPage() {
     setSaving(true);
     setNotice('');
     try {
-      await api.createCustomerRequest({ category, city, neighborhood, description, budgetMin: budgetMin ? Number(budgetMin) : undefined, budgetMax: budgetMax ? Number(budgetMax) : undefined });
+      const created = await api.createCustomerRequest({
+        category,
+        city,
+        neighborhood,
+        description,
+        budgetMin: budgetMin ? Number(budgetMin) : undefined,
+        budgetMax: budgetMax ? Number(budgetMax) : undefined,
+        requestedDate: requestedDate || undefined,
+        contactPreference,
+        contactPhone: contactPreference === 'platform' ? undefined : contactPhone,
+      });
+      // L'envoi des photos est secondaire : une erreur ici ne doit pas perdre la demande.
+      if (photos.length && created?.id) {
+        try {
+          await api.uploadCustomerRequestPhotos(created.id, photos);
+        } catch {
+          setNotice('Demande publiée, mais les photos n’ont pas pu être envoyées.');
+        }
+      }
+      trackEvent('quote_form_opened', { label: category, city });
       setDescription('');
       setBudgetMin('');
       setBudgetMax('');
-      setNotice('Votre demande a été publiée. Des artisans compatibles pourront vous répondre.');
+      setRequestedDate('');
+      setPhotos([]);
+      setNotice((current) => current || 'Votre demande a été publiée. Des artisans compatibles pourront vous répondre.');
       await mutate();
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Impossible de publier la demande.');
@@ -74,6 +111,50 @@ export default function CustomerRequestsPage() {
         <div><label htmlFor="request-neighborhood" className="block text-sm font-medium text-stone-700">Quartier</label><input id="request-neighborhood" value={neighborhood} onChange={(event) => setNeighborhood(event.target.value)} className="field mt-1" /></div>
         <div><label htmlFor="request-description" className="block text-sm font-medium text-stone-700">Décrivez votre besoin *</label><textarea id="request-description" required minLength={20} rows={7} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Décrivez le travail, les dimensions, les matériaux et le résultat attendu..." className="field mt-1" /></div>
         <div className="grid gap-4 sm:grid-cols-2"><div><label htmlFor="request-min" className="block text-sm font-medium text-stone-700">Budget minimum (FCFA)</label><input id="request-min" type="number" min="0" value={budgetMin} onChange={(event) => setBudgetMin(event.target.value)} className="field mt-1" /></div><div><label htmlFor="request-max" className="block text-sm font-medium text-stone-700">Budget maximum (FCFA)</label><input id="request-max" type="number" min="0" value={budgetMax} onChange={(event) => setBudgetMax(event.target.value)} className="field mt-1" /></div></div>
+
+        <div>
+          <label htmlFor="request-date" className="block text-sm font-medium text-stone-700">Délai souhaité</label>
+          <input id="request-date" type="date" min={new Date().toISOString().split('T')[0]} value={requestedDate} onChange={(event) => setRequestedDate(event.target.value)} className="field mt-1" />
+          <p className="mt-1 text-xs text-stone-500">Date à laquelle vous souhaitez que le travail soit terminé.</p>
+        </div>
+
+        <div>
+          <label htmlFor="request-photos" className="block text-sm font-medium text-stone-700">Photos du besoin</label>
+          <input
+            id="request-photos"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            onChange={(event) => setPhotos(Array.from(event.target.files ?? []).slice(0, 5))}
+            className="mt-1 block w-full text-sm text-stone-700 file:mr-3 file:rounded-md file:border-0 file:bg-amber-700 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-amber-800"
+          />
+          <p className="mt-1 text-xs text-stone-500">
+            {photos.length ? `${photos.length} photo(s) sélectionnée(s)` : '5 photos maximum, 5 Mo chacune. Un artisan chiffre bien mieux avec des images.'}
+          </p>
+        </div>
+
+        <fieldset>
+          <legend className="block text-sm font-medium text-stone-700">Comment souhaitez-vous être contacté ?</legend>
+          <div className="mt-2 grid gap-2 sm:grid-cols-3">
+            {([
+              ['platform', 'Messagerie ArtisanConnect'],
+              ['whatsapp', 'WhatsApp'],
+              ['both', 'Les deux'],
+            ] as const).map(([value, label]) => (
+              <label key={value} className={`flex cursor-pointer items-center gap-2 rounded-md border p-3 text-sm ${contactPreference === value ? 'border-amber-700 bg-amber-50' : 'border-stone-200'}`}>
+                <input type="radio" name="contact-preference" value={value} checked={contactPreference === value} onChange={() => setContactPreference(value)} />
+                {label}
+              </label>
+            ))}
+          </div>
+          {contactPreference !== 'platform' ? (
+            <div className="mt-3">
+              <label htmlFor="request-phone" className="block text-sm font-medium text-stone-700">Numéro WhatsApp *</label>
+              <input id="request-phone" required type="tel" value={contactPhone} onChange={(event) => setContactPhone(event.target.value)} placeholder="+237..." className="field mt-1" />
+              <p className="mt-1 text-xs text-stone-500">Ce numéro n’est transmis qu’aux artisans destinataires de votre demande.</p>
+            </div>
+          ) : null}
+        </fieldset>
         {notice ? <p className="rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-900">{notice}</p> : null}
         <button disabled={saving} className="rounded-md bg-amber-700 px-5 py-2.5 font-medium text-white hover:bg-amber-800 disabled:opacity-60">{saving ? 'Publication...' : 'Publier ma demande'}</button>
       </form>

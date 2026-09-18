@@ -102,8 +102,8 @@ Avant facturation :
 
 - [ ] Tester la valeur avec le pilote.
 - [ ] Mesurer les commandes générées.
-- [ ] Définir les plans et limites.
-- [ ] Ajouter abonnements et facturation.
+- [x] Définir les plans et limites (5 annonces actives en gratuit, illimité en Premium).
+- [x] Ajouter abonnements et facturation MoMo.
 - [ ] Prévoir annulation et remboursement.
 
 ### Plan de pilotage et de monétisation Premium

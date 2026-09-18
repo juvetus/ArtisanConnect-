@@ -1,6 +1,7 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
 export type CustomerRequestStatus = 'new' | 'contacted' | 'in_progress' | 'completed';
+export type ContactPreference = 'platform' | 'whatsapp' | 'both';
 
 @Entity('customer_requests')
 export class CustomerRequest {
@@ -30,6 +31,16 @@ export class CustomerRequest {
 
   @Column({ type: 'varchar', nullable: true })
   requestedDate: string | null;
+
+  /** Photos du besoin : un artisan chiffre bien mieux avec des images. */
+  @Column('simple-array', { nullable: true })
+  fileUrls: string[];
+
+  @Column({ type: 'varchar', default: 'platform' })
+  contactPreference: ContactPreference;
+
+  @Column({ type: 'varchar', nullable: true })
+  contactPhone: string | null;
 
   @Column({ type: 'varchar', default: 'new' })
   status: CustomerRequestStatus;

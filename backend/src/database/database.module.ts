@@ -25,9 +25,14 @@ import {
   Payout,
   CustomerRequest,
   Report,
+  AnalyticsEvent,
 } from '../entities/index.js';
 import { PilotTrustFeatures1758200000000 } from './migrations/1758200000000-pilot-trust-features.js';
 import { CustomerRequestStatuses1758300000000 } from './migrations/1758300000000-customer-request-statuses.js';
+import { AnalyticsEvents1758400000000 } from './migrations/1758400000000-analytics-events.js';
+import { ShopAvailability1758500000000 } from './migrations/1758500000000-shop-availability.js';
+import { CustomerRequestAttachments1758600000000 } from './migrations/1758600000000-customer-request-attachments.js';
+import { ListingSponsoring1758700000000 } from './migrations/1758700000000-listing-sponsoring.js';
 
 @Module({
   imports: [
@@ -40,9 +45,9 @@ import { CustomerRequestStatuses1758300000000 } from './migrations/1758300000000
         username: configService.get('DB_USERNAME', 'artisan'),
         password: configService.get('DB_PASSWORD', 'artisan_password_dev'),
         database: configService.get('DB_DATABASE', 'artisan_connect'),
-        entities: [User, Listing, Order, Payment, Review, Message, InstitutionalResource, InstitutionalProgram, ArtisanFormalization, Shop, Notification, Service, ServiceOrder, ServiceQuote, ServicePayment, ServiceReview, ServiceValidationHistory, ProgramApplication, Subscription, SubscriptionPlan, Payout, CustomerRequest, Report],
+        entities: [User, Listing, Order, Payment, Review, Message, InstitutionalResource, InstitutionalProgram, ArtisanFormalization, Shop, Notification, Service, ServiceOrder, ServiceQuote, ServicePayment, ServiceReview, ServiceValidationHistory, ProgramApplication, Subscription, SubscriptionPlan, Payout, CustomerRequest, Report, AnalyticsEvent],
         synchronize: configService.get('DB_SYNCHRONIZE', configService.get('NODE_ENV') === 'development' ? 'true' : 'false') === 'true',
-        migrations: [PilotTrustFeatures1758200000000, CustomerRequestStatuses1758300000000],
+        migrations: [PilotTrustFeatures1758200000000, CustomerRequestStatuses1758300000000, AnalyticsEvents1758400000000, ShopAvailability1758500000000, CustomerRequestAttachments1758600000000, ListingSponsoring1758700000000],
         // En production `synchronize` est désactivé : le schéma évolue uniquement par migrations.
         migrationsRun: configService.get('DB_SYNCHRONIZE', configService.get('NODE_ENV') === 'development' ? 'true' : 'false') !== 'true',
         logging: configService.get('NODE_ENV') === 'development',
@@ -50,7 +55,7 @@ import { CustomerRequestStatuses1758300000000 } from './migrations/1758300000000
         retryDelay: Number(configService.get('DB_RETRY_DELAY', 3000)),
       }),
     }),
-    TypeOrmModule.forFeature([User, Listing, Order, Payment, Review, Message, InstitutionalResource, InstitutionalProgram, ArtisanFormalization, Shop, Notification, Service, ServiceOrder, ServiceQuote, ServicePayment, ServiceReview, ServiceValidationHistory, ProgramApplication, Subscription, SubscriptionPlan, Payout, CustomerRequest, Report]),
+    TypeOrmModule.forFeature([User, Listing, Order, Payment, Review, Message, InstitutionalResource, InstitutionalProgram, ArtisanFormalization, Shop, Notification, Service, ServiceOrder, ServiceQuote, ServicePayment, ServiceReview, ServiceValidationHistory, ProgramApplication, Subscription, SubscriptionPlan, Payout, CustomerRequest, Report, AnalyticsEvent]),
   ],
   exports: [TypeOrmModule],
 })

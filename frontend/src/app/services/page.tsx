@@ -8,14 +8,26 @@ import { api } from '@/lib/api';
 import { useLanguage } from '@/lib/language-context';
 import type { Service } from '@/lib/types';
 import { Pagination } from '@/components/Pagination';
-import { categoryLabel } from '@/lib/categories';
+import { categoryLabel, SERVICE_CATEGORIES } from '@/lib/categories';
 
 export default function ServicesCatalogPage() {
   const { t } = useLanguage();
   const [page, setPage] = useState(0);
   const [audienceFilter, setAudienceFilter] = useState<'all' | 'women' | 'cooperatives'>('all');
+  const [draftQuery, setDraftQuery] = useState('');
+  const [filters, setFilters] = useState<{ q?: string; category?: string; city?: string }>({});
   const pageSize = 12;
-  const { data: services, isLoading } = useSWR<Service[]>(['approved-services', page], async ([, currentPage]) => (await api.getApprovedServices(pageSize, Number(currentPage) * pageSize)) as Service[]);
+  const { data: locations } = useSWR('public-locations', api.publicLocations);
+  const { data: services, isLoading } = useSWR<Service[]>(
+    ['approved-services', page, filters],
+    async ([, currentPage, currentFilters]) =>
+      (await api.getApprovedServices(pageSize, Number(currentPage) * pageSize, currentFilters as typeof filters)) as Service[],
+  );
+
+  const updateFilter = (patch: Partial<typeof filters>) => {
+    setFilters((current) => ({ ...current, ...patch }));
+    setPage(0);
+  };
 
   const displayedServices = audienceFilter === 'women'
     ? services?.filter((s) => s.artisan?.gender === 'female')
@@ -68,6 +80,64 @@ export default function ServicesCatalogPage() {
           </button>
         </div>
       </header>
+
+      <div className="space-y-3 rounded-xl border border-stone-200 bg-white p-4">
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            updateFilter({ q: draftQuery || undefined });
+          }}
+          className="flex flex-col gap-2 sm:flex-row"
+        >
+          <input
+            value={draftQuery}
+            onChange={(event) => setDraftQuery(event.target.value)}
+            aria-label="Rechercher un service"
+            placeholder="Réparation frigo, robe sur mesure, plomberie…"
+            className="flex-1 rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
+          />
+          <button type="submit" className="rounded-md bg-stone-900 px-5 py-2 text-sm font-medium text-white hover:bg-stone-800">
+            Rechercher
+          </button>
+        </form>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="text-sm font-medium text-stone-700">
+            Métier
+            <select
+              value={filters.category ?? ''}
+              onChange={(event) => updateFilter({ category: event.target.value || undefined })}
+              className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
+            >
+              <option value="">Tous les métiers</option>
+              {SERVICE_CATEGORIES.map((item) => (
+                <option key={item.value} value={item.value}>{categoryLabel(item.value)}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="text-sm font-medium text-stone-700">
+            Ville ou quartier
+            <select
+              value={filters.city ?? ''}
+              onChange={(event) => updateFilter({ city: event.target.value || undefined })}
+              className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
+            >
+              <option value="">Tout le Cameroun</option>
+              {locations?.map((location) => (
+                <optgroup key={location.label} label={`${location.label} (${location.count})`}>
+                  <option value={location.label}>{location.label} — toute la ville</option>
+                  {location.neighborhoods.map((neighborhood) => (
+                    <option key={`${location.label}-${neighborhood.label}`} value={neighborhood.label}>
+                      {neighborhood.label}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </label>
+        </div>
+      </div>
 
       {isLoading ? <p className="text-stone-600">{t('action_loading')}</p> : null}
       {!isLoading && !displayedServices?.length ? <p className="rounded-lg border border-stone-200 bg-stone-50 p-6 text-stone-600">{t('services_empty')}</p> : null}

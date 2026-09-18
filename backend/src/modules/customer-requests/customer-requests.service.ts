@@ -2,11 +2,16 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { CustomerRequest, Listing, Service, Shop, User } from '../../entities/index.js';
+import type { ContactPreference } from '../../entities/customer-request.entity.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { EmailService } from '../email/email.service.js';
+import { StorageService } from '../storage/storage.service.js';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service.js';
 
 /** Une demande est adressée à quelques artisans pertinents, pas à toute la place de marché. */
 const MAX_TARGETED_ARTISANS = 5;
+const MAX_REQUEST_PHOTOS = 5;
+const ALLOWED_PHOTO_MIME = ['image/jpeg', 'image/png', 'image/webp'];
 
 function normalize(value?: string | null): string {
   return (value ?? '').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim();
@@ -55,11 +60,17 @@ export class CustomerRequestsService {
     @InjectRepository(Shop) private readonly shops: Repository<Shop>,
     private readonly notifications: NotificationsService,
     private readonly emails: EmailService,
+    private readonly storage: StorageService,
+    private readonly subscriptions: SubscriptionsService,
   ) {}
 
-  async create(clientId: string, data: { category: string; city: string; neighborhood?: string; description: string; budgetMin?: number; budgetMax?: number; requestedDate?: string }) {
+  async create(clientId: string, data: { category: string; city: string; neighborhood?: string; description: string; budgetMin?: number; budgetMax?: number; requestedDate?: string; contactPreference?: ContactPreference; contactPhone?: string }) {
     if (!data.category?.trim() || !data.city?.trim() || !data.description?.trim() || data.description.trim().length < 20) {
       throw new BadRequestException('La catégorie, la ville et une description de 20 caractères sont requises');
+    }
+    const contactPreference = data.contactPreference ?? 'platform';
+    if (contactPreference !== 'platform' && !data.contactPhone?.trim()) {
+      throw new BadRequestException('Indiquez le numéro WhatsApp à utiliser pour vous joindre');
     }
     const request = await this.requests.save(this.requests.create({
       clientId,
@@ -70,6 +81,9 @@ export class CustomerRequestsService {
       budgetMin: data.budgetMin ?? null,
       budgetMax: data.budgetMax ?? null,
       requestedDate: data.requestedDate || null,
+      contactPreference,
+      contactPhone: contactPreference === 'platform' ? null : data.contactPhone!.trim(),
+      fileUrls: [],
       status: 'new',
       contactedArtisanIds: [],
       responses: [],
@@ -79,7 +93,8 @@ export class CustomerRequestsService {
     request.contactedArtisanIds = targets.map((target) => target.id);
     await this.requests.save(request);
 
-    const summary = `${request.category} à ${request.neighborhood ? `${request.neighborhood}, ` : ''}${request.city} : ${request.description.slice(0, 140)}${request.description.length > 140 ? '…' : ''}`;
+    const deadline = request.requestedDate ? ` (souhaité pour le ${new Date(request.requestedDate).toLocaleDateString('fr-FR')})` : '';
+    const summary = `${request.category} à ${request.neighborhood ? `${request.neighborhood}, ` : ''}${request.city}${deadline} : ${request.description.slice(0, 140)}${request.description.length > 140 ? '…' : ''}`;
     for (const artisan of targets) {
       await this.notifications.notify({
         recipientId: artisan.id,
@@ -113,15 +128,17 @@ export class CustomerRequestsService {
     if (!artisans.length) return [];
 
     const artisanIds = artisans.map((artisan) => artisan.id);
-    const [shops, listings, services] = await Promise.all([
+    const [shops, listings, services, premiumIds] = await Promise.all([
       this.shops.find({ where: { sellerId: In(artisanIds), status: 'active' } }),
       this.listings.find({ where: { sellerId: In(artisanIds), status: 'active' } }),
       this.services.find({ where: { status: 'approved' }, relations: { artisan: true } }),
+      this.subscriptions.findPremiumUserIds(artisanIds),
     ]);
 
     return artisans
       .map((artisan) => ({
         artisan,
+        premium: premiumIds.has(artisan.id),
         score: scoreArtisanForRequest(request, {
           artisan,
           shops: shops.filter((shop) => shop.sellerId === artisan.id),
@@ -132,7 +149,8 @@ export class CustomerRequestsService {
         }),
       }))
       .filter((candidate) => candidate.score > 0)
-      .sort((first, second) => second.score - first.score)
+      // Premium ne remplace jamais la pertinence métier : il départage à score égal.
+      .sort((first, second) => second.score - first.score || Number(second.premium) - Number(first.premium))
       .slice(0, MAX_TARGETED_ARTISANS)
       .map((candidate) => candidate.artisan);
   }
@@ -308,6 +326,30 @@ export class CustomerRequestsService {
     if (!request) throw new NotFoundException('Demande introuvable');
     if (request.clientId !== clientId) throw new ForbiddenException('Cette demande ne vous concerne pas');
     request.status = 'completed';
+    return this.requests.save(request);
+  }
+
+  async addPhotos(clientId: string, id: string, files: Express.Multer.File[]) {
+    const request = await this.requests.findOne({ where: { id } });
+    if (!request) throw new NotFoundException('Demande introuvable');
+    if (request.clientId !== clientId) throw new ForbiddenException('Cette demande ne vous concerne pas');
+    if (!files?.length) throw new BadRequestException('Aucune photo reçue');
+
+    const existing = request.fileUrls ?? [];
+    if (existing.length + files.length > MAX_REQUEST_PHOTOS) {
+      throw new BadRequestException(`Vous pouvez joindre au maximum ${MAX_REQUEST_PHOTOS} photos`);
+    }
+    if (files.some((file) => !ALLOWED_PHOTO_MIME.includes(file.mimetype))) {
+      throw new BadRequestException('Formats acceptés : JPEG, PNG, WebP');
+    }
+    if (!this.storage.isEnabled()) {
+      throw new BadRequestException('Le stockage des photos n’est pas configuré.');
+    }
+
+    const uploads = await Promise.all(
+      files.map((file) => this.storage.uploadBuffer(file.buffer, 'artisanconnect/customer-requests', 'image')),
+    );
+    request.fileUrls = [...existing, ...uploads.map((upload) => upload.url)];
     return this.requests.save(request);
   }
 }

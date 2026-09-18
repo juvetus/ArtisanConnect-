@@ -52,6 +52,10 @@ export class Listing {
   @Column({ nullable: true })
   availability: string; // Pour les services
 
+  /** Mise en avant payante : l'annonce reste affichée comme « Sponsorisé » jusqu'à cette date. */
+  @Column({ type: 'timestamp', nullable: true })
+  sponsoredUntil: Date | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

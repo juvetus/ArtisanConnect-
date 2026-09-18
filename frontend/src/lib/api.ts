@@ -1,4 +1,4 @@
-import type { AdminOverview, ArtisanFormalization, AuthSession, CustomerRequestStatus, InstitutionDashboard, InstitutionalProgram, InstitutionalResource, Listing, Message, NotificationItem, NotificationsResponse, Order, Paginated, Payment, ProgramApplication, ProgramApplicationStatus, ProgramType, PublicArtisan, Report, ReportReason, ReportStatus, ReportTargetType, ResourceType, Review, Role, Shop, ShopType, Thread, User } from './types';
+import type { AdminOverview, AnalyticsFunnel, ArtisanFormalization, AuthSession, CustomerRequestStatus, InstitutionDashboard, InstitutionalProgram, InstitutionalResource, Listing, Message, NotificationItem, NotificationsResponse, Order, Paginated, Payment, ProgramApplication, ProgramApplicationStatus, ProgramType, PublicArtisan, Report, ReportReason, ReportStatus, ReportTargetType, ResourceType, Review, Role, Shop, ShopType, Thread, User } from './types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
@@ -119,6 +119,10 @@ export const api = {
 
   listing: (id: string) => request<Listing>(`/listings/${id}`),
 
+  sponsorListing: (id: string) => post<Listing>(`/listings/${id}/sponsor`),
+
+  stopSponsoringListing: (id: string) => post<Listing>(`/listings/${id}/sponsor/stop`),
+
   sellerListings: (sellerId: string) => request<Listing[]>(`/listings/seller/${sellerId}`),
 
   createListing: (data: Partial<Listing>) => post<Listing>('/listings', data),
@@ -173,6 +177,9 @@ export const api = {
     post<Payment>(`/payments/order/${orderId}/momo/confirm`),
 
   getSubscriptionPlans: () => request<Array<{ id: string; name: string; price: number; currency: string; durationDays: number; description?: string | null }>>('/subscriptions/plans'),
+
+  getPlanStatus: () =>
+    request<{ premium: boolean; planName: string; endDate: string | null; listingLimit: number | null }>('/subscriptions/status'),
 
   createSubscription: (planId: string, payerPhone: string) => post<{ id: string; status: string; paymentReference?: string | null; redirectUrl?: string | null; amount: number; currency: string; planId: string }>('/subscriptions/create/' + planId, { payerPhone }),
 
@@ -277,6 +284,10 @@ export const api = {
   institutionReviewApplication: (id: string, status: ProgramApplicationStatus, notes?: string) =>
     patch<ProgramApplication>(`/program-applications/${id}/status`, { status, notes }),
 
+  /** Villes et quartiers réellement couverts par des boutiques actives. */
+  publicLocations: () =>
+    request<{ label: string; count: number; neighborhoods: { label: string; count: number }[] }[]>('/shops/public/locations'),
+
   shopPublic: async (id: string) => {
     const data = await request<{ shop: Shop; listings: Listing[] } | [{ shop: Shop; listings: Listing[] }]>(`/shops/${id}/public`);
     return Array.isArray(data) ? data[0] : data;
@@ -358,7 +369,7 @@ export const api = {
   incrementShopMetric: (id: string, metric: 'views' | 'whatsappContactClicks' | 'whatsappShareClicks', delta = 1) =>
     post<{ views: number; whatsappContactClicks: number; whatsappShareClicks: number }>(`/shops/${id}/metrics`, { metric, delta }),
 
-  updateShop: (id: string, data: { name?: string; description?: string; category?: string; city?: string; neighborhood?: string; market?: string; latitude?: number; longitude?: number; deliveryMode?: 'workshop' | 'home'; deliveryMethods?: ('workshop' | 'home' | 'carrier')[]; mobileMoneyNumber?: string; momoNumber?: string; orangeMoneyNumber?: string; mobileMoneyProvider?: 'momo' | 'orange_money' | 'both'; isWomenLed?: boolean; isCooperative?: boolean }) =>
+  updateShop: (id: string, data: { name?: string; description?: string; category?: string; availability?: 'available' | 'busy' | 'unavailable'; city?: string; neighborhood?: string; market?: string; latitude?: number; longitude?: number; deliveryMode?: 'workshop' | 'home'; deliveryMethods?: ('workshop' | 'home' | 'carrier')[]; mobileMoneyNumber?: string; momoNumber?: string; orangeMoneyNumber?: string; mobileMoneyProvider?: 'momo' | 'orange_money' | 'both'; isWomenLed?: boolean; isCooperative?: boolean }) =>
     patch<Shop>(`/shops/${id}`, data),
 
   setShopActive: (id: string, active: boolean) => patch<Shop>(`/shops/${id}/status`, { active }),
@@ -386,6 +397,8 @@ export const api = {
 
   adminModerateReport: (id: string, status: ReportStatus, notes?: string) =>
     patch<Report>(`/reports/admin/${id}`, { status, notes }),
+
+  analyticsFunnel: (days = 30) => request<AnalyticsFunnel>(`/analytics/funnel?days=${days}`),
 
   adminDeleteShop: (id: string) => delete_<void>(`/admin/shops/${id}`),
 
@@ -440,8 +453,13 @@ export const api = {
   },
 
   // --- Services (Artisans) ---
-  getApprovedServices: (limit: number = 20, skip: number = 0) =>
-    request(`/services?limit=${limit}&skip=${skip}`),
+  getApprovedServices: (limit: number = 20, skip: number = 0, filters: { q?: string; category?: string; city?: string } = {}) => {
+    const params = new URLSearchParams({ limit: String(limit), skip: String(skip) });
+    if (filters.q) params.set('q', filters.q);
+    if (filters.category) params.set('category', filters.category);
+    if (filters.city) params.set('city', filters.city);
+    return request(`/services?${params}`);
+  },
 
   searchServices: (query: string, category?: string, limit: number = 20) =>
     request(`/services/search?q=${encodeURIComponent(query)}&category=${category || ''}&limit=${limit}`),
@@ -516,10 +534,16 @@ export const api = {
 
     getMyServiceOrders: () => request(`/service-orders/mine`),
 
-    createCustomerRequest: (data: { category: string; city: string; neighborhood?: string; description: string; budgetMin?: number; budgetMax?: number; requestedDate?: string }) => post('/customer-requests', data),
+    createCustomerRequest: (data: { category: string; city: string; neighborhood?: string; description: string; budgetMin?: number; budgetMax?: number; requestedDate?: string; contactPreference?: 'platform' | 'whatsapp' | 'both'; contactPhone?: string }) => post<{ id: string }>('/customer-requests', data),
+
+    uploadCustomerRequestPhotos: async (id: string, files: File[]) => {
+      const form = new FormData();
+      files.forEach((file) => form.append('files', file));
+      return request(`/customer-requests/${id}/photos`, { method: 'POST', body: form });
+    },
     getMyCustomerRequests: () => request<{ id: string; category: string; city: string; description: string; status: CustomerRequestStatus; responses?: { artisanId: string; artisan?: { name?: string; phone?: string; whatsappPhone?: string } | null; price?: number; days?: number; message: string; status?: 'accepted' | 'rejected' }[] }[]>('/customer-requests/mine'),
     completeCustomerRequest: (id: string) => post(`/customer-requests/${id}/complete`, {}),
-    getOpenCustomerRequests: (filters: { category?: string; city?: string } = {}) => request<{ id: string; category: string; city: string; neighborhood?: string | null; description: string; budgetMin?: number | null; budgetMax?: number | null; status: CustomerRequestStatus; matchScore?: number; targeted?: boolean; alreadyAnswered?: boolean }[]>(`/customer-requests/artisan/open?category=${encodeURIComponent(filters.category ?? '')}&city=${encodeURIComponent(filters.city ?? '')}`),
+    getOpenCustomerRequests: (filters: { category?: string; city?: string } = {}) => request<{ id: string; category: string; city: string; neighborhood?: string | null; description: string; budgetMin?: number | null; budgetMax?: number | null; requestedDate?: string | null; fileUrls?: string[] | null; status: CustomerRequestStatus; matchScore?: number; targeted?: boolean; alreadyAnswered?: boolean }[]>(`/customer-requests/artisan/open?category=${encodeURIComponent(filters.category ?? '')}&city=${encodeURIComponent(filters.city ?? '')}`),
     getCustomerRequestStats: () => request<{ requestsReceived: number; responsesSent: number; openRequests: number; averageResponseMinutes: number }>('/customer-requests/artisan/stats'),
     getArtisanResponseHistory: (artisanId: string) =>
       request<{ requestsReceived: number; responsesSent: number; responseRate: number; averageResponseMinutes: number; lastResponseAt: string | null }>(`/customer-requests/artisan/${artisanId}/public-stats`),

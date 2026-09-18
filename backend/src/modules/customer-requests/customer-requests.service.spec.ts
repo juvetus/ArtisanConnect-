@@ -17,6 +17,8 @@ describe('CustomerRequestsService', () => {
   const shops = { find: vi.fn() };
   const notifications = { notify: vi.fn() };
   const emails = { send: vi.fn().mockResolvedValue(true) };
+  const storage = { isEnabled: vi.fn().mockReturnValue(true), uploadBuffer: vi.fn() };
+  const subscriptions = { findPremiumUserIds: vi.fn().mockResolvedValue(new Set<string>()) };
 
   let service: CustomerRequestsService;
 
@@ -30,6 +32,8 @@ describe('CustomerRequestsService', () => {
       shops as never,
       notifications as never,
       emails as never,
+      storage as never,
+      subscriptions as never,
     );
   });
 

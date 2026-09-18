@@ -3,11 +3,14 @@ import { categoryLabel } from '@/lib/categories';
 import { formatXAF } from '@/lib/format';
 import { useLanguage } from '@/lib/language-context';
 import { resolveMediaUrl } from '@/lib/media';
+import { DemoBadge } from '@/components/DemoBadge';
 import type { Listing } from '@/lib/types';
 
 export function ListingCard({ listing }: { listing: Listing }) {
   const { t } = useLanguage();
-  const href = listing.id.startsWith('demo-') ? '/contact' : `/listings/${listing.id}`;
+  const isDemo = listing.id.startsWith('demo-');
+  const isSponsored = Boolean(listing.sponsoredUntil && new Date(listing.sponsoredUntil) > new Date());
+  const href = isDemo ? '/contact' : `/listings/${listing.id}`;
   const isWoman = Boolean(
     listing.shop?.isWomenLed ||
     listing.seller?.gender === 'female',
@@ -22,6 +25,15 @@ export function ListingCard({ listing }: { listing: Listing }) {
       href={href}
       className="group relative flex flex-col overflow-hidden rounded-lg border border-stone-200 bg-white transition hover:border-amber-600 hover:shadow-sm"
     >
+      {isDemo && <DemoBadge className="absolute right-2 top-2 z-10 shadow" />}
+      {!isDemo && isSponsored && (
+        <span
+          title="Cette annonce bénéficie d'une mise en avant payée par l'artisan"
+          className="absolute right-2 top-2 z-10 rounded-full bg-stone-900/85 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white shadow backdrop-blur-sm"
+        >
+          Sponsorisé
+        </span>
+      )}
       {isWoman && (
         <span className="absolute left-2 top-2 z-10 rounded-full bg-rose-600/90 px-2.5 py-0.5 text-[11px] font-semibold text-white shadow backdrop-blur-sm">
           {t('badge_women')}

@@ -15,8 +15,11 @@ export class ServicesController {
   async getApprovedServices(
     @Query('limit') limit: string = '20',
     @Query('skip') skip: string = '0',
+    @Query('q') q?: string,
+    @Query('category') category?: string,
+    @Query('city') city?: string,
   ) {
-    return this.servicesService.getApprovedServices(parseInt(limit), parseInt(skip));
+    return this.servicesService.getApprovedServices(parseInt(limit), parseInt(skip), { q, category, city });
   }
 
     @Public()

@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { CurrentUser, type AuthUser } from '../auth/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { Public } from '../auth/public.decorator.js';
@@ -10,8 +11,14 @@ export class CustomerRequestsController {
   constructor(private readonly service: CustomerRequestsService) {}
 
   @Post()
-  create(@CurrentUser() user: AuthUser, @Body() body: { category: string; city: string; neighborhood?: string; description: string; budgetMin?: number; budgetMax?: number; requestedDate?: string }) {
+  create(@CurrentUser() user: AuthUser, @Body() body: { category: string; city: string; neighborhood?: string; description: string; budgetMin?: number; budgetMax?: number; requestedDate?: string; contactPreference?: 'platform' | 'whatsapp' | 'both'; contactPhone?: string }) {
     return this.service.create(user.id, body);
+  }
+
+  @Post(':id/photos')
+  @UseInterceptors(FilesInterceptor('files', 5, { limits: { fileSize: 5 * 1024 * 1024 } }))
+  addPhotos(@CurrentUser() user: AuthUser, @Param('id') id: string, @UploadedFiles() files: Express.Multer.File[]) {
+    return this.service.addPhotos(user.id, id, files);
   }
 
   @Get('mine')

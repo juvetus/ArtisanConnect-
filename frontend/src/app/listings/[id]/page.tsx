@@ -7,6 +7,7 @@ import useSWR from 'swr';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { ReportButton } from '@/components/ReportButton';
+import { trackEvent } from '@/lib/analytics';
 import { categoryLabel } from '@/lib/categories';
 import { formatXAF } from '@/lib/format';
 import { resolveMediaUrl } from '@/lib/media';
@@ -35,6 +36,11 @@ export default function ListingPage() {
   const [error, setError] = useState('');
   const [zoomIndex, setZoomIndex] = useState<number | null>(null);
   const images = listing?.imageUrls?.length ? listing.imageUrls : listing?.imageUrl ? [listing.imageUrl] : [];
+
+  useEffect(() => {
+    if (!listing) return;
+    trackEvent('listing_view', { targetId: listing.id, label: listing.category, city: listing.shop?.city ?? undefined });
+  }, [listing]);
 
   useEffect(() => {
     if (zoomIndex === null || images.length === 0) return;
@@ -172,7 +178,7 @@ export default function ListingPage() {
                 <Link href={`/messages?to=${listing.sellerId}`} className="text-sm text-amber-700 underline">
                   Contacter l&apos;artisan par message
                 </Link>
-                {sellerWhatsapp ? <a href={sellerWhatsapp} target="_blank" rel="noreferrer" className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700">WhatsApp</a> : null}
+                {sellerWhatsapp ? <a href={sellerWhatsapp} target="_blank" rel="noreferrer" onClick={() => trackEvent('whatsapp_click', { targetId: listing.id, label: listing.category, city: listing.shop?.city ?? undefined })} className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700">WhatsApp</a> : null}
               </div>
             )}
             <a href={shareWhatsapp} target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-md border border-green-600 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-50">

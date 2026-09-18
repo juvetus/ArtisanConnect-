@@ -9,6 +9,15 @@ import { ServiceReview } from '../../entities/service-review.entity.js';
 import { ServiceValidationHistory, type ServiceValidationAction } from '../../entities/service-validation-history.entity.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 
+/** Recherche insensible aux accents sans dépendre de l'extension Postgres `unaccent`. */
+function unaccent(column: string): string {
+  return `translate(lower(coalesce(${column}, '')), 'àáâãäçèéêëìíîïñòóôõöùúûüýÿ', 'aaaaaceeeeiiiinooooouuuuyy')`;
+}
+
+function normalizeSearchValue(value?: string | null): string {
+  return (value ?? '').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim();
+}
+
 @Injectable()
 export class ServicesService {
   constructor(
@@ -139,14 +148,40 @@ export class ServicesService {
     return { message: 'Service deleted successfully' };
   }
 
-  async getApprovedServices(limit: number = 20, skip: number = 0) {
-    const services = await this.servicesRepository.find({
-      where: { status: 'approved' },
-      relations: { artisan: true },
-      order: { createdAt: 'DESC' },
-      take: limit,
-      skip,
-    });
+  async getApprovedServices(
+    limit: number = 20,
+    skip: number = 0,
+    filters: { q?: string; category?: string; city?: string } = {},
+  ) {
+    const builder = this.servicesRepository
+      .createQueryBuilder('service')
+      .leftJoinAndSelect('service.artisan', 'artisan')
+      .where('service.status = :status', { status: 'approved' });
+
+    const query = normalizeSearchValue(filters.q);
+    if (query) {
+      builder.andWhere(
+        `(${unaccent('service.title')} LIKE :q OR ${unaccent('service.description')} LIKE :q OR ${unaccent('service.tags')} LIKE :q)`,
+        { q: `%${query}%` },
+      );
+    }
+
+    if (filters.category) builder.andWhere('service.category = :category', { category: filters.category });
+
+    const city = normalizeSearchValue(filters.city);
+    if (city) {
+      // La ville d'un artisan vient soit de son profil, soit d'une de ses boutiques actives.
+      builder.andWhere(
+        `(${unaccent('artisan.location')} LIKE :city OR EXISTS (
+          SELECT 1 FROM shops shop
+          WHERE shop."sellerId" = artisan.id AND shop.status = 'active'
+            AND (${unaccent('shop.city')} LIKE :city OR ${unaccent('shop.neighborhood')} LIKE :city)
+        ))`,
+        { city: `%${city}%` },
+      );
+    }
+
+    const services = await builder.orderBy('service.createdAt', 'DESC').take(limit).skip(skip).getMany();
     return Promise.all(services.map((service) => this.withRating(service)));
   }
 

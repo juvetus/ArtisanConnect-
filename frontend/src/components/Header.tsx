@@ -100,6 +100,9 @@ export function Header() {
           <Link href="/how-it-works" className={navLinkClass('/how-it-works')}>
             {t('nav_how_it_works')}
           </Link>
+          <Link href="/tarifs" className={navLinkClass('/tarifs')}>
+            Tarifs
+          </Link>
           <Link href="/blog" className={navLinkClass('/blog')}>
             Blog
           </Link>

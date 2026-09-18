@@ -4,11 +4,13 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { ListingsService } from './listings.service.js';
+import { MAX_SPONSORED_PER_SELLER } from './listings.service.js';
 import { ShopsService } from '../shops/shops.service.js';
 import { Public } from '../auth/public.decorator.js';
 import { CurrentUser, type AuthUser } from '../auth/current-user.decorator.js';
 import type { Listing } from '../../entities/index.js';
 import { StorageService } from '../storage/storage.service.js';
+import { SubscriptionsService, FREE_PLAN_LISTING_LIMIT } from '../subscriptions/subscriptions.service.js';
 
 @Controller('listings')
 export class ListingsController {
@@ -16,6 +18,7 @@ export class ListingsController {
     private listingsService: ListingsService,
     private shopsService: ShopsService,
     private storageService: StorageService,
+    private subscriptionsService: SubscriptionsService,
   ) {}
 
   private static readonly UPLOAD_DIR = path.resolve(process.cwd(), 'uploads');
@@ -71,6 +74,23 @@ export class ListingsController {
     return { imageUrls };
   }
 
+  @Post(':id/sponsor')
+  async sponsorListing(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    if (!(await this.subscriptionsService.isPremium(user.id))) {
+      throw new ForbiddenException('La mise en avant est réservée aux artisans Premium');
+    }
+    const sponsored = await this.listingsService.countSponsoredBySeller(user.id);
+    if (sponsored >= MAX_SPONSORED_PER_SELLER) {
+      throw new BadRequestException(`Vous pouvez mettre en avant ${MAX_SPONSORED_PER_SELLER} annonces à la fois`);
+    }
+    return this.listingsService.sponsor(id, user.id);
+  }
+
+  @Post(':id/sponsor/stop')
+  async stopSponsoringListing(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.listingsService.stopSponsoring(id, user.id);
+  }
+
   @Post()
   async createListing(@CurrentUser() user: AuthUser, @Body() listing: Partial<Listing>) {
     if (user.role !== 'artisan') {
@@ -78,6 +98,16 @@ export class ListingsController {
     }
     // Le vendeur doit avoir une boutique active pour publier.
     await this.shopsService.assertShopActiveForSeller(user.id, listing.shopId, user.role);
+
+    // L'offre gratuite plafonne le nombre d'annonces publiées simultanément.
+    if (!(await this.subscriptionsService.isPremium(user.id))) {
+      const activeListings = await this.listingsService.countActiveBySeller(user.id);
+      if (activeListings >= FREE_PLAN_LISTING_LIMIT) {
+        throw new BadRequestException(
+          `L'offre gratuite est limitée à ${FREE_PLAN_LISTING_LIMIT} annonces actives. Désactivez une annonce ou passez à Premium pour publier sans limite.`,
+        );
+      }
+    }
     return this.listingsService.create({ ...listing, sellerId: user.id });
   }
 

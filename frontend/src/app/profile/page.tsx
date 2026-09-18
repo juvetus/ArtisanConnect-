@@ -12,6 +12,7 @@ function ShopPaymentForm({ shop }: { shop: Shop }) {
   const [orangeMoneyNumber, setOrangeMoneyNumber] = useState(shop.orangeMoneyNumber ?? shop.mobileMoneyNumber ?? '');
   const [provider, setProvider] = useState<'momo' | 'orange_money' | 'both'>(shop.mobileMoneyProvider ?? 'both');
   const [deliveryMethods, setDeliveryMethods] = useState<('workshop' | 'home' | 'carrier')[]>(shop.deliveryMethods?.length ? shop.deliveryMethods : [shop.deliveryMode]);
+  const [availability, setAvailability] = useState<'available' | 'busy' | 'unavailable'>(shop.availability ?? 'available');
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -24,8 +25,8 @@ function ShopPaymentForm({ shop }: { shop: Shop }) {
     try {
       if ((provider === 'momo' || provider === 'both') && !momoNumber.trim()) throw new Error('Le numéro MoMo est requis.');
       if ((provider === 'orange_money' || provider === 'both') && !orangeMoneyNumber.trim()) throw new Error('Le numéro Orange Money est requis.');
-      await api.updateShop(shop.id, { mobileMoneyNumber: momoNumber.trim() || orangeMoneyNumber.trim(), momoNumber: momoNumber.trim(), orangeMoneyNumber: orangeMoneyNumber.trim(), mobileMoneyProvider: provider, deliveryMethods });
-      setNotice('Paramètres de paiement mis à jour.');
+      await api.updateShop(shop.id, { mobileMoneyNumber: momoNumber.trim() || orangeMoneyNumber.trim(), momoNumber: momoNumber.trim(), orangeMoneyNumber: orangeMoneyNumber.trim(), mobileMoneyProvider: provider, deliveryMethods, availability });
+      setNotice('Paramètres de la boutique mis à jour.');
     } catch (saveError) {
       setError(saveError instanceof ApiError ? saveError.message : 'Impossible de mettre à jour les paiements.');
     } finally {
@@ -58,6 +59,14 @@ function ShopPaymentForm({ shop }: { shop: Shop }) {
       <div>
         {provider === 'momo' || provider === 'both' ? <div><label htmlFor={`shop-momo-${shop.id}`} className="block text-sm font-medium text-stone-700">Numéro MoMo</label><input id={`shop-momo-${shop.id}`} required value={momoNumber} onChange={(event) => setMomoNumber(event.target.value)} placeholder="+237..." className="field mt-1" /></div> : null}
         {provider === 'orange_money' || provider === 'both' ? <div className="mt-3"><label htmlFor={`shop-orange-${shop.id}`} className="block text-sm font-medium text-stone-700">Numéro Orange Money</label><input id={`shop-orange-${shop.id}`} required value={orangeMoneyNumber} onChange={(event) => setOrangeMoneyNumber(event.target.value)} placeholder="+237..." className="field mt-1" /></div> : null}
+      </div>
+      <div>
+        <label htmlFor={`shop-availability-${shop.id}`} className="block text-sm font-medium text-stone-700">Disponibilité affichée aux clients</label>
+        <select id={`shop-availability-${shop.id}`} value={availability} onChange={(event) => setAvailability(event.target.value as typeof availability)} className="field mt-1">
+          <option value="available">Disponible pour de nouveaux projets</option>
+          <option value="busy">Peu de disponibilité en ce moment</option>
+          <option value="unavailable">Indisponible actuellement</option>
+        </select>
       </div>
       <div>
         <label htmlFor={`shop-provider-${shop.id}`} className="block text-sm font-medium text-stone-700">Moyens acceptés</label>

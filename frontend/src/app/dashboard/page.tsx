@@ -34,6 +34,7 @@ export default function DashboardPage() {
   );
 
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
+  const { data: planStatus } = useSWR(isArtisan ? ['plan-status', user.id] : null, () => api.getPlanStatus());
 
   const [shops, setShops] = useState<Shop[]>([]);
   const [shopMetrics, setShopMetrics] = useState<Record<string, { views: number; whatsappContactClicks: number; whatsappShareClicks: number }>>({});
@@ -203,6 +204,23 @@ export default function DashboardPage() {
     }
   };
 
+  const isSponsored = (listing: Listing) =>
+    Boolean(listing.sponsoredUntil && new Date(listing.sponsoredUntil) > new Date());
+
+  const handleSponsor = async (listing: Listing) => {
+    setFormError('');
+    try {
+      if (isSponsored(listing)) {
+        await api.stopSponsoringListing(listing.id);
+      } else {
+        await api.sponsorListing(listing.id);
+      }
+      await mutate();
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "La mise en avant n'a pas pu être modifiée.");
+    }
+  };
+
   const handleConfirmCash = async (order: Order) => {
     setBusyOrderId(order.id);
     try {
@@ -298,17 +316,31 @@ export default function DashboardPage() {
     };
   }, { views: 0, whatsappContactClicks: 0, whatsappShareClicks: 0 });
 
-  const paymentCard = (
-    <div className="rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-5 shadow-sm">
-      <div className="flex items-center justify-between gap-4">
+  const planCard = (
+    <div className={`rounded-2xl border p-5 shadow-sm ${planStatus?.premium ? 'border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50' : 'border-stone-200 bg-white'}`}>
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">Abonnement</p>
-          <h3 className="mt-2 text-xl font-semibold text-stone-900">Premium Artisan</h3>
-          <p className="mt-1 text-sm text-stone-600">5 000 FCFA / mois • accès premium • paiements automatiques</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">Votre offre</p>
+          <h3 className="mt-2 text-xl font-semibold text-stone-900">
+            {planStatus?.premium ? `★ ${planStatus.planName}` : 'Offre gratuite'}
+          </h3>
+          {planStatus?.premium ? (
+            <p className="mt-1 text-sm text-stone-600">
+              Annonces illimitées, mise en avant dans les résultats et priorité sur les demandes
+              {planStatus.endDate ? ` · valable jusqu’au ${new Date(planStatus.endDate).toLocaleDateString('fr-FR')}` : ''}.
+            </p>
+          ) : (
+            <p className="mt-1 text-sm text-stone-600">
+              {listings.length} / {planStatus?.listingLimit ?? 5} annonces actives · passez à Premium pour publier sans
+              limite, apparaître en priorité et recevoir plus de demandes.
+            </p>
+          )}
         </div>
-        <Link href="/payment?type=subscription" className="rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-white hover:bg-amber-800 transition">
-          Payer avec MoMo
-        </Link>
+        {!planStatus?.premium ? (
+          <Link href="/payment?type=subscription" className="rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-800">
+            Passer à Premium
+          </Link>
+        ) : null}
       </div>
     </div>
   );
@@ -336,6 +368,7 @@ export default function DashboardPage() {
           </div>
         </div>
         <p className="mt-4 text-sm text-stone-600">{t('dashboard_subtitle')}</p>
+        <div className="mt-4">{planCard}</div>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {[
             { label: t('dashboard_my_listings'), value: listings.length },
@@ -751,6 +784,11 @@ export default function DashboardPage() {
                           Désactivée
                         </span>
                       )}
+                      {isSponsored(listing) && (
+                        <span className="rounded-full bg-stone-900 px-2 py-0.5 text-xs font-medium text-white">
+                          Sponsorisée jusqu&apos;au {new Date(listing.sponsoredUntil!).toLocaleDateString('fr-FR')}
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-stone-600">
                       {categoryLabel(listing.category)} · stock {listing.stock}
@@ -776,6 +814,17 @@ export default function DashboardPage() {
                     >
                       {listing.status === 'inactive' ? 'Réactiver' : 'Désactiver'}
                     </button>
+                    {listing.status === 'active' ? (
+                      <button
+                        type="button"
+                        onClick={() => void handleSponsor(listing)}
+                        disabled={!planStatus?.premium && !isSponsored(listing)}
+                        title={planStatus?.premium ? undefined : 'Réservé aux artisans Premium'}
+                        className="rounded-md border border-stone-300 px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {isSponsored(listing) ? 'Retirer la mise en avant' : 'Mettre en avant'}
+                      </button>
+                    ) : null}
                   </div>
                 </li>
               ))}

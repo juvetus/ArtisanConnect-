@@ -34,6 +34,7 @@ export interface Shop {
   mobileMoneyVerified: boolean;
   status: ShopStatus;
   rejectionReason?: string | null;
+  availability?: 'available' | 'busy' | 'unavailable';
   verifiedBadge: boolean;
   topSellerBadge: boolean;
   identityVerified?: boolean;
@@ -48,8 +49,23 @@ export interface Shop {
   createdAt: string;
 }
 
-/** Cycle de vie d'une demande de devis. */
-export type CustomerRequestStatus = 'new' | 'contacted' | 'in_progress' | 'completed';
+/** Tunnel de conversion exposé par le backend. */
+export interface AnalyticsFunnel {
+  periodDays: number;
+  funnel: Record<string, number>;
+  conversion: {
+    visitorToQuote: number;
+    visitorToOrder: number;
+    quoteToAnswer: number;
+    profileViewToWhatsapp: number;
+  };
+  artisans: { registered: number; active: number; withIdentityVerified: number };
+  topSearches: { label: string; count: number }[];
+  topCategories: { label: string; count: number }[];
+  topCities: { label: string; count: number }[];
+}
+
+/** Cycle de vie d'une demande de devis. */export type CustomerRequestStatus = 'new' | 'contacted' | 'in_progress' | 'completed';
 
 export const CUSTOMER_REQUEST_STATUS_LABELS: Record<CustomerRequestStatus, string> = {
   new: 'Nouvelle',
@@ -96,6 +112,7 @@ export interface PublicArtisan {
   isWomenLed?: boolean;
   isCooperative?: boolean;
   successfulSales: number;
+  premium?: boolean;
   createdAt: string;
   coverImageUrl?: string | null;
   rating: { average: number | null; count: number };
@@ -163,6 +180,7 @@ export interface Listing {
   stock: number;
   acceptedPaymentMethods?: ('cash' | 'momo' | 'orange_money')[] | null;
   deliveryMethods?: ('workshop' | 'home' | 'carrier')[] | null;
+  sponsoredUntil?: string | null;
   createdAt: string;
 }
 

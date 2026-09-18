@@ -26,9 +26,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      const session: AuthSession = JSON.parse(stored);
-      setAuthToken(session.accessToken);
-      setUser(session.user);
+      try {
+        const session: AuthSession = JSON.parse(stored);
+        setAuthToken(session.accessToken);
+        setUser(session.user);
+      } catch {
+        // Session illisible : on repart d'un état propre plutôt que de bloquer l'application.
+        localStorage.removeItem(STORAGE_KEY);
+      }
     }
     setReady(true);
   }, []);

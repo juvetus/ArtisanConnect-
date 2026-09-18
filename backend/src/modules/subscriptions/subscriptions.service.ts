@@ -1,8 +1,11 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, In, MoreThan, IsNull, Repository } from 'typeorm';
 import { Subscription, SubscriptionPlan } from '../../entities/index.js';
 import { MomoService } from '../momo/momo.service.js';
+
+/** Limites de l'offre gratuite, à ajuster après le pilote. */
+export const FREE_PLAN_LISTING_LIMIT = 5;
 
 @Injectable()
 export class SubscriptionsService {
@@ -108,6 +111,51 @@ export class SubscriptionsService {
 
   async findByUser(userId: string): Promise<Subscription[]> {
     return this.subscriptionRepository.find({ where: { userId }, relations: { plan: true } });
+  }
+
+  /** Un abonnement compte comme Premium tant qu'il est actif et non expiré. */
+  async isPremium(userId: string): Promise<boolean> {
+    const now = new Date();
+    const active = await this.subscriptionRepository.count({
+      where: [
+        { userId, status: 'active', endDate: MoreThan(now) },
+        { userId, status: 'active', endDate: IsNull() },
+      ],
+    });
+    return active > 0;
+  }
+
+  async findPremiumUserIds(userIds: string[]): Promise<Set<string>> {
+    if (!userIds.length) return new Set();
+    const now = new Date();
+    const subscriptions = await this.subscriptionRepository.find({
+      where: [
+        { userId: In(userIds), status: 'active', endDate: MoreThan(now) },
+        { userId: In(userIds), status: 'active', endDate: IsNull() },
+      ],
+      select: { userId: true },
+    });
+    return new Set(subscriptions.map((subscription) => subscription.userId));
+  }
+
+  /** État du plan affiché à l'artisan : offre courante, échéance et quota d'annonces. */
+  async planStatus(userId: string) {
+    const now = new Date();
+    const subscriptions = await this.subscriptionRepository.find({
+      where: { userId },
+      relations: { plan: true },
+      order: { createdAt: 'DESC' },
+    });
+    const current = subscriptions.find(
+      (subscription) => subscription.status === 'active' && (!subscription.endDate || new Date(subscription.endDate) > now),
+    );
+
+    return {
+      premium: Boolean(current),
+      planName: current?.plan?.name ?? 'Offre gratuite',
+      endDate: current?.endDate ?? null,
+      listingLimit: current ? null : FREE_PLAN_LISTING_LIMIT,
+    };
   }
 
   private normalizeMomoPhone(phone?: string): string {

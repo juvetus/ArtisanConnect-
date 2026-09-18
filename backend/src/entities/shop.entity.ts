@@ -13,6 +13,8 @@ import { Listing } from './listing.entity.js';
 
 export type ShopType = 'artisan' | 'reseller' | 'individual';
 export type ShopStatus = 'pending' | 'active' | 'rejected' | 'suspended';
+/** Disponibilité déclarée par l'artisan, affichée sur sa fiche publique. */
+export type ShopAvailability = 'available' | 'busy' | 'unavailable';
 
 /**
  * Boutique d'un vendeur. Le type détermine les preuves KYC requises
@@ -99,6 +101,9 @@ export class Shop {
 
   @Column({ default: false })
   verifiedBadge: boolean;
+
+  @Column({ type: 'varchar', default: 'available' })
+  availability: ShopAvailability;
 
   /** Pièce d'identité réellement contrôlée par un administrateur. */
   @Column({ default: false })

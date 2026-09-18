@@ -11,6 +11,8 @@ export class SubscriptionsController {
     private readonly momoService: MomoService,
   ) {}
 
+  /** Les tarifs sont publics : la page d'offres doit s'afficher sans compte. */
+  @Public()
   @Get('plans')
   async getPlans() {
     return this.subscriptionsService.getPlans();
@@ -38,6 +40,11 @@ export class SubscriptionsController {
   @Get('user')
   async getMySubscriptions(@CurrentUser() user: AuthUser) {
     return this.subscriptionsService.findByUser(user.id);
+  }
+
+  @Get('status')
+  async getPlanStatus(@CurrentUser() user: AuthUser) {
+    return this.subscriptionsService.planStatus(user.id);
   }
 
   @Public()

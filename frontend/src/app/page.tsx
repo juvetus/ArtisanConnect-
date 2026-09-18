@@ -7,11 +7,13 @@ import { api } from '@/lib/api';
 import { ListingCard } from '@/components/ListingCard';
 import { Pagination } from '@/components/Pagination';
 import { ArtisanCard } from '@/components/ArtisanCard';
+import { DemoBadge } from '@/components/DemoBadge';
 import { VerificationBadge } from '@/components/VerificationBadge';
 import { CATEGORIES, PRODUCT_CATEGORIES, SERVICE_CATEGORIES, categoryLabel } from '@/lib/categories';
 import { demoArtisans, demoListings, demoServices } from '@/lib/demo-content';
 import { useLanguage } from '@/lib/language-context';
 import { CITIES, NEIGHBORHOODS, slugify } from '@/lib/locations';
+import { trackEvent } from '@/lib/analytics';
 import { resolveMediaUrl } from '@/lib/media';
 import type { PublicArtisan, Service } from '@/lib/types';
 
@@ -95,11 +97,13 @@ export default function HomePage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    if (draftQuery.trim()) trackEvent('search', { label: draftQuery.trim(), city: filters.city });
     updateFilter({ q: draftQuery || undefined });
   };
 
   const selectCategory = (value: string) => {
     setShowCategories(false);
+    if (value) trackEvent('category_view', { label: value, city: filters.city });
     updateFilter({ category: value || undefined });
   };
 
@@ -115,9 +119,16 @@ export default function HomePage() {
   const visibleTotal = listings.length ? total : visibleListings.length;
   const visibleServices = services?.length ? services : demoServices;
   const featuredProducts = visibleListings.slice(0, 6);
+  const showsDemoContent = !listings.length && !services?.length && !artisans?.length && !isLoading;
 
   return (
     <div className="space-y-8">
+      {showsDemoContent ? (
+        <p className="rounded-lg border border-dashed border-stone-400 bg-stone-100 px-4 py-3 text-sm text-stone-700">
+          <strong className="font-semibold">Contenus de démonstration.</strong> Les artisans, produits et services
+          marqués « Démonstration » sont fictifs et servent à illustrer la plateforme pendant le pilote.
+        </p>
+      ) : null}
       <section className="overflow-hidden rounded-xl bg-stone-900 text-white">
         <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="px-6 py-10 lg:px-8">
@@ -200,13 +211,14 @@ export default function HomePage() {
             <p className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{t('home_artisans_empty')}</p>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {demoArtisans.map((artisan) => (
-                <article key={artisan.id} className="overflow-hidden rounded-xl border border-stone-200 bg-stone-50">
-                  <img src={artisan.imageUrl} alt={artisan.name} className="h-28 w-full object-cover" />
+                <article key={artisan.id} className="relative overflow-hidden rounded-xl border border-dashed border-stone-300 bg-stone-50">
+                  <DemoBadge className="absolute right-2 top-2 z-10 shadow" />
+                  <img src={artisan.imageUrl} alt={artisan.name} className="h-28 w-full object-cover opacity-80" />
                   <div className="p-4">
                     <h3 className="font-semibold text-stone-900">{artisan.name}</h3>
                     <p className="mt-1 text-xs font-medium uppercase tracking-wide text-amber-700">{artisan.specialty}</p>
                     <p className="mt-1 text-sm text-stone-600">{artisan.city}</p>
-                    <p className="mt-2 text-xs text-stone-500">{t('home_catalog_demo_note')}</p>
+                    <p className="mt-2 text-xs text-stone-500">Profil fictif, présenté à titre d’exemple.</p>
                   </div>
                 </article>
               ))}
@@ -525,18 +537,25 @@ export default function HomePage() {
         </div>
         {visibleServices.length > 0 && (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {visibleServices.slice(0, 6).map((service) => (
-              <article key={service.id} className="flex flex-col rounded-lg border border-stone-200 bg-white p-5">
-                <div className="flex-1">
-                  <p className="text-xs font-medium uppercase tracking-wide text-amber-700">{categoryLabel(service.category)}</p>
-                  <h3 className="mt-2 text-lg font-semibold text-stone-900">{service.title}</h3>
-                  <p className="mt-2 line-clamp-3 text-sm text-stone-600">{service.description}</p>
-                  <p className="mt-3 text-sm text-stone-600">{t('service_estimated_days', { days: service.estimatedDays })}</p>
-                  <p className="mt-2 text-sm text-stone-600">{service.averageRating ? `★ ${service.averageRating}/5` : t('service_no_rating')} <span className="text-stone-400">{t('service_reviews_count', { count: service.reviewCount ?? 0 })}</span></p>
-                </div>
-                <a href={service.id.startsWith('demo-') ? '/contact' : `/services/${service.id}`} className="mt-4 rounded-md bg-amber-700 px-4 py-2 text-center text-sm font-medium text-white hover:bg-amber-800">{t('home_service_view')}</a>
-              </article>
-            ))}
+            {visibleServices.slice(0, 6).map((service) => {
+              const isDemoService = service.id.startsWith('demo-');
+              return (
+                <article
+                  key={service.id}
+                  className={`relative flex flex-col rounded-lg border bg-white p-5 ${isDemoService ? 'border-dashed border-stone-300' : 'border-stone-200'}`}
+                >
+                  {isDemoService ? <DemoBadge className="absolute right-3 top-3" /> : null}
+                  <div className="flex-1">
+                    <p className="text-xs font-medium uppercase tracking-wide text-amber-700">{categoryLabel(service.category)}</p>
+                    <h3 className="mt-2 text-lg font-semibold text-stone-900">{service.title}</h3>
+                    <p className="mt-2 line-clamp-3 text-sm text-stone-600">{service.description}</p>
+                    <p className="mt-3 text-sm text-stone-600">{t('service_estimated_days', { days: service.estimatedDays })}</p>
+                    <p className="mt-2 text-sm text-stone-600">{service.averageRating ? `★ ${service.averageRating}/5` : t('service_no_rating')} <span className="text-stone-400">{t('service_reviews_count', { count: service.reviewCount ?? 0 })}</span></p>
+                  </div>
+                  <a href={isDemoService ? '/contact' : `/services/${service.id}`} className="mt-4 rounded-md bg-amber-700 px-4 py-2 text-center text-sm font-medium text-white hover:bg-amber-800">{t('home_service_view')}</a>
+                </article>
+              );
+            })}
           </div>
         )}
       </section>

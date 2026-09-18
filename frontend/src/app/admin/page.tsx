@@ -9,6 +9,7 @@ import { formatXAF } from '@/lib/format';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Pagination } from '@/components/Pagination';
 import { ModerationAdmin } from '@/components/ModerationAdmin';
+import { AnalyticsFunnel } from '@/components/AnalyticsFunnel';
 import type { AdminStats, Listing, Order, Role, Shop, User } from '@/lib/types';
 
 interface ServiceDashboardStats {
@@ -56,7 +57,7 @@ function roleLabel(role: Role) {
 export default function AdminPage() {
   const { user, ready } = useAuth();
   const router = useRouter();
-  const [view, setView] = useState<'overview' | 'users' | 'listings' | 'shops' | 'orders' | 'moderation'>('overview');
+  const [view, setView] = useState<'overview' | 'users' | 'listings' | 'shops' | 'orders' | 'moderation' | 'analytics'>('overview');
   const [actionError, setActionError] = useState('');
   const [usersPage, setUsersPage] = useState(0);
   const [listingsPage, setListingsPage] = useState(0);
@@ -174,6 +175,7 @@ export default function AdminPage() {
             ...(user.role === 'admin' ? [['users', 'Utilisateurs']] : []),
             ...(user.role !== 'viewer' ? [['listings', 'Annonces']] : []),
             ...(user.role === 'admin' ? [['moderation', 'Modération']] : []),
+            ...(user.role === 'admin' ? [['analytics', 'Analytics']] : []),
             ['orders', 'Commandes'],
           ].map(([value, label]) => (
             <button
@@ -258,6 +260,8 @@ export default function AdminPage() {
       )}
 
       {view === 'moderation' && <ModerationAdmin />}
+
+      {view === 'analytics' && <AnalyticsFunnel />}
 
       {view === 'orders' && (
         <AdminOrders

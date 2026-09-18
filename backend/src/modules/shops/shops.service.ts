@@ -5,11 +5,13 @@ import { Shop, type ShopType } from '../../entities/shop.entity.js';
 import { Listing } from '../../entities/listing.entity.js';
 import { User } from '../../entities/user.entity.js';
 import { ServiceReview } from '../../entities/service-review.entity.js';
+import { Service } from '../../entities/service.entity.js';
 import { computeVerification } from './verification.js';
 import type { VerificationLevel } from './verification.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { EmailService } from '../email/email.service.js';
 import { StorageService } from '../storage/storage.service.js';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service.js';
 
 /** Nombre de ventes réussies pour débloquer les badges vendeur. */
 const VERIFIED_BADGE_THRESHOLD = 3;
@@ -39,8 +41,11 @@ export class ShopsService {
     private usersRepository: Repository<User>,
     @InjectRepository(ServiceReview)
     private serviceReviewsRepository: Repository<ServiceReview>,
+    @InjectRepository(Service)
+    private servicesRepository: Repository<Service>,
     private notificationsService: NotificationsService,
     private emailService: EmailService,
+    private subscriptionsService: SubscriptionsService,
   ) {}
 
   async getSignedKycUrl(shopId: string, label: string, storageService: StorageService) {
@@ -192,22 +197,49 @@ export class ShopsService {
   }
 
   /** Vue publique : boutique active + ses annonces actives, sans données sensibles. */
-  async findPublicById(id: string): Promise<{ shop: Omit<Shop, 'kycDocuments' | 'mobileMoneyNumber'> & { verification: ReturnType<typeof computeVerification> }; listings: Listing[] } | null> {
+  async findPublicById(id: string) {
     const shop = await this.shopsRepository.findOne({
       where: { id, status: 'active' },
       relations: { seller: true },
     });
     if (!shop) return null;
-    const listings = await this.listingsRepository.find({
-      where: { shopId: id, status: 'active' },
-      order: { createdAt: 'DESC' },
-    });
+    const [listings, services, rating] = await Promise.all([
+      this.listingsRepository.find({ where: { shopId: id, status: 'active' }, order: { createdAt: 'DESC' } }),
+      this.servicesRepository.find({ where: { artisan: { id: shop.sellerId }, status: 'approved' }, relations: { artisan: true } }),
+      this.getSellerRating(shop.sellerId),
+    ]);
+
     const verification = computeVerification(shop, {
       phoneVerified: Boolean(shop.seller?.verifiedPhone),
-      rating: await this.getSellerRating(shop.sellerId),
+      rating,
     });
+
+    const prices = [
+      ...listings.map((listing) => Number(listing.price)),
+      ...services.flatMap((service) => [service.priceMin, service.price, service.priceMax].map(Number)),
+    ].filter((price) => Number.isFinite(price) && price > 0);
+    const delays = services.map((service) => Number(service.estimatedDays)).filter((days) => Number.isFinite(days) && days > 0);
+
     const { kycDocuments: _k, mobileMoneyNumber: _m, ...publicShop } = shop;
-    return { shop: { ...publicShop, verification }, listings };
+    return {
+      shop: {
+        ...publicShop,
+        verification,
+        priceRange: prices.length ? { min: Math.min(...prices), max: Math.max(...prices) } : null,
+        averageDelayDays: delays.length ? Math.round(delays.reduce((sum, days) => sum + days, 0) / delays.length) : null,
+        memberSince: shop.createdAt,
+      },
+      listings,
+      services: services.map((service) => ({
+        id: service.id,
+        title: service.title,
+        category: service.category,
+        price: Number(service.price),
+        priceMin: service.priceMin === null ? null : Number(service.priceMin),
+        priceMax: service.priceMax === null ? null : Number(service.priceMax),
+        estimatedDays: service.estimatedDays,
+      })),
+    };
   }
 
   private async getSellerRating(sellerId: string): Promise<{ average: number | null; count: number }> {
@@ -267,14 +299,17 @@ export class ShopsService {
     if (!candidates.length) return [];
 
     const sellerIds = [...new Set(candidates.map((shop) => shop.sellerId))];
-    const ratings = await this.serviceReviewsRepository
-      .createQueryBuilder('review')
-      .select('review.recipientId', 'recipientId')
-      .addSelect('AVG(review.rating)', 'average')
-      .addSelect('COUNT(review.id)', 'count')
-      .where('review.recipientId IN (:...sellerIds)', { sellerIds })
-      .groupBy('review.recipientId')
-      .getRawMany<{ recipientId: string; average: string; count: string }>();
+    const [ratings, premiumSellerIds] = await Promise.all([
+      this.serviceReviewsRepository
+        .createQueryBuilder('review')
+        .select('review.recipientId', 'recipientId')
+        .addSelect('AVG(review.rating)', 'average')
+        .addSelect('COUNT(review.id)', 'count')
+        .where('review.recipientId IN (:...sellerIds)', { sellerIds })
+        .groupBy('review.recipientId')
+        .getRawMany<{ recipientId: string; average: string; count: string }>(),
+      this.subscriptionsService.findPremiumUserIds(sellerIds),
+    ]);
     const ratingBySeller = new Map(
       ratings.map((row) => [
         row.recipientId,
@@ -311,6 +346,7 @@ export class ShopsService {
           isCooperative: shop.isCooperative,
           successfulSales: shop.successfulSales,
           views: Number(shop.views ?? 0),
+          premium: premiumSellerIds.has(shop.sellerId),
           createdAt: shop.createdAt,
           coverImageUrl: coverByShop.get(shop.id) ?? null,
           rating,
@@ -332,7 +368,9 @@ export class ShopsService {
       })
       .sort(
         (first, second) =>
+          // La mise en avant Premium ne passe jamais devant le niveau de vérification.
           VERIFICATION_RANK[second.verification.level] - VERIFICATION_RANK[first.verification.level] ||
+          Number(second.premium) - Number(first.premium) ||
           (second.rating.average ?? 0) - (first.rating.average ?? 0) ||
           second.successfulSales - first.successfulSales ||
           second.views - first.views,
@@ -340,8 +378,42 @@ export class ShopsService {
       .slice(0, take);
   }
 
-  /** Marque l'identité du vendeur comme réellement contrôlée (réservé aux administrateurs). */
-  async setIdentityVerified(id: string, verified: boolean): Promise<Shop | null> {
+  /**
+   * Villes et quartiers réellement couverts par des boutiques actives.
+   * Les artisans saisissent ces champs librement : la liste doit venir des données, pas d'une
+   * constante figée, sinon un filtre proposé ne renvoie aucun résultat.
+   */
+  async findPublicLocations() {
+    const shops = await this.shopsRepository.find({ where: { status: 'active' }, take: 500 });
+    const cities = new Map<string, { label: string; count: number; neighborhoods: Map<string, { label: string; count: number }> }>();
+
+    for (const shop of shops) {
+      const cityKey = normalizeSearchValue(shop.city);
+      if (!cityKey) continue;
+      const city = cities.get(cityKey) ?? { label: shop.city!.trim(), count: 0, neighborhoods: new Map() };
+      city.count += 1;
+
+      const neighborhoodKey = normalizeSearchValue(shop.neighborhood);
+      if (neighborhoodKey) {
+        const neighborhood = city.neighborhoods.get(neighborhoodKey) ?? { label: shop.neighborhood!.trim(), count: 0 };
+        neighborhood.count += 1;
+        city.neighborhoods.set(neighborhoodKey, neighborhood);
+      }
+      cities.set(cityKey, city);
+    }
+
+    return [...cities.values()]
+      .sort((first, second) => second.count - first.count || first.label.localeCompare(second.label))
+      .map((city) => ({
+        label: city.label,
+        count: city.count,
+        neighborhoods: [...city.neighborhoods.values()]
+          .sort((first, second) => second.count - first.count || first.label.localeCompare(second.label))
+          .map(({ label, count }) => ({ label, count })),
+      }));
+  }
+
+  /** Marque l'identité du vendeur comme réellement contrôlée (réservé aux administrateurs). */  async setIdentityVerified(id: string, verified: boolean): Promise<Shop | null> {
     const shop = await this.shopsRepository.findOne({ where: { id } });
     if (!shop) throw new NotFoundException('Boutique introuvable');
     await this.shopsRepository.update(id, {
@@ -359,7 +431,7 @@ export class ShopsService {
   async update(
     id: string,
     sellerId: string,
-    data: Partial<Pick<Shop, 'name' | 'description' | 'category' | 'deliveryMode' | 'deliveryMethods' | 'mobileMoneyNumber' | 'momoNumber' | 'orangeMoneyNumber' | 'mobileMoneyProvider'>>,
+    data: Partial<Pick<Shop, 'name' | 'description' | 'category' | 'availability' | 'deliveryMode' | 'deliveryMethods' | 'mobileMoneyNumber' | 'momoNumber' | 'orangeMoneyNumber' | 'mobileMoneyProvider'>>,
   ): Promise<Shop | null> {
     const shop = await this.shopsRepository.findOne({ where: { id } });
     if (!shop) throw new NotFoundException('Boutique introuvable');

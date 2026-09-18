@@ -32,6 +32,7 @@ export function ArtisanCard({ artisan }: { artisan: PublicArtisan }) {
         </p>
         <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
           <VerificationBadge level={artisan.verification.level} />
+          {artisan.premium ? <span className="rounded-full bg-amber-700 px-2 py-0.5 font-medium text-white">★ Premium</span> : null}
           {artisan.isWomenLed ? <span className="rounded-full bg-rose-50 px-2 py-0.5 text-rose-800">{t('badge_women')}</span> : null}
           {artisan.isCooperative ? <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-indigo-800">{t('badge_coop')}</span> : null}
         </div>

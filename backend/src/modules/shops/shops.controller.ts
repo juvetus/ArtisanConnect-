@@ -101,6 +101,13 @@ export class ShopsController {
     });
   }
 
+  /** Route publique : villes et quartiers réellement couverts, pour alimenter les filtres. */
+  @Public()
+  @Get('public/locations')
+  async publicLocations() {
+    return this.shopsService.findPublicLocations();
+  }
+
   /** Route publique : pas d'auth, expose boutique active + annonces actives uniquement. */
   @Public()
   @Get(':id/public')
@@ -149,7 +156,7 @@ export class ShopsController {
   async update(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,
-    @Body() body: { name?: string; description?: string; category?: string; city?: string; neighborhood?: string; market?: string; latitude?: number; longitude?: number; deliveryMode?: 'workshop' | 'home'; deliveryMethods?: ('workshop' | 'home' | 'carrier')[]; mobileMoneyNumber?: string; momoNumber?: string; orangeMoneyNumber?: string; mobileMoneyProvider?: 'momo' | 'orange_money' | 'both'; isWomenLed?: boolean; isCooperative?: boolean },
+    @Body() body: { name?: string; description?: string; category?: string; availability?: 'available' | 'busy' | 'unavailable'; city?: string; neighborhood?: string; market?: string; latitude?: number; longitude?: number; deliveryMode?: 'workshop' | 'home'; deliveryMethods?: ('workshop' | 'home' | 'carrier')[]; mobileMoneyNumber?: string; momoNumber?: string; orangeMoneyNumber?: string; mobileMoneyProvider?: 'momo' | 'orange_money' | 'both'; isWomenLed?: boolean; isCooperative?: boolean },
   ) {
     return this.shopsService.update(id, user.id, body);
   }

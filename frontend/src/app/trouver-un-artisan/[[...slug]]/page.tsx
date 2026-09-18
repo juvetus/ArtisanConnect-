@@ -43,7 +43,7 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
     alternates: { canonical: `${siteUrl}${canonicalPath}` },
     openGraph: { title, url: `${siteUrl}${canonicalPath}`, type: 'website' },
     // Les combinaisons filtrées ne doivent pas diluer l'indexation des pages canoniques.
-    robots: neighborhoodSlug ? { index: false, follow: true } : { index: true, follow: true },
+    robots: neighborhoodSlug || typeof query.q === 'string' ? { index: false, follow: true } : { index: true, follow: true },
   };
 }
 
@@ -54,6 +54,7 @@ export default async function ArtisansDirectoryPage({ params, searchParams }: Pa
   const neighborhoodSlug = typeof query.quartier === 'string' ? query.quartier : undefined;
   const verified = query.verifie === '1';
   const minRating = typeof query.note === 'string' ? Number(query.note) : 0;
+  const search = typeof query.q === 'string' ? query.q : undefined;
 
   const cityLabel = citySlug ? labelFromSlug(citySlug) : undefined;
   const neighborhoodLabel = neighborhoodSlug ? labelFromSlug(neighborhoodSlug) : undefined;
@@ -62,6 +63,7 @@ export default async function ArtisansDirectoryPage({ params, searchParams }: Pa
   try {
     artisans = await api.publicArtisans({
       take: 48,
+      q: search,
       category,
       city: cityLabel,
       neighborhood: neighborhoodLabel,
@@ -105,6 +107,7 @@ export default async function ArtisansDirectoryPage({ params, searchParams }: Pa
         neighborhood={neighborhoodLabel}
         verified={verified}
         minRating={minRating}
+        query={search}
       />
 
       {artisans.length ? (
