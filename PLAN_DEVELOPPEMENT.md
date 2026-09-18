@@ -49,7 +49,10 @@ Parcours :
 - [x] Filtrage initial par catégorie et ville côté opportunités artisan.
 - [x] Matching serveur par catégories publiées et localisation du vendeur.
 - [x] Score de correspondance catégorie/ville/boutique vérifiée.
-- [ ] Matching avancé par disponibilité, statut Premium et score de fiabilité.
+- [x] Attribution de chaque demande à 5 artisans pertinents au maximum.
+- [x] Notification e-mail des artisans ciblés.
+- [x] Statuts de la demande : nouvelle, contactée, en cours, terminée.
+- [ ] Matching avancé par disponibilité et statut Premium.
 - [x] Écran client de création de demande.
 - [x] Écran vendeur des demandes ouvertes.
 - [x] Réponse vendeur avec prix, délai et commentaire.
@@ -60,8 +63,8 @@ Parcours :
 
 ## Phase 2 - Acquisition et conversion vendeur
 
-- [ ] Statistiques de vues de boutique et d'annonces.
-- [ ] Nombre de contacts WhatsApp.
+- [x] Statistiques de vues de boutique et d'annonces.
+- [x] Nombre de contacts WhatsApp.
 - [x] Nombre de demandes reçues.
 - [x] Nombre de réponses envoyées.
 - [x] Nombre de devis envoyés.
@@ -229,14 +232,14 @@ Valider que les artisans gagnent plus de leads et de commandes que le coût d’
 
 ## Phase 4 - Confiance et qualité
 
-- [ ] Vérification du téléphone.
+- [x] Vérification du téléphone (OTP, envoi SMS encore simulé).
 - [ ] Vérification WhatsApp.
-- [ ] Badges boutique vérifiée et vendeur vérifié.
-- [ ] Avis vérifiés après commande.
-- [ ] Signalement d'annonce ou vendeur.
-- [ ] Modération renforcée.
-- [ ] Score de fiabilité.
-- [ ] Historique de réponse du vendeur.
+- [x] Badges de vérification progressifs : téléphone vérifié, profil contrôlé, identité vérifiée, artisan recommandé.
+- [x] Avis vérifiés après commande (marqueur « avis vérifié » sur la boutique publique).
+- [x] Signalement d'annonce, de boutique ou de vendeur.
+- [x] Modération renforcée (file de signalements et décisions tracées côté admin).
+- [x] Score de fiabilité (niveau « artisan recommandé » : identité vérifiée + ventes réussies + avis).
+- [x] Historique de réponse du vendeur (taux, délai moyen, dernière réponse).
 
 ## Phase 5 - Institutions et impact
 
@@ -250,7 +253,7 @@ Valider que les artisans gagnent plus de leads et de commandes que le coût d’
 
 ## Phase 6 - Paiements et opérations réelles
 
-- [ ] Migrations TypeORM contrôlées.
+- [x] Migrations TypeORM contrôlées.
 - [ ] MoMo réel.
 - [ ] Orange Money réel.
 - [ ] WhatsApp Brevo pour OTP et notifications.

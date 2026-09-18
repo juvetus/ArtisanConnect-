@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/auth-context';
 import { formatXAF } from '@/lib/format';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Pagination } from '@/components/Pagination';
+import { ModerationAdmin } from '@/components/ModerationAdmin';
 import type { AdminStats, Listing, Order, Role, Shop, User } from '@/lib/types';
 
 interface ServiceDashboardStats {
@@ -55,7 +56,7 @@ function roleLabel(role: Role) {
 export default function AdminPage() {
   const { user, ready } = useAuth();
   const router = useRouter();
-  const [view, setView] = useState<'overview' | 'users' | 'listings' | 'shops' | 'orders'>('overview');
+  const [view, setView] = useState<'overview' | 'users' | 'listings' | 'shops' | 'orders' | 'moderation'>('overview');
   const [actionError, setActionError] = useState('');
   const [usersPage, setUsersPage] = useState(0);
   const [listingsPage, setListingsPage] = useState(0);
@@ -172,6 +173,7 @@ export default function AdminPage() {
             ...(user.role !== 'viewer' ? [['shops', 'Boutiques']] : []),
             ...(user.role === 'admin' ? [['users', 'Utilisateurs']] : []),
             ...(user.role !== 'viewer' ? [['listings', 'Annonces']] : []),
+            ...(user.role === 'admin' ? [['moderation', 'Modération']] : []),
             ['orders', 'Commandes'],
           ].map(([value, label]) => (
             <button
@@ -254,6 +256,8 @@ export default function AdminPage() {
           onAction={runAdminAction}
         />
       )}
+
+      {view === 'moderation' && <ModerationAdmin />}
 
       {view === 'orders' && (
         <AdminOrders
@@ -708,6 +712,9 @@ function ShopsAdmin({
                       {shop.topSellerBadge && (
                         <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-800">★ Top vendeur</span>
                       )}
+                      {shop.identityVerified && (
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">✔ Identité vérifiée</span>
+                      )}
                     </div>
                     <p className="mt-1 text-sm text-stone-600">
                       Vendeur : <strong>{shop.seller?.name || 'Artisan'}</strong> ({shop.seller?.email}) · Mobile Money : <strong>{shop.mobileMoneyNumber}</strong>
@@ -758,6 +765,18 @@ function ShopsAdmin({
                   )}
                   {shop.status !== 'pending' && (
                     <div className="flex gap-2">
+                      {canDelete ? (
+                        <button
+                          onClick={() => {
+                            if (shop.identityVerified || confirm(`Confirmez-vous avoir contrôlé la pièce d'identité de « ${shop.name} » ?`)) {
+                              void onAction(() => api.adminSetShopIdentityVerified(shop.id, !shop.identityVerified));
+                            }
+                          }}
+                          className="rounded-md bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
+                        >
+                          {shop.identityVerified ? 'Retirer « Identité vérifiée »' : 'Marquer l’identité vérifiée'}
+                        </button>
+                      ) : null}
                       <button
                         onClick={() => void onAction(() => api.adminSetShopStatus(shop.id, shop.status === 'active' ? 'suspended' : 'active'))}
                         className="rounded-md bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-700 hover:bg-orange-100"

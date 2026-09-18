@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import { VerificationBadge } from '@/components/VerificationBadge';
+import type { VerificationLevel } from '@/lib/types';
 
 export function ShopPublicCard({
   shopId,
@@ -10,7 +12,7 @@ export function ShopPublicCard({
   shopType,
   averageRating,
   ratingCount,
-  verifiedBadge,
+  verificationLevel,
   shopWhatsapp,
   shareShopWhatsapp,
   qrCodeUrl,
@@ -21,7 +23,7 @@ export function ShopPublicCard({
   shopType: string;
   averageRating: number | null;
   ratingCount: number;
-  verifiedBadge: boolean;
+  verificationLevel: VerificationLevel;
   shopWhatsapp: string | null;
   shareShopWhatsapp: string;
   qrCodeUrl: string;
@@ -42,10 +44,10 @@ export function ShopPublicCard({
     <section className="mb-8 rounded-lg border border-stone-200 bg-white p-6">
       <h1 className="text-2xl font-bold">{shopName}</h1>
       <div className="mt-2 text-stone-700">{description}</div>
-      <div className="mt-4 text-sm text-stone-600">
+      <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-stone-600">
         <span>Boutique {shopType}</span>
-        <span className="ml-3">{averageRating ? `★ ${averageRating}/5` : 'Pas encore noté'} ({ratingCount} avis)</span>
-        {verifiedBadge && <span className="ml-2 text-emerald-600">✔ Vendeur vérifié</span>}
+        <span>{averageRating ? `★ ${averageRating}/5` : 'Pas encore noté'} ({ratingCount} avis)</span>
+        <VerificationBadge level={verificationLevel} />
       </div>
       <div className="mt-4 grid gap-2 sm:grid-cols-3">
         <div className="rounded-md bg-stone-100 p-3 text-center">

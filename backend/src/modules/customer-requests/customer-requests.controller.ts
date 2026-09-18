@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { CurrentUser, type AuthUser } from '../auth/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { Public } from '../auth/public.decorator.js';
 import { CustomerRequestsService } from './customer-requests.service.js';
 
 @Controller('customer-requests')
@@ -28,6 +29,12 @@ export class CustomerRequestsController {
     return this.service.statsForArtisan(user.id);
   }
 
+  @Public()
+  @Get('artisan/:artisanId/public-stats')
+  publicStats(@Param('artisanId') artisanId: string) {
+    return this.service.publicStatsForArtisan(artisanId);
+  }
+
   @Post(':id/respond')
   respond(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() body: { price?: number; days?: number; message: string }) {
     return this.service.respond(user.id, id, body);
@@ -36,6 +43,11 @@ export class CustomerRequestsController {
   @Post(':id/responses/:artisanId/decision')
   decideResponse(@CurrentUser() user: AuthUser, @Param('id') id: string, @Param('artisanId') artisanId: string, @Body() body: { decision: 'accepted' | 'rejected' }) {
     return this.service.decideResponse(user.id, id, artisanId, body.decision);
+  }
+
+  @Post(':id/complete')
+  complete(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.service.complete(user.id, id);
   }
 
   @Get(':id')

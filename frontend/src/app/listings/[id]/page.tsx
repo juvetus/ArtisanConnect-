@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { ReportButton } from '@/components/ReportButton';
 import { categoryLabel } from '@/lib/categories';
 import { formatXAF } from '@/lib/format';
 import { resolveMediaUrl } from '@/lib/media';
@@ -177,6 +178,7 @@ export default function ListingPage() {
             <a href={shareWhatsapp} target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-md border border-green-600 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-50">
               Partager sur WhatsApp
             </a>
+            {!isOwnListing ? <ReportButton targetType="listing" targetId={listing.id} label="Signaler cette annonce" /> : null}
           </div>
         )}
       </div>

@@ -100,6 +100,13 @@ export class Shop {
   @Column({ default: false })
   verifiedBadge: boolean;
 
+  /** Pièce d'identité réellement contrôlée par un administrateur. */
+  @Column({ default: false })
+  identityVerified: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  identityVerifiedAt: Date | null;
+
   /** Badge / Indicateur Entrepreneuriat Féminin / Créatrice. */
   @Column({ default: false })
   isWomenLed: boolean;

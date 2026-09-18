@@ -1,9 +1,12 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Shop, type ShopType } from '../../entities/shop.entity.js';
 import { Listing } from '../../entities/listing.entity.js';
 import { User } from '../../entities/user.entity.js';
+import { ServiceReview } from '../../entities/service-review.entity.js';
+import { computeVerification } from './verification.js';
+import type { VerificationLevel } from './verification.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { EmailService } from '../email/email.service.js';
 import { StorageService } from '../storage/storage.service.js';
@@ -11,6 +14,19 @@ import { StorageService } from '../storage/storage.service.js';
 /** Nombre de ventes réussies pour débloquer les badges vendeur. */
 const VERIFIED_BADGE_THRESHOLD = 3;
 const TOP_SELLER_BADGE_THRESHOLD = 20;
+
+/** La recherche doit fonctionner avec ou sans accents (« Yaoundé » = « yaounde »). */
+function normalizeSearchValue(value?: string | null): string {
+  return (value ?? '').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim();
+}
+
+const VERIFICATION_RANK: Record<VerificationLevel, number> = {
+  none: 0,
+  phone: 1,
+  profile: 2,
+  identity: 3,
+  recommended: 4,
+};
 
 @Injectable()
 export class ShopsService {
@@ -21,6 +37,8 @@ export class ShopsService {
     private listingsRepository: Repository<Listing>,
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    @InjectRepository(ServiceReview)
+    private serviceReviewsRepository: Repository<ServiceReview>,
     private notificationsService: NotificationsService,
     private emailService: EmailService,
   ) {}
@@ -174,7 +192,7 @@ export class ShopsService {
   }
 
   /** Vue publique : boutique active + ses annonces actives, sans données sensibles. */
-  async findPublicById(id: string): Promise<{ shop: Omit<Shop, 'kycDocuments' | 'mobileMoneyNumber'>; listings: Listing[] } | null> {
+  async findPublicById(id: string): Promise<{ shop: Omit<Shop, 'kycDocuments' | 'mobileMoneyNumber'> & { verification: ReturnType<typeof computeVerification> }; listings: Listing[] } | null> {
     const shop = await this.shopsRepository.findOne({
       where: { id, status: 'active' },
       relations: { seller: true },
@@ -184,12 +202,153 @@ export class ShopsService {
       where: { shopId: id, status: 'active' },
       order: { createdAt: 'DESC' },
     });
+    const verification = computeVerification(shop, {
+      phoneVerified: Boolean(shop.seller?.verifiedPhone),
+      rating: await this.getSellerRating(shop.sellerId),
+    });
     const { kycDocuments: _k, mobileMoneyNumber: _m, ...publicShop } = shop;
-    return { shop: publicShop, listings };
+    return { shop: { ...publicShop, verification }, listings };
+  }
+
+  private async getSellerRating(sellerId: string): Promise<{ average: number | null; count: number }> {
+    const result = await this.serviceReviewsRepository
+      .createQueryBuilder('review')
+      .select('AVG(review.rating)', 'average')
+      .addSelect('COUNT(review.id)', 'count')
+      .where('review.recipientId = :sellerId', { sellerId })
+      .getRawOne<{ average: string | null; count: string }>();
+    return {
+      average: result?.average ? Number(Number(result.average).toFixed(1)) : null,
+      count: Number(result?.count ?? 0),
+    };
   }
 
   async findById(id: string): Promise<Shop | null> {
     return this.shopsRepository.findOne({ where: { id }, relations: { seller: true } });
+  }
+
+  /**
+   * Annuaire public d'artisans : boutiques actives, classées par niveau de confiance.
+   * Aucun numéro de téléphone n'est exposé, le contact passe par la fiche boutique.
+   */
+  async findPublicDirectory(
+    options: {
+      take?: number;
+      q?: string;
+      city?: string;
+      neighborhood?: string;
+      category?: string;
+      verified?: boolean;
+      minRating?: number;
+    } = {},
+  ) {
+    const take = Math.min(Math.max(Number(options.take) || 6, 1), 48);
+    const shops = await this.shopsRepository.find({
+      where: { status: 'active' },
+      relations: { seller: true },
+      take: 300,
+    });
+
+    const wantedCategory = normalizeSearchValue(options.category);
+    const wantedCity = normalizeSearchValue(options.city);
+    const wantedNeighborhood = normalizeSearchValue(options.neighborhood);
+    const wantedQuery = normalizeSearchValue(options.q);
+
+    const candidates = shops.filter((shop) => {
+      if (wantedCategory && normalizeSearchValue(shop.category) !== wantedCategory) return false;
+      if (wantedCity && !normalizeSearchValue(shop.city).includes(wantedCity)) return false;
+      if (wantedNeighborhood && !normalizeSearchValue(shop.neighborhood).includes(wantedNeighborhood)) return false;
+      if (wantedQuery) {
+        const haystack = `${normalizeSearchValue(shop.name)} ${normalizeSearchValue(shop.description)} ${normalizeSearchValue(shop.category)} ${normalizeSearchValue(shop.city)} ${normalizeSearchValue(shop.neighborhood)} ${normalizeSearchValue(shop.market)}`;
+        if (!haystack.includes(wantedQuery)) return false;
+      }
+      return true;
+    });
+    if (!candidates.length) return [];
+
+    const sellerIds = [...new Set(candidates.map((shop) => shop.sellerId))];
+    const ratings = await this.serviceReviewsRepository
+      .createQueryBuilder('review')
+      .select('review.recipientId', 'recipientId')
+      .addSelect('AVG(review.rating)', 'average')
+      .addSelect('COUNT(review.id)', 'count')
+      .where('review.recipientId IN (:...sellerIds)', { sellerIds })
+      .groupBy('review.recipientId')
+      .getRawMany<{ recipientId: string; average: string; count: string }>();
+    const ratingBySeller = new Map(
+      ratings.map((row) => [
+        row.recipientId,
+        { average: Number(Number(row.average).toFixed(1)), count: Number(row.count) },
+      ]),
+    );
+
+    const listings = await this.listingsRepository.find({
+      where: { shopId: In(candidates.map((shop) => shop.id)), status: 'active' },
+      order: { createdAt: 'DESC' },
+    });
+    const coverByShop = new Map<string, string>();
+    for (const listing of listings) {
+      if (listing.shopId && listing.imageUrl && !coverByShop.has(listing.shopId)) {
+        coverByShop.set(listing.shopId, listing.imageUrl);
+      }
+    }
+
+    const minRating = Number(options.minRating) || 0;
+
+    return candidates
+      .map((shop) => {
+        const rating = ratingBySeller.get(shop.sellerId) ?? { average: null, count: 0 };
+        return {
+          id: shop.id,
+          name: shop.name,
+          description: shop.description,
+          category: shop.category ?? null,
+          city: shop.city,
+          neighborhood: shop.neighborhood,
+          verifiedBadge: shop.verifiedBadge,
+          topSellerBadge: shop.topSellerBadge,
+          isWomenLed: shop.isWomenLed,
+          isCooperative: shop.isCooperative,
+          successfulSales: shop.successfulSales,
+          views: Number(shop.views ?? 0),
+          createdAt: shop.createdAt,
+          coverImageUrl: coverByShop.get(shop.id) ?? null,
+          rating,
+          verification: computeVerification(shop, {
+            phoneVerified: Boolean(shop.seller?.verifiedPhone),
+            rating,
+          }),
+          seller: {
+            id: shop.sellerId,
+            name: shop.seller?.name ?? null,
+            verifiedPhone: Boolean(shop.seller?.verifiedPhone),
+          },
+        };
+      })
+      .filter((item) => {
+        if (options.verified && !item.verification.steps.profile) return false;
+        if (minRating && (item.rating.average ?? 0) < minRating) return false;
+        return true;
+      })
+      .sort(
+        (first, second) =>
+          VERIFICATION_RANK[second.verification.level] - VERIFICATION_RANK[first.verification.level] ||
+          (second.rating.average ?? 0) - (first.rating.average ?? 0) ||
+          second.successfulSales - first.successfulSales ||
+          second.views - first.views,
+      )
+      .slice(0, take);
+  }
+
+  /** Marque l'identité du vendeur comme réellement contrôlée (réservé aux administrateurs). */
+  async setIdentityVerified(id: string, verified: boolean): Promise<Shop | null> {
+    const shop = await this.shopsRepository.findOne({ where: { id } });
+    if (!shop) throw new NotFoundException('Boutique introuvable');
+    await this.shopsRepository.update(id, {
+      identityVerified: verified,
+      identityVerifiedAt: verified ? new Date() : null,
+    });
+    return this.findById(id);
   }
 
   /** Boutiques en attente de validation manuelle (admin). */

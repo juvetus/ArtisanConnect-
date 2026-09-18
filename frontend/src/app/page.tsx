@@ -1,18 +1,46 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import useSWR from 'swr';
 import { api } from '@/lib/api';
 import { ListingCard } from '@/components/ListingCard';
 import { Pagination } from '@/components/Pagination';
+import { ArtisanCard } from '@/components/ArtisanCard';
+import { VerificationBadge } from '@/components/VerificationBadge';
 import { CATEGORIES, PRODUCT_CATEGORIES, SERVICE_CATEGORIES, categoryLabel } from '@/lib/categories';
 import { demoArtisans, demoListings, demoServices } from '@/lib/demo-content';
 import { useLanguage } from '@/lib/language-context';
-import type { Service } from '@/lib/types';
+import { CITIES, NEIGHBORHOODS, slugify } from '@/lib/locations';
+import { resolveMediaUrl } from '@/lib/media';
+import type { PublicArtisan, Service } from '@/lib/types';
+
+/** Métiers les plus recherchés par les clients de Yaoundé. */
+const POPULAR_CATEGORIES = [
+  'plomberie',
+  'electricite',
+  'menuiserie',
+  'couture',
+  'maconnerie',
+  'coiffure',
+  'reparation',
+  'ameublement',
+  'vannerie',
+];
+
+type CatalogFilters = {
+  q?: string;
+  category?: string;
+  type?: 'product' | 'service';
+  city?: string;
+  neighborhood?: string;
+  minPrice?: number;
+  maxPrice?: number;
+};
 
 export default function HomePage() {
   const { t } = useLanguage();
-  const [filters, setFilters] = useState<{ q?: string; category?: string }>({});
+  const [filters, setFilters] = useState<CatalogFilters>({});
   const [audienceFilter, setAudienceFilter] = useState<'all' | 'women' | 'cooperatives'>('all');
   const [listingPage, setListingPage] = useState(0);
   const [draftQuery, setDraftQuery] = useState('');
@@ -21,7 +49,7 @@ export default function HomePage() {
 
   const { data, error, isLoading } = useSWR(
     ['listings', filters, listingPage],
-    ([, params, page]) => api.listings({ ...params, skip: page * 12, take: 12 }),
+    ([, params, page]) => api.listings({ ...(params as CatalogFilters), skip: (page as number) * 12, take: 12 }),
     // Sans cela, un retour sur l'onglet relancerait la requête et donc le défilement.
     { revalidateOnFocus: false },
   );
@@ -31,7 +59,32 @@ export default function HomePage() {
     'approved-services-home',
     async () => (await api.getApprovedServices(6)) as Service[],
   );
-  const hasFilter = Boolean(filters.q || filters.category);
+  const { data: artisans } = useSWR<PublicArtisan[]>('home-public-artisans', () => api.publicArtisans({ take: 6 }));
+  const { data: matchingArtisans } = useSWR<PublicArtisan[]>(
+    filters.q ? ['home-matching-artisans', filters.q, filters.city, filters.neighborhood, filters.category] : null,
+    ([, q, city, neighborhood, category]) =>
+      api.publicArtisans({
+        take: 3,
+        q: q as string,
+        city: city as string | undefined,
+        neighborhood: neighborhood as string | undefined,
+        category: category as string | undefined,
+      }),
+    { revalidateOnFocus: false },
+  );
+  const hasFilter = Object.values(filters).some((value) => value !== undefined && value !== '');
+
+  const updateFilter = (patch: Partial<CatalogFilters>) => {
+    setFilters((current) => {
+      const next = { ...current, ...patch };
+      // Un quartier n'a de sens qu'associé à sa ville.
+      if (patch.city !== undefined) next.neighborhood = undefined;
+      return Object.fromEntries(
+        Object.entries(next).filter(([, value]) => value !== undefined && value !== ''),
+      ) as CatalogFilters;
+    });
+    setListingPage(0);
+  };
 
   // Le défilement attend l'arrivée des résultats : tant que SWR n'a pas répondu, la page
   // a encore la hauteur de la liste précédente et la cible serait mal placée.
@@ -42,18 +95,22 @@ export default function HomePage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setFilters(draftQuery ? { q: draftQuery } : {});
-    setListingPage(0);
+    updateFilter({ q: draftQuery || undefined });
   };
 
   const selectCategory = (value: string) => {
-    setDraftQuery('');
     setShowCategories(false);
-    setFilters(value ? { category: value } : {});
+    updateFilter({ category: value || undefined });
+  };
+
+  const resetFilters = () => {
+    setDraftQuery('');
+    setFilters({});
     setListingPage(0);
   };
 
   const activeCategory = CATEGORIES.find((c) => c.value === filters.category);
+  const availableNeighborhoods = filters.city ? NEIGHBORHOODS[slugify(filters.city)] ?? [] : [];
   const visibleListings = listings.length ? listings : !hasFilter && !isLoading ? demoListings : [];
   const visibleTotal = listings.length ? total : visibleListings.length;
   const visibleServices = services?.length ? services : demoServices;
@@ -65,37 +122,97 @@ export default function HomePage() {
         <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="px-6 py-10 lg:px-8">
             <p className="text-sm font-semibold uppercase tracking-wide text-amber-300">{t('home_market_badge')}</p>
-            <h1 className="mt-3 text-3xl font-semibold leading-tight md:text-4xl">{t('home_market_title')}</h1>
+            <h1 className="mt-3 text-3xl font-semibold leading-tight md:text-4xl">{t('home_hero_title')}</h1>
             <p className="mt-3 max-w-2xl text-stone-200">
-              {t('home_market_subtitle')}
+              {t('home_hero_subtitle')}
             </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <a href="#produits-populaires" className="rounded-lg bg-amber-600 px-5 py-3 text-sm font-semibold text-white hover:bg-amber-700">{t('home_cta_products')}</a>
-              <a href="/services" className="rounded-lg bg-white px-5 py-3 text-sm font-semibold text-stone-900 hover:bg-stone-100">{t('home_cta_service')}</a>
-              <a href="/customer-requests" className="rounded-lg border border-amber-300 px-5 py-3 text-sm font-semibold text-amber-100 hover:bg-amber-800">{t('home_cta_find_artisan')}</a>
-              <a href="/how-it-works" className="rounded-lg border border-white/30 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10">{t('home_cta_how')}</a>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <Link href="/trouver-un-artisan" className="rounded-lg bg-amber-600 px-6 py-3 text-base font-semibold text-white hover:bg-amber-700">{t('home_hero_cta_find')}</Link>
+              <Link href="/customer-requests" className="rounded-lg bg-white px-6 py-3 text-base font-semibold text-stone-900 hover:bg-stone-100">{t('home_hero_cta_quote')}</Link>
             </div>
+            <Link href="/register" className="mt-4 inline-block text-sm font-medium text-amber-200 underline underline-offset-4 hover:text-amber-100">
+              {t('home_hero_secondary')}
+            </Link>
           </div>
           <div className="min-h-64 bg-[url('/images/african-market-artisan-stockcake.jpg')] bg-cover bg-center" aria-hidden />
         </div>
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <section aria-label={t('home_paths_badge')} className="grid gap-4 sm:grid-cols-3">
         {[
-          [t('home_category_products_title'), t('home_category_products_desc'), 'vannerie'],
-          [t('home_category_services_title'), t('home_category_services_desc'), 'couture'],
-          [t('home_category_women_title'), t('home_category_women_desc'), 'mode'],
-          [t('home_category_coops_title'), t('home_category_coops_desc'), 'ameublement'],
-        ].map(([title, description, category]) => (
-          <button
-            key={title}
-            onClick={() => selectCategory(category)}
-            className="rounded-lg border border-stone-200 bg-white p-4 text-left transition hover:border-amber-600 hover:shadow-sm"
+          { title: t('home_path_find_title'), desc: t('home_path_find_desc'), href: '/trouver-un-artisan', icon: '🔎' },
+          { title: t('home_path_buy_title'), desc: t('home_path_buy_desc'), href: '#catalogue', icon: '🧺' },
+          { title: t('home_path_sell_title'), desc: t('home_path_sell_desc'), href: '/register', icon: '🛠️' },
+        ].map((path) => (
+          <Link
+            key={path.title}
+            href={path.href}
+            className="rounded-xl border border-stone-200 bg-white p-5 transition hover:border-amber-600 hover:shadow-sm"
           >
-            <p className="font-semibold text-stone-900">{title}</p>
-            <p className="mt-1 text-sm text-stone-600">{description}</p>
-          </button>
+            <span aria-hidden className="text-2xl">{path.icon}</span>
+            <p className="mt-2 text-lg font-semibold text-stone-900">{path.title}</p>
+            <p className="mt-1 text-sm text-stone-600">{path.desc}</p>
+          </Link>
         ))}
+      </section>
+
+      <section className="space-y-4">
+        <div>
+          <p className="text-sm font-medium uppercase tracking-wide text-amber-700">{t('home_popular_categories_badge')}</p>
+          <h2 className="text-2xl font-semibold text-stone-900">{t('home_popular_categories_title')}</h2>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {POPULAR_CATEGORIES.map((value) => {
+            const category = CATEGORIES.find((item) => item.value === value);
+            if (!category) return null;
+            return (
+              <button
+                key={value}
+                onClick={() => selectCategory(value)}
+                className={`rounded-full border px-4 py-2 text-sm transition ${
+                  filters.category === value
+                    ? 'border-amber-700 bg-amber-700 text-white'
+                    : 'border-stone-300 bg-white text-stone-700 hover:border-amber-600'
+                }`}
+              >
+                <span aria-hidden className="mr-1.5">{category.icon}</span>
+                {categoryLabel(value)}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <section id="artisans" className="scroll-mt-6 space-y-4">
+        <div>
+          <p className="text-sm font-medium uppercase tracking-wide text-amber-700">{t('home_recommended_badge')}</p>
+          <h2 className="text-2xl font-semibold text-stone-900">{t('home_recommended_title')}</h2>
+          <p className="mt-1 text-sm text-stone-600">{t('home_recommended_desc')}</p>
+        </div>
+        {artisans?.length ? (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {artisans.map((artisan) => (
+              <ArtisanCard key={artisan.id} artisan={artisan} />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{t('home_artisans_empty')}</p>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {demoArtisans.map((artisan) => (
+                <article key={artisan.id} className="overflow-hidden rounded-xl border border-stone-200 bg-stone-50">
+                  <img src={artisan.imageUrl} alt={artisan.name} className="h-28 w-full object-cover" />
+                  <div className="p-4">
+                    <h3 className="font-semibold text-stone-900">{artisan.name}</h3>
+                    <p className="mt-1 text-xs font-medium uppercase tracking-wide text-amber-700">{artisan.specialty}</p>
+                    <p className="mt-1 text-sm text-stone-600">{artisan.city}</p>
+                    <p className="mt-2 text-xs text-stone-500">{t('home_catalog_demo_note')}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="grid gap-4 overflow-hidden rounded-xl border border-stone-200 bg-white p-4 lg:grid-cols-[1.1fr_0.9fr]">
@@ -133,27 +250,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="grid gap-5 rounded-xl border border-stone-200 bg-white p-6 lg:grid-cols-[0.8fr_1.2fr]">
-        <div>
-          <p className="text-sm font-medium uppercase tracking-wide text-amber-700">{t('home_featured_artisans_badge')}</p>
-          <h2 className="mt-2 text-2xl font-semibold text-stone-900">{t('home_featured_artisans_title')}</h2>
-          <p className="mt-2 text-sm text-stone-600">{t('home_featured_artisans_desc')}</p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          {demoArtisans.map((artisan) => (
-            <article key={artisan.id} className="overflow-hidden rounded-lg border border-stone-200 bg-stone-50">
-              <img src={artisan.imageUrl} alt={artisan.name} className="h-28 w-full object-cover" />
-              <div className="p-4">
-                <h3 className="font-semibold text-stone-900">{artisan.name}</h3>
-                <p className="mt-1 text-xs font-medium uppercase tracking-wide text-amber-700">{artisan.specialty}</p>
-                <p className="mt-1 text-sm text-stone-600">{artisan.city}</p>
-                <a href="/contact" className="mt-3 inline-block text-sm font-medium text-amber-700 underline">{t('home_contact_artisan')}</a>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           [t('home_trust_verified_title'), t('home_trust_verified_desc')],
@@ -186,16 +282,86 @@ export default function HomePage() {
               onChange={(e) => setDraftQuery(e.target.value)}
               aria-label={t('search_placeholder')}
               placeholder={t('search_placeholder')}
-              className="w-full rounded-lg border-2 border-transparent bg-white py-3 pl-12 pr-4 text-base text-stone-900 shadow-lg outline-none placeholder:text-stone-500 focus:border-amber-300"
+              className="w-full rounded-lg border border-stone-300 bg-white py-3 pl-12 pr-4 text-base text-stone-900 outline-none placeholder:text-stone-500 focus:border-amber-600"
             />
           </div>
           <button
             type="submit"
-            className="rounded-lg bg-stone-900 px-6 py-3 font-medium text-white shadow-lg hover:bg-stone-800"
+            className="rounded-lg bg-stone-900 px-6 py-3 font-medium text-white hover:bg-stone-800"
           >
             {t('search_button')}
           </button>
         </form>
+
+        <div className="grid gap-3 rounded-xl border border-stone-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-5">
+          <label className="text-sm font-medium text-stone-700">
+            Type
+            <select
+              value={filters.type ?? ''}
+              onChange={(event) => updateFilter({ type: (event.target.value || undefined) as CatalogFilters['type'] })}
+              className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
+            >
+              <option value="">Produits et services</option>
+              <option value="product">Produits</option>
+              <option value="service">Services</option>
+            </select>
+          </label>
+
+          <label className="text-sm font-medium text-stone-700">
+            Ville
+            <select
+              value={filters.city ?? ''}
+              onChange={(event) => updateFilter({ city: event.target.value || undefined })}
+              className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
+            >
+              <option value="">Toutes les villes</option>
+              {CITIES.map((city) => (
+                <option key={city} value={city}>{city}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="text-sm font-medium text-stone-700">
+            Quartier
+            <select
+              value={filters.neighborhood ?? ''}
+              onChange={(event) => updateFilter({ neighborhood: event.target.value || undefined })}
+              disabled={!availableNeighborhoods.length}
+              className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600 disabled:bg-stone-100"
+            >
+              <option value="">Tous les quartiers</option>
+              {availableNeighborhoods.map((neighborhood) => (
+                <option key={neighborhood} value={neighborhood}>{neighborhood}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="text-sm font-medium text-stone-700">
+            Budget min. (FCFA)
+            <input
+              type="number"
+              min={0}
+              step={500}
+              value={filters.minPrice ?? ''}
+              onChange={(event) => updateFilter({ minPrice: event.target.value ? Number(event.target.value) : undefined })}
+              placeholder="0"
+              className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
+            />
+          </label>
+
+          <label className="text-sm font-medium text-stone-700">
+            Budget max. (FCFA)
+            <input
+              type="number"
+              min={0}
+              step={500}
+              value={filters.maxPrice ?? ''}
+              onChange={(event) => updateFilter({ maxPrice: event.target.value ? Number(event.target.value) : undefined })}
+              placeholder="Sans limite"
+              className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
+            />
+          </label>
+        </div>
       </section>
 
       <div ref={resultsRef} className="scroll-mt-6 space-y-4">
@@ -221,7 +387,6 @@ export default function HomePage() {
           ) : (
             <span className="text-sm text-stone-500">{t('filter_all_categories')}</span>
           )}
-
           <button
             onClick={() => setAudienceFilter((prev) => (prev === 'women' ? 'all' : 'women'))}
             className={`flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm transition-colors ${
@@ -243,6 +408,15 @@ export default function HomePage() {
           >
             {t('filter_coop')}
           </button>
+
+          {hasFilter ? (
+            <button
+              onClick={resetFilters}
+              className="ml-auto text-sm font-medium text-stone-500 underline underline-offset-4 hover:text-stone-800"
+            >
+              Réinitialiser les filtres
+            </button>
+          ) : null}
         </div>
 
         {showCategories &&
@@ -272,6 +446,30 @@ export default function HomePage() {
             </div>
           ))}
       </div>
+
+      {filters.q && matchingArtisans?.length ? (
+        <section className="space-y-4 rounded-xl border border-amber-200 bg-amber-50/60 p-5">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium uppercase tracking-wide text-amber-700">Artisans correspondants</p>
+              <h2 className="text-xl font-semibold text-stone-900">
+                Ces artisans correspondent à « {filters.q} »
+              </h2>
+            </div>
+            <Link
+              href={`/trouver-un-artisan${filters.category ? `/${filters.category}` : ''}`}
+              className="text-sm font-medium text-amber-700 hover:text-amber-800"
+            >
+              Voir tous les artisans →
+            </Link>
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {matchingArtisans.map((artisan) => (
+              <ArtisanCard key={artisan.id} artisan={artisan} />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <div className="space-y-5">
         {isLoading ? (

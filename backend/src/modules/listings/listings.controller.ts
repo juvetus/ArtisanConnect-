@@ -95,19 +95,26 @@ export class ListingsController {
     @Query('q') query?: string,
     @Query('category') category?: string,
     @Query('type') type?: 'product' | 'service',
+    @Query('city') city?: string,
+    @Query('neighborhood') neighborhood?: string,
+    @Query('minPrice') minPrice?: string,
+    @Query('maxPrice') maxPrice?: string,
     @Query('skip', new DefaultValuePipe(0), ParseIntPipe) skip: number = 0,
     @Query('take', new DefaultValuePipe(20), ParseIntPipe) take: number = 20,
   ) {
-    if (query) {
-      return this.listingsService.search(query, skip, take);
-    }
-    if (category) {
-      return this.listingsService.findByCategory(category, skip, take);
-    }
-    if (type) {
-      return this.listingsService.findByType(type, skip, take);
-    }
-    return this.listingsService.findAll(skip, take);
+    return this.listingsService.searchCatalog(
+      {
+        q: query,
+        category,
+        type,
+        city,
+        neighborhood,
+        minPrice: minPrice ? Number(minPrice) : undefined,
+        maxPrice: maxPrice ? Number(maxPrice) : undefined,
+      },
+      skip,
+      take,
+    );
   }
 
   @Public()

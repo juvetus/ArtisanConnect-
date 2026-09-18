@@ -78,6 +78,29 @@ export class ShopsController {
     return this.shopsService.create(user.id, body);
   }
 
+  /** Route publique : annuaire d'artisans pour la page d'accueil et la recherche. */
+  @Public()
+  @Get('public')
+  async publicDirectory(
+    @Query('take') take?: string,
+    @Query('q') q?: string,
+    @Query('city') city?: string,
+    @Query('neighborhood') neighborhood?: string,
+    @Query('category') category?: string,
+    @Query('verified') verified?: string,
+    @Query('minRating') minRating?: string,
+  ) {
+    return this.shopsService.findPublicDirectory({
+      take: take ? Number(take) : undefined,
+      q,
+      city,
+      neighborhood,
+      category,
+      verified: verified === 'true',
+      minRating: minRating ? Number(minRating) : undefined,
+    });
+  }
+
   /** Route publique : pas d'auth, expose boutique active + annonces actives uniquement. */
   @Public()
   @Get(':id/public')

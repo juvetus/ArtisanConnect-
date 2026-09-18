@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { whatsappHref } from '@/lib/whatsapp';
+import { CUSTOMER_REQUEST_STATUS_LABELS } from '@/lib/types';
 
 export default function CustomerRequestsPage() {
   const { user, ready } = useAuth();
@@ -19,13 +20,22 @@ export default function CustomerRequestsPage() {
   const [notice, setNotice] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const decide = async (requestId: string, artisanId: string, decision: 'accepted' | 'rejected') => {
-    try {
+  const decide = async (requestId: string, artisanId: string, decision: 'accepted' | 'rejected') => {    try {
       await api.decideCustomerRequestResponse(requestId, artisanId, decision);
       setNotice(decision === 'accepted' ? 'Proposition acceptée. Vous pouvez maintenant discuter avec l’artisan.' : 'Proposition refusée.');
       await mutate();
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Impossible de traiter cette proposition.');
+    }
+  };
+
+  const complete = async (requestId: string) => {
+    try {
+      await api.completeCustomerRequest(requestId);
+      setNotice('Demande clôturée. Merci pour votre retour.');
+      await mutate();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Impossible de clôturer cette demande.');
     }
   };
 
@@ -67,7 +77,7 @@ export default function CustomerRequestsPage() {
         {notice ? <p className="rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-900">{notice}</p> : null}
         <button disabled={saving} className="rounded-md bg-amber-700 px-5 py-2.5 font-medium text-white hover:bg-amber-800 disabled:opacity-60">{saving ? 'Publication...' : 'Publier ma demande'}</button>
       </form>
-      <section className="space-y-3"><h2 className="text-xl font-semibold text-stone-900">Mes demandes</h2>{requests?.length ? requests.map((request) => <article key={request.id} className="rounded-lg border border-stone-200 bg-white p-5"><div className="flex flex-wrap justify-between gap-3"><h3 className="font-semibold">{request.category} · {request.city}</h3><span className="text-xs uppercase text-stone-500">{request.status}</span></div><p className="mt-2 text-sm text-stone-600">{request.description}</p>{request.responses?.length ? <div className="mt-4 space-y-3 border-t border-stone-100 pt-4"><h4 className="text-sm font-semibold text-stone-900">Réponses des artisans</h4>{request.responses.map((response, index) => { const href = whatsappHref(response.artisan?.whatsappPhone ?? response.artisan?.phone, `Bonjour ${response.artisan?.name ?? 'artisan'}, je réponds à votre proposition pour ma demande ${request.category} à ${request.city} sur ArtisanConnect.`); const decided = response.status === 'accepted' || response.status === 'rejected'; return <div key={`${request.id}-${index}`} className="rounded-md bg-stone-50 p-3 text-sm"><p className="font-medium">{response.artisan?.name ?? 'Artisan'}{response.price ? ` · ${response.price} FCFA` : ''}{response.days ? ` · ${response.days} jours` : ''}</p><p className="mt-1 text-stone-600">{response.message}</p><p className="mt-2 text-xs uppercase text-stone-500">{response.status === 'accepted' ? 'Proposition acceptée' : response.status === 'rejected' ? 'Proposition refusée' : 'En attente de votre décision'}</p>{!decided ? <div className="mt-3 flex flex-wrap gap-2"><button onClick={() => void decide(request.id, response.artisanId, 'accepted')} className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700">Accepter</button><button onClick={() => void decide(request.id, response.artisanId, 'rejected')} className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">Refuser</button><Link href={`/messages?to=${response.artisanId}&customerRequestId=${request.id}`} className="rounded-md border border-amber-300 px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-50">Discuter</Link></div> : null}{href ? <a href={href} target="_blank" rel="noreferrer" className="mt-2 inline-flex rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700">Contacter sur WhatsApp</a> : null}</div>; })}</div> : null}</article>) : <p className="text-sm text-stone-600">Aucune demande publiée pour le moment.</p>}</section>
+      <section className="space-y-3"><h2 className="text-xl font-semibold text-stone-900">Mes demandes</h2>{requests?.length ? requests.map((request) => <article key={request.id} className="rounded-lg border border-stone-200 bg-white p-5"><div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-semibold">{request.category} · {request.city}</h3><div className="flex items-center gap-3"><span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-medium text-stone-700">{CUSTOMER_REQUEST_STATUS_LABELS[request.status] ?? request.status}</span>{request.status !== 'completed' ? <button onClick={() => void complete(request.id)} className="text-xs font-medium text-stone-500 underline underline-offset-4 hover:text-stone-800">Marquer comme terminée</button> : null}</div></div><p className="mt-2 text-sm text-stone-600">{request.description}</p>{request.responses?.length ? <div className="mt-4 space-y-3 border-t border-stone-100 pt-4"><h4 className="text-sm font-semibold text-stone-900">Réponses des artisans</h4>{request.responses.map((response, index) => { const href = whatsappHref(response.artisan?.whatsappPhone ?? response.artisan?.phone, `Bonjour ${response.artisan?.name ?? 'artisan'}, je réponds à votre proposition pour ma demande ${request.category} à ${request.city} sur ArtisanConnect.`); const decided = response.status === 'accepted' || response.status === 'rejected'; return <div key={`${request.id}-${index}`} className="rounded-md bg-stone-50 p-3 text-sm"><p className="font-medium">{response.artisan?.name ?? 'Artisan'}{response.price ? ` · ${response.price} FCFA` : ''}{response.days ? ` · ${response.days} jours` : ''}</p><p className="mt-1 text-stone-600">{response.message}</p><p className="mt-2 text-xs uppercase text-stone-500">{response.status === 'accepted' ? 'Proposition acceptée' : response.status === 'rejected' ? 'Proposition refusée' : 'En attente de votre décision'}</p>{!decided ? <div className="mt-3 flex flex-wrap gap-2"><button onClick={() => void decide(request.id, response.artisanId, 'accepted')} className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700">Accepter</button><button onClick={() => void decide(request.id, response.artisanId, 'rejected')} className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">Refuser</button><Link href={`/messages?to=${response.artisanId}&customerRequestId=${request.id}`} className="rounded-md border border-amber-300 px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-50">Discuter</Link></div> : null}{href ? <a href={href} target="_blank" rel="noreferrer" className="mt-2 inline-flex rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700">Contacter sur WhatsApp</a> : null}</div>; })}</div> : null}</article>) : <p className="text-sm text-stone-600">Aucune demande publiée pour le moment.</p>}</section>
     </div>
   );
 }

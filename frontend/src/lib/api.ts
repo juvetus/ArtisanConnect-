@@ -1,4 +1,4 @@
-import type { AdminOverview, ArtisanFormalization, AuthSession, InstitutionDashboard, InstitutionalProgram, InstitutionalResource, Listing, Message, NotificationItem, NotificationsResponse, Order, Paginated, Payment, ProgramApplication, ProgramApplicationStatus, ProgramType, ResourceType, Review, Role, Shop, ShopType, Thread, User } from './types';
+import type { AdminOverview, ArtisanFormalization, AuthSession, CustomerRequestStatus, InstitutionDashboard, InstitutionalProgram, InstitutionalResource, Listing, Message, NotificationItem, NotificationsResponse, Order, Paginated, Payment, ProgramApplication, ProgramApplicationStatus, ProgramType, PublicArtisan, Report, ReportReason, ReportStatus, ReportTargetType, ResourceType, Review, Role, Shop, ShopType, Thread, User } from './types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
@@ -96,9 +96,23 @@ export const api = {
     return request<{ sent: boolean; message: string }>('/contact', { method: 'POST', body: form });
   },
 
-  listings: (params: { q?: string; category?: string; type?: string; skip?: number; take?: number } = {}) => {
+  listings: (
+    params: {
+      q?: string;
+      category?: string;
+      type?: string;
+      city?: string;
+      neighborhood?: string;
+      minPrice?: number;
+      maxPrice?: number;
+      skip?: number;
+      take?: number;
+    } = {},
+  ) => {
     const search = new URLSearchParams(
-      Object.entries(params).filter(([, v]) => Boolean(v)) as [string, string][],
+      Object.entries(params)
+        .filter(([, value]) => value !== undefined && value !== '' && value !== null)
+        .map(([key, value]) => [key, String(value)]),
     );
     return request<Paginated<Listing>>(`/listings?${search}`);
   },
@@ -268,6 +282,30 @@ export const api = {
     return Array.isArray(data) ? data[0] : data;
   },
 
+  /** Annuaire public d'artisans (boutiques actives) utilisé sur l'accueil et la recherche. */
+  publicArtisans: (
+    params: {
+      take?: number;
+      q?: string;
+      city?: string;
+      neighborhood?: string;
+      category?: string;
+      verified?: boolean;
+      minRating?: number;
+    } = {},
+  ) => {
+    const query = new URLSearchParams();
+    if (params.take) query.set('take', String(params.take));
+    if (params.q) query.set('q', params.q);
+    if (params.city) query.set('city', params.city);
+    if (params.neighborhood) query.set('neighborhood', params.neighborhood);
+    if (params.category) query.set('category', params.category);
+    if (params.verified) query.set('verified', 'true');
+    if (params.minRating) query.set('minRating', String(params.minRating));
+    const suffix = query.toString();
+    return request<PublicArtisan[]>(`/shops/public${suffix ? `?${suffix}` : ''}`);
+  },
+
   institutionReviewFormalization: (id: string, status: ArtisanFormalization['status'], notes?: string) =>
     patch<ArtisanFormalization>(`/institutions/formalizations/${id}/status`, { status, notes }),
 
@@ -332,6 +370,22 @@ export const api = {
 
   adminSetShopStatus: (id: string, status: 'active' | 'suspended') =>
     patch<Shop>(`/admin/shops/${id}/status`, { status }),
+
+  adminSetShopIdentityVerified: (id: string, verified: boolean) =>
+    patch<Shop>(`/admin/shops/${id}/identity`, { verified }),
+
+  // --- Signalements et modération ---
+
+  createReport: (data: { targetType: ReportTargetType; targetId: string; reason: ReportReason; details?: string }) =>
+    post<Report>('/reports', data),
+
+  myReports: () => request<Report[]>('/reports/mine'),
+
+  adminReports: (status?: ReportStatus) =>
+    request<Report[]>(`/reports/admin${status ? `?status=${status}` : ''}`),
+
+  adminModerateReport: (id: string, status: ReportStatus, notes?: string) =>
+    patch<Report>(`/reports/admin/${id}`, { status, notes }),
 
   adminDeleteShop: (id: string) => delete_<void>(`/admin/shops/${id}`),
 
@@ -463,9 +517,12 @@ export const api = {
     getMyServiceOrders: () => request(`/service-orders/mine`),
 
     createCustomerRequest: (data: { category: string; city: string; neighborhood?: string; description: string; budgetMin?: number; budgetMax?: number; requestedDate?: string }) => post('/customer-requests', data),
-    getMyCustomerRequests: () => request<{ id: string; category: string; city: string; description: string; status: string; responses?: { artisanId: string; artisan?: { name?: string; phone?: string; whatsappPhone?: string } | null; price?: number; days?: number; message: string; status?: 'accepted' | 'rejected' }[] }[]>('/customer-requests/mine'),
-    getOpenCustomerRequests: (filters: { category?: string; city?: string } = {}) => request<{ id: string; category: string; city: string; neighborhood?: string | null; description: string; budgetMin?: number | null; budgetMax?: number | null; status: string; matchScore?: number }[]>(`/customer-requests/artisan/open?category=${encodeURIComponent(filters.category ?? '')}&city=${encodeURIComponent(filters.city ?? '')}`),
+    getMyCustomerRequests: () => request<{ id: string; category: string; city: string; description: string; status: CustomerRequestStatus; responses?: { artisanId: string; artisan?: { name?: string; phone?: string; whatsappPhone?: string } | null; price?: number; days?: number; message: string; status?: 'accepted' | 'rejected' }[] }[]>('/customer-requests/mine'),
+    completeCustomerRequest: (id: string) => post(`/customer-requests/${id}/complete`, {}),
+    getOpenCustomerRequests: (filters: { category?: string; city?: string } = {}) => request<{ id: string; category: string; city: string; neighborhood?: string | null; description: string; budgetMin?: number | null; budgetMax?: number | null; status: CustomerRequestStatus; matchScore?: number; targeted?: boolean; alreadyAnswered?: boolean }[]>(`/customer-requests/artisan/open?category=${encodeURIComponent(filters.category ?? '')}&city=${encodeURIComponent(filters.city ?? '')}`),
     getCustomerRequestStats: () => request<{ requestsReceived: number; responsesSent: number; openRequests: number; averageResponseMinutes: number }>('/customer-requests/artisan/stats'),
+    getArtisanResponseHistory: (artisanId: string) =>
+      request<{ requestsReceived: number; responsesSent: number; responseRate: number; averageResponseMinutes: number; lastResponseAt: string | null }>(`/customer-requests/artisan/${artisanId}/public-stats`),
     respondToCustomerRequest: (id: string, data: { price?: number; days?: number; message: string }) => post(`/customer-requests/${id}/respond`, data),
     decideCustomerRequestResponse: (id: string, artisanId: string, decision: 'accepted' | 'rejected') => post(`/customer-requests/${id}/responses/${artisanId}/decision`, { decision }),
 

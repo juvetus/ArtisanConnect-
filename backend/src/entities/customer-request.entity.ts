@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-export type CustomerRequestStatus = 'open' | 'assigned' | 'closed';
+export type CustomerRequestStatus = 'new' | 'contacted' | 'in_progress' | 'completed';
 
 @Entity('customer_requests')
 export class CustomerRequest {
@@ -31,7 +31,7 @@ export class CustomerRequest {
   @Column({ type: 'varchar', nullable: true })
   requestedDate: string | null;
 
-  @Column('enum', { enum: ['open', 'assigned', 'closed'], default: 'open' })
+  @Column({ type: 'varchar', default: 'new' })
   status: CustomerRequestStatus;
 
   @Column('simple-array', { nullable: true })

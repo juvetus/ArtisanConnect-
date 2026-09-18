@@ -141,6 +141,12 @@ export class AdminController {
     return this.adminService.setShopStatus(id, body.status);
   }
 
+  @Patch('shops/:id/identity')
+  verifyShopIdentity(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() body: { verified: boolean }) {
+    this.assertAdmin(user);
+    return this.adminService.setShopIdentityVerified(id, Boolean(body.verified));
+  }
+
   @Delete('shops/:id')
   deleteShop(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     this.assertAdmin(user);

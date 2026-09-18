@@ -5,6 +5,7 @@ import { Shop } from '../../entities/shop.entity.js';
 import { User } from '../../entities/user.entity.js';
 import type { Repository } from 'typeorm';
 import type { Listing } from '../../entities/listing.entity.js';
+import type { ServiceReview } from '../../entities/service-review.entity.js';
 import type { NotificationsService } from '../notifications/notifications.service.js';
 import type { EmailService } from '../email/email.service.js';
 
@@ -13,6 +14,7 @@ describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
   let mockShopsRepo: Partial<Record<keyof Repository<Shop>, any>>;
   let mockListingsRepo: Partial<Record<keyof Repository<Listing>, any>>;
   let mockUsersRepo: Partial<Record<keyof Repository<User>, any>>;
+  let mockServiceReviewsRepo: Partial<Record<keyof Repository<ServiceReview>, any>>;
   let mockNotificationsService: Partial<NotificationsService>;
   let mockEmailService: Partial<EmailService>;
 
@@ -34,6 +36,10 @@ describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
       findOne: vi.fn().mockResolvedValue({ id: 'artisan-user-id', name: 'Artisan Paul', email: 'artisan@test.com' }),
     };
 
+    mockServiceReviewsRepo = {
+      createQueryBuilder: vi.fn(),
+    };
+
     mockNotificationsService = {
       notify: vi.fn().mockResolvedValue({} as any),
     };
@@ -46,6 +52,7 @@ describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
       mockShopsRepo as Repository<Shop>,
       mockListingsRepo as Repository<Listing>,
       mockUsersRepo as Repository<User>,
+      mockServiceReviewsRepo as Repository<ServiceReview>,
       mockNotificationsService as NotificationsService,
       mockEmailService as EmailService,
     );

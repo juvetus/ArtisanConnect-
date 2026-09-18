@@ -6,7 +6,7 @@ Disallow: /messages
 Disallow: /notifications
 Disallow: /orders
 Disallow: /payment
-Disallow: /artisan
+Disallow: /artisan/
 Disallow: /formalization
 Disallow: /institution
 Disallow: /resources
@@ -18,3 +18,4 @@ Disallow: /reset-password
 Disallow: /verify-email
 
 Sitemap: https://artisanconnectcm.info/sitemap.xml
+Sitemap: https://artisanconnectcm.info/sitemap-artisans.xml

@@ -36,6 +36,9 @@ export interface Shop {
   rejectionReason?: string | null;
   verifiedBadge: boolean;
   topSellerBadge: boolean;
+  identityVerified?: boolean;
+  identityVerifiedAt?: string | null;
+  verification?: VerificationState;
   isWomenLed?: boolean;
   isCooperative?: boolean;
   successfulSales: number;
@@ -43,6 +46,61 @@ export interface Shop {
   whatsappContactClicks?: number;
   whatsappShareClicks?: number;
   createdAt: string;
+}
+
+/** Cycle de vie d'une demande de devis. */
+export type CustomerRequestStatus = 'new' | 'contacted' | 'in_progress' | 'completed';
+
+export const CUSTOMER_REQUEST_STATUS_LABELS: Record<CustomerRequestStatus, string> = {
+  new: 'Nouvelle',
+  contacted: 'Artisans contactés',
+  in_progress: 'En cours',
+  completed: 'Terminée',
+};
+
+/** Signalement d'un contenu ou d'un vendeur. */export type ReportTargetType = 'listing' | 'shop' | 'user' | 'review';
+export type ReportReason = 'fraud' | 'inappropriate' | 'counterfeit' | 'spam' | 'wrong_info' | 'other';
+export type ReportStatus = 'open' | 'reviewing' | 'resolved' | 'dismissed';
+
+export interface Report {
+  id: string;
+  reporterId: string;
+  reporter?: User;
+  targetType: ReportTargetType;
+  targetId: string;
+  reason: ReportReason;
+  details: string;
+  status: ReportStatus;
+  moderatorNotes?: string | null;
+  resolvedAt?: string | null;
+  createdAt: string;
+}
+
+/** Niveaux de vérification progressifs calculés par le backend. */export type VerificationLevel = 'none' | 'phone' | 'profile' | 'identity' | 'recommended';
+
+export interface VerificationState {
+  level: VerificationLevel;
+  steps: { phone: boolean; profile: boolean; identity: boolean; recommended: boolean };
+}
+
+/** Fiche artisan publique affichée sur l'accueil (aucun numéro de téléphone exposé). */
+export interface PublicArtisan {
+  id: string;
+  name: string;
+  description: string;
+  category?: string | null;
+  city?: string | null;
+  neighborhood?: string | null;
+  verifiedBadge: boolean;
+  topSellerBadge: boolean;
+  isWomenLed?: boolean;
+  isCooperative?: boolean;
+  successfulSales: number;
+  createdAt: string;
+  coverImageUrl?: string | null;
+  rating: { average: number | null; count: number };
+  verification: VerificationState;
+  seller: { id: string; name: string | null; verifiedPhone: boolean };
 }
 
 /** Preuves KYC exigées par type de boutique (miroir du backend). */

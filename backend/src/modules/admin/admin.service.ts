@@ -315,4 +315,9 @@ export class AdminService implements OnModuleInit {
   async reviewShop(id: string, approve: boolean, reason?: string) {
     return this.shopsService.review(id, approve, reason);
   }
+
+  /** À n'activer qu'après contrôle effectif de la pièce d'identité KYC. */
+  async setShopIdentityVerified(id: string, verified: boolean) {
+    return this.shopsService.setIdentityVerified(id, verified);
+  }
 }

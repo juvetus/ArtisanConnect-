@@ -1,7 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike } from 'typeorm';
+import { Brackets, Repository } from 'typeorm';
 import { Listing } from '../../entities/index.js';
+
+/** Recherche insensible aux accents sans dépendre de l'extension Postgres `unaccent`. */
+function unaccent(column: string): string {
+  return `translate(lower(coalesce(${column}, '')), 'àáâãäçèéêëìíîïñòóôõöùúûüýÿ', 'aaaaaceeeeiiiinooooouuuuyy')`;
+}
+
+function normalizeSearchValue(value?: string | null): string {
+  return (value ?? '').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim();
+}
 
 @Injectable()
 export class ListingsService {
@@ -69,17 +78,59 @@ export class ListingsService {
     });
   }
 
-  async search(query: string, skip = 0, take = 20): Promise<[Listing[], number]> {
-    return this.listingsRepository.findAndCount({
-      where: [
-        { title: ILike(`%${query}%`), status: 'active' },
-        { description: ILike(`%${query}%`), status: 'active' },
-      ],
-      relations: { seller: true },
-      order: { createdAt: 'DESC' },
-      skip,
-      take,
-    });
+  /**
+   * Recherche unifiée du catalogue : texte libre (titre, métier, boutique, quartier),
+   * filtres de localisation, de type et de budget.
+   */
+  async searchCatalog(
+    filters: {
+      q?: string;
+      category?: string;
+      type?: 'product' | 'service';
+      city?: string;
+      neighborhood?: string;
+      minPrice?: number;
+      maxPrice?: number;
+    },
+    skip = 0,
+    take = 20,
+  ): Promise<[Listing[], number]> {
+    const builder = this.listingsRepository
+      .createQueryBuilder('listing')
+      .leftJoinAndSelect('listing.seller', 'seller')
+      .leftJoinAndSelect('listing.shop', 'shop')
+      .where('listing.status = :status', { status: 'active' });
+
+    const query = normalizeSearchValue(filters.q);
+    if (query) {
+      builder.andWhere(
+        new Brackets((where) => {
+          where
+            .where(`${unaccent('listing.title')} LIKE :q`)
+            .orWhere(`${unaccent('listing.description')} LIKE :q`)
+            .orWhere(`${unaccent('listing.category')} LIKE :q`)
+            .orWhere(`${unaccent('shop.name')} LIKE :q`)
+            .orWhere(`${unaccent('shop.city')} LIKE :q`)
+            .orWhere(`${unaccent('shop.neighborhood')} LIKE :q`)
+            .orWhere(`${unaccent('shop.market')} LIKE :q`);
+        }),
+        { q: `%${query}%` },
+      );
+    }
+
+    if (filters.category) builder.andWhere('listing.category = :category', { category: filters.category });
+    if (filters.type) builder.andWhere('listing.type = :type', { type: filters.type });
+
+    const city = normalizeSearchValue(filters.city);
+    if (city) builder.andWhere(`${unaccent('shop.city')} LIKE :city`, { city: `%${city}%` });
+
+    const neighborhood = normalizeSearchValue(filters.neighborhood);
+    if (neighborhood) builder.andWhere(`${unaccent('shop.neighborhood')} LIKE :neighborhood`, { neighborhood: `%${neighborhood}%` });
+
+    if (Number.isFinite(filters.minPrice)) builder.andWhere('listing.price >= :minPrice', { minPrice: filters.minPrice });
+    if (Number.isFinite(filters.maxPrice)) builder.andWhere('listing.price <= :maxPrice', { maxPrice: filters.maxPrice });
+
+    return builder.orderBy('listing.createdAt', 'DESC').skip(skip).take(take).getManyAndCount();
   }
 }
 

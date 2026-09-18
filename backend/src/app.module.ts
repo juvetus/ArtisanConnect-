@@ -29,6 +29,7 @@ import { MomoModule } from './modules/momo/momo.module.js';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module.js';
 import { PayoutsModule } from './modules/payouts/payouts.module.js';
 import { CustomerRequestsModule } from './modules/customer-requests/customer-requests.module.js';
+import { ModerationModule } from './modules/moderation/moderation.module.js';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { CustomerRequestsModule } from './modules/customer-requests/customer-req
     SubscriptionsModule,
     PayoutsModule,
     CustomerRequestsModule,
+    ModerationModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: JwtAuthGuard }],

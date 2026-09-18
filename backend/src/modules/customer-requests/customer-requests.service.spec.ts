@@ -16,6 +16,7 @@ describe('CustomerRequestsService', () => {
   const services = { find: vi.fn() };
   const shops = { find: vi.fn() };
   const notifications = { notify: vi.fn() };
+  const emails = { send: vi.fn().mockResolvedValue(true) };
 
   let service: CustomerRequestsService;
 
@@ -28,14 +29,24 @@ describe('CustomerRequestsService', () => {
       services as never,
       shops as never,
       notifications as never,
+      emails as never,
     );
   });
 
-  it('crée une demande client valide', async () => {
-    const created = { id: 'request-1', clientId: 'client-1', category: 'menuiserie', city: 'Douala', description: 'Je cherche une cuisine sur mesure avec installation complète.' };
+  it('cible les artisans du métier et notifie uniquement ceux-là', async () => {
+    const created = { id: 'request-1', clientId: 'client-1', category: 'menuiserie', city: 'Douala', description: 'Je cherche une cuisine sur mesure avec installation complète.', contactedArtisanIds: [] };
     requests.create.mockReturnValue(created);
     requests.save.mockResolvedValue(created);
-    users.find.mockResolvedValue([{ id: 'artisan-1', role: 'artisan', isActive: true }]);
+    users.find.mockResolvedValue([
+      { id: 'artisan-menuisier', role: 'artisan', isActive: true, location: 'Douala', email: 'menuisier@test.cm' },
+      { id: 'artisan-couturier', role: 'artisan', isActive: true, location: 'Douala', email: 'couture@test.cm' },
+    ]);
+    shops.find.mockResolvedValue([{ sellerId: 'artisan-menuisier', city: 'Douala', neighborhood: 'Akwa', verifiedBadge: true }]);
+    listings.find.mockResolvedValue([
+      { sellerId: 'artisan-menuisier', category: 'menuiserie' },
+      { sellerId: 'artisan-couturier', category: 'couture' },
+    ]);
+    services.find.mockResolvedValue([]);
 
     const result = await service.create('client-1', {
       category: 'menuiserie',
@@ -45,14 +56,15 @@ describe('CustomerRequestsService', () => {
       budgetMax: 500000,
     });
 
-    expect(requests.create).toHaveBeenCalledWith(expect.objectContaining({ clientId: 'client-1', status: 'open', category: 'menuiserie', city: 'Douala' }));
-    expect(requests.save).toHaveBeenCalledWith(created);
+    expect(requests.create).toHaveBeenCalledWith(expect.objectContaining({ clientId: 'client-1', status: 'new', category: 'menuiserie', city: 'Douala' }));
+    expect(notifications.notify).toHaveBeenCalledTimes(1);
     expect(notifications.notify).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'Nouvelle demande client',
+      recipientId: 'artisan-menuisier',
       link: '/artisan/customer-requests',
       relatedId: 'request-1',
     }));
-    expect(result).toBe(created);
+    expect(emails.send).toHaveBeenCalledWith(expect.objectContaining({ to: 'menuisier@test.cm' }));
+    expect(result.contactedArtisanIds).toEqual(['artisan-menuisier']);
   });
 
   it('refuse une demande sans description suffisante', async () => {
@@ -62,9 +74,9 @@ describe('CustomerRequestsService', () => {
 
   it('filtre les demandes par catégorie et ville selon le profil artisan', async () => {
     requests.find.mockResolvedValue([
-      { id: 'match', status: 'open', category: 'menuiserie', city: 'Douala' },
-      { id: 'other-city', status: 'open', category: 'menuiserie', city: 'Yaoundé' },
-      { id: 'other-category', status: 'open', category: 'couture', city: 'Douala' },
+      { id: 'match', status: 'new', category: 'menuiserie', city: 'Douala', createdAt: '2025-01-02T09:00:00.000Z' },
+      { id: 'other-city', status: 'new', category: 'menuiserie', city: 'Yaoundé', createdAt: '2025-01-02T09:00:00.000Z' },
+      { id: 'other-category', status: 'new', category: 'couture', city: 'Douala', createdAt: '2025-01-02T09:00:00.000Z' },
     ]);
     users.findOne.mockResolvedValue({ id: 'artisan-1', location: 'Douala' });
     shops.find.mockResolvedValue([{ city: 'Douala', neighborhood: 'Bonamoussadi' }]);
@@ -80,7 +92,7 @@ describe('CustomerRequestsService', () => {
     requests.findOne.mockResolvedValue({
       id: 'request-1',
       clientId: 'client-1',
-      status: 'open',
+      status: 'new',
       responses: [{ artisanId: 'artisan-1', message: 'déjà répondu', createdAt: new Date().toISOString() }],
       contactedArtisanIds: ['artisan-1'],
     });
@@ -90,7 +102,7 @@ describe('CustomerRequestsService', () => {
   });
 
   it('enregistre la réponse et notifie le client', async () => {
-    const request = { id: 'request-1', clientId: 'client-1', status: 'open', responses: [], contactedArtisanIds: [] };
+    const request = { id: 'request-1', clientId: 'client-1', status: 'new', responses: [], contactedArtisanIds: [] };
     requests.findOne.mockResolvedValue(request);
     requests.save.mockResolvedValue(request);
     notifications.notify.mockResolvedValue(undefined);
@@ -101,13 +113,14 @@ describe('CustomerRequestsService', () => {
     expect(notifications.notify).toHaveBeenCalledWith(expect.objectContaining({ recipientId: 'client-1', relatedId: 'request-1' }));
   });
 
-  it('calcule le délai moyen de réponse pour un artisan', async () => {
+  it('calcule le taux et le délai de réponse sur les seules demandes adressées', async () => {
     requests.find.mockResolvedValue([
       {
         id: 'request-1',
         clientId: 'client-1',
-        status: 'open',
+        status: 'contacted',
         createdAt: '2025-01-01T09:00:00.000Z',
+        contactedArtisanIds: ['artisan-1', 'artisan-2'],
         responses: [
           { artisanId: 'artisan-1', createdAt: '2025-01-01T09:15:00.000Z', message: 'Réponse 1' },
           { artisanId: 'artisan-2', createdAt: '2025-01-01T09:45:00.000Z', message: 'Réponse 2' },
@@ -116,11 +129,20 @@ describe('CustomerRequestsService', () => {
       {
         id: 'request-2',
         clientId: 'client-2',
-        status: 'open',
+        status: 'contacted',
         createdAt: '2025-01-01T11:00:00.000Z',
+        contactedArtisanIds: ['artisan-1'],
         responses: [
           { artisanId: 'artisan-1', createdAt: '2025-01-01T11:30:00.000Z', message: 'Réponse 3' },
         ],
+      },
+      {
+        id: 'request-3',
+        clientId: 'client-3',
+        status: 'new',
+        createdAt: '2025-01-01T12:00:00.000Z',
+        contactedArtisanIds: ['artisan-2'],
+        responses: [],
       },
     ]);
 
