@@ -150,7 +150,12 @@ export default function ServiceOrderQuotePage() {
   const isClient = user.id === order.clientId;
   const canQuote = isArtisan && order.status === 'sent_to_artisan' && !quote;
   const canRespond = isClient && quote?.status === 'pending';
-  const artisanWhatsapp = isClient ? whatsappHref(order.artisan?.whatsappPhone ?? order.artisan?.phone, `Bonjour ${order.artisan?.name ?? ''}, je vous contacte au sujet de ma demande « ${order.service?.title ?? 'service'} » sur ArtisanConnect.`) : null;
+  // Chaque partie doit pouvoir joindre l'autre : le client appelle l'artisan, l'artisan appelle le client.
+  const counterpart = isClient ? order.artisan : order.client;
+  const counterpartWhatsapp = whatsappHref(
+    counterpart?.whatsappPhone ?? counterpart?.phone,
+    `Bonjour ${counterpart?.name ?? ''}, je vous contacte au sujet de la demande « ${order.service?.title ?? 'service'} » sur ArtisanConnect.`,
+  );
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -161,13 +166,28 @@ export default function ServiceOrderQuotePage() {
         <p className="mt-2 text-sm text-stone-600">Statut : {order.status}</p>
         <p className="mt-1 text-sm text-stone-600">Livraison : {order.deliveryMethod === 'home' ? `À domicile${order.deliveryAddress ? ` - ${order.deliveryAddress}` : ''}` : order.deliveryMethod === 'carrier' ? 'Par notre transporteur' : 'Retrait à l’atelier'}</p>
         <p className="mt-4 whitespace-pre-wrap text-stone-700">{order.projectObjective}</p>
-        <Link
-          href={`/messages?to=${user.id === order.clientId ? order.artisanId : order.clientId}&serviceOrderId=${order.id}`}
-          className="mt-5 inline-block rounded-md border border-amber-700 px-4 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50"
-        >
-          Ouvrir la messagerie de la commande
-        </Link>
-        {artisanWhatsapp ? <a href={artisanWhatsapp} target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700">Contacter l&apos;artisan sur WhatsApp</a> : null}
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <Link
+            href={`/messages?to=${user.id === order.clientId ? order.artisanId : order.clientId}&serviceOrderId=${order.id}`}
+            className="rounded-md border border-amber-700 px-4 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50"
+          >
+            Ouvrir la messagerie de la commande
+          </Link>
+          {counterpartWhatsapp ? (
+            <a
+              href={counterpartWhatsapp}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+            >
+              {isClient ? 'Contacter l’artisan sur WhatsApp' : 'Contacter le client sur WhatsApp'}
+            </a>
+          ) : (
+            <span className="text-sm text-stone-500">
+              {isClient ? 'L’artisan n’a pas renseigné de numéro WhatsApp.' : 'Le client n’a pas renseigné de numéro WhatsApp.'}
+            </span>
+          )}
+        </div>
         <div className="mt-3 flex flex-wrap gap-3">
           <button onClick={() => void api.downloadServiceOrderPdf(order.id)} className="text-sm font-medium text-stone-700 underline">Télécharger la commande PDF</button>
           {quote ? <button onClick={() => void api.downloadServiceQuotePdf(order.id)} className="text-sm font-medium text-stone-700 underline">Télécharger le devis PDF</button> : null}
