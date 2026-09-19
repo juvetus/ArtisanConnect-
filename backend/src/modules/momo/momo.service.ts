@@ -52,6 +52,7 @@ export class MomoService {
   private readonly subscriptionKey: string | undefined;
   private readonly webhookSecret: string | undefined;
   private readonly baseUrl: string;
+  private readonly targetEnvironment: string;
   private readonly apiUrl: string;
   private readonly frontendUrl: string;
   private readonly isMockMode: boolean;
@@ -63,6 +64,7 @@ export class MomoService {
     this.subscriptionKey = this.config.get<string>('MOMO_SUBSCRIPTION_KEY');
     this.webhookSecret = this.config.get<string>('MOMO_WEBHOOK_SECRET');
     this.baseUrl = this.config.get<string>('MOMO_BASE_URL') || 'https://sandbox.momodeveloper.mtn.com';
+    this.targetEnvironment = this.config.get<string>('MOMO_TARGET_ENVIRONMENT') || 'sandbox';
     this.apiUrl = this.config.get<string>('API_URL') || 'http://localhost:3001';
     this.frontendUrl = this.config.get<string>('FRONTEND_URL') || 'http://localhost:3000';
     this.isMockMode = this.config.get<string>('MOMO_MODE') === 'mock' || !this.apiUser || !this.apiKey;
@@ -70,6 +72,21 @@ export class MomoService {
 
   getWebhookUrl(path: string): string {
     return `${this.apiUrl.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
+  }
+
+  getConfigurationStatus() {
+    return {
+      mode: this.isMockMode ? 'mock' : 'sandbox',
+      configured: Boolean(this.apiUser && this.apiKey && this.subscriptionKey),
+      targetEnvironment: this.targetEnvironment,
+      baseUrl: this.baseUrl,
+      callbackUrl: this.getWebhookUrl('momo/webhook'),
+      missing: [
+        !this.apiUser ? 'MOMO_API_USER' : null,
+        !this.apiKey ? 'MOMO_API_KEY' : null,
+        !this.subscriptionKey ? 'MOMO_SUBSCRIPTION_KEY' : null,
+      ].filter((name): name is string => Boolean(name)),
+    };
   }
 
   buildPaymentRedirectUrl(referenceId: string, type = 'payment', externalId = referenceId): string {
@@ -116,6 +133,7 @@ export class MomoService {
       method: 'POST',
       headers: {
         'Ocp-Apim-Subscription-Key': this.subscriptionKey || '',
+        'X-Target-Environment': this.targetEnvironment,
         'Authorization': `Basic ${Buffer.from(`${this.apiUser}:${this.apiKey}`).toString('base64')}`,
         'Content-Type': 'application/json',
       },
@@ -178,6 +196,7 @@ export class MomoService {
           'X-Reference-Id': referenceId,
           'X-Callback-Url': callbackUrl,
           'Ocp-Apim-Subscription-Key': this.subscriptionKey || '',
+          'X-Target-Environment': this.targetEnvironment,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
@@ -245,6 +264,7 @@ export class MomoService {
         headers: {
           Authorization: `Bearer ${token}`,
           'Ocp-Apim-Subscription-Key': this.subscriptionKey || '',
+          'X-Target-Environment': this.targetEnvironment,
         },
       });
 

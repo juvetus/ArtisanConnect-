@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import bcrypt from 'bcrypt';
-import { InstitutionalProgram, InstitutionalResource, Listing, Order, Payment, ProgramApplication, ServiceOrder, Shop, User } from '../../entities/index.js';
+import { InstitutionalProgram, InstitutionalResource, Listing, Order, Payment, ProgramApplication, ServiceOrder, Shop, Subscription, User } from '../../entities/index.js';
 import { ShopsService } from '../shops/shops.service.js';
 
 @Injectable()
@@ -18,6 +18,7 @@ export class AdminService implements OnModuleInit {
     @InjectRepository(InstitutionalResource) private resources: Repository<InstitutionalResource>,
     @InjectRepository(InstitutionalProgram) private programs: Repository<InstitutionalProgram>,
     @InjectRepository(ProgramApplication) private applications: Repository<ProgramApplication>,
+    @InjectRepository(Subscription) private subscriptions: Repository<Subscription>,
     private dataSource: DataSource,
     private shopsService: ShopsService,
     private config: ConfigService,
@@ -213,6 +214,30 @@ export class AdminService implements OnModuleInit {
       order: { createdAt: 'DESC' },
       take: 100,
     });
+  }
+
+  async listSubscriptions() {
+    const subscriptions = await this.subscriptions.find({
+      relations: { user: true, plan: true },
+      order: { createdAt: 'DESC' },
+      take: 200,
+    });
+
+    return subscriptions.map((subscription) => ({
+      id: subscription.id,
+      status: subscription.status,
+      amount: Number(subscription.amount),
+      currency: subscription.currency,
+      startDate: subscription.startDate,
+      endDate: subscription.endDate,
+      lastPaymentAt: subscription.lastPaymentAt,
+      nextPaymentAt: subscription.nextPaymentAt,
+      paymentReference: subscription.paymentReference,
+      provider: subscription.provider,
+      createdAt: subscription.createdAt,
+      user: subscription.user ? { id: subscription.user.id, name: subscription.user.name, email: subscription.user.email } : null,
+      plan: subscription.plan ? { id: subscription.plan.id, slug: subscription.plan.slug, name: subscription.plan.name } : null,
+    }));
   }
 
   async cancelOrder(id: string) {

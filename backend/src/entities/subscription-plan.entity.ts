@@ -10,6 +10,9 @@ export class SubscriptionPlan {
   @Column()
   name: string;
 
+  @Column({ unique: true })
+  slug: string;
+
   @Column('decimal', { precision: 12, scale: 0, default: 0 })
   price: number;
 
@@ -24,6 +27,12 @@ export class SubscriptionPlan {
 
   @Column({ type: 'text', nullable: true })
   description: string | null;
+
+  @Column('simple-array', { default: '' })
+  features: string[];
+
+  @Column({ default: 0 })
+  sortOrder: number;
 
   @CreateDateColumn()
   createdAt: Date;

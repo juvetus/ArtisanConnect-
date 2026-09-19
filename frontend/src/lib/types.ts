@@ -3,6 +3,22 @@ export type ListingType = 'product' | 'service';
 export type ShopType = 'artisan' | 'reseller' | 'individual';
 export type ShopStatus = 'pending' | 'active' | 'rejected' | 'suspended';
 
+export interface AdminSubscription {
+  id: string;
+  status: 'pending' | 'active' | 'failed' | 'cancelled';
+  amount: number;
+  currency: string;
+  startDate: string | null;
+  endDate: string | null;
+  lastPaymentAt: string | null;
+  nextPaymentAt: string | null;
+  paymentReference: string | null;
+  provider: string;
+  createdAt: string;
+  user: { id: string; name: string; email: string } | null;
+  plan: { id: string; slug: string; name: string } | null;
+}
+
 export interface KycDocument {
   label: string;
   url: string;

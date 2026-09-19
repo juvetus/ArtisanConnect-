@@ -84,6 +84,11 @@ export class AdminController {
     return this.adminService.listOrders();
   }
 
+  @Get('subscriptions')
+  getSubscriptions() {
+    return this.adminService.listSubscriptions();
+  }
+
   @Patch('orders/:id/cancel')
   cancelOrder(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     this.assertAdmin(user);

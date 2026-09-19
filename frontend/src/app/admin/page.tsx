@@ -10,7 +10,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { Pagination } from '@/components/Pagination';
 import { ModerationAdmin } from '@/components/ModerationAdmin';
 import { AnalyticsFunnel } from '@/components/AnalyticsFunnel';
-import type { AdminStats, Listing, Order, Role, Shop, User } from '@/lib/types';
+import type { AdminStats, AdminSubscription, Listing, Order, Role, Shop, User } from '@/lib/types';
 
 interface ServiceDashboardStats {
   stats: {
@@ -57,7 +57,7 @@ function roleLabel(role: Role) {
 export default function AdminPage() {
   const { user, ready } = useAuth();
   const router = useRouter();
-  const [view, setView] = useState<'overview' | 'users' | 'listings' | 'shops' | 'orders' | 'moderation' | 'analytics'>('overview');
+  const [view, setView] = useState<'overview' | 'users' | 'listings' | 'shops' | 'orders' | 'subscriptions' | 'moderation' | 'analytics'>('overview');
   const [actionError, setActionError] = useState('');
   const [usersPage, setUsersPage] = useState(0);
   const [listingsPage, setListingsPage] = useState(0);
@@ -80,15 +80,16 @@ export default function AdminPage() {
   const { data, isLoading, mutate } = useSWR(
     user && ['admin', 'editor', 'viewer'].includes(user.role) ? ['admin-console', user.id] : null,
     async () => {
-      const [overview, users, listings, shops, adminOrders, serviceDashboard] = await Promise.all([
+      const [overview, users, listings, shops, adminOrders, adminSubscriptions, serviceDashboard] = await Promise.all([
         api.adminOverview(),
         user?.role === 'admin' ? api.adminUsers() : Promise.resolve([] as User[]),
         api.adminListings(),
         api.adminShops(),
         api.adminOrders(),
+        api.adminSubscriptions(),
         api.getServiceDashboardStats(),
       ]);
-      return { overview, users, listings, shops, adminOrders, serviceDashboard: serviceDashboard as ServiceDashboardStats };
+      return { overview, users, listings, shops, adminOrders, adminSubscriptions, serviceDashboard: serviceDashboard as ServiceDashboardStats };
     },
   );
 
@@ -176,6 +177,7 @@ export default function AdminPage() {
             ...(user.role !== 'viewer' ? [['listings', 'Annonces']] : []),
             ...(user.role === 'admin' ? [['moderation', 'Modération']] : []),
             ...(user.role === 'admin' ? [['analytics', 'Analytics']] : []),
+            ...(user.role === 'admin' ? [['subscriptions', 'Abonnements']] : []),
             ['orders', 'Commandes'],
           ].map(([value, label]) => (
             <button
@@ -191,59 +193,65 @@ export default function AdminPage() {
         </div>
       </div>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          ['Utilisateurs', stats.users, `${stats.artisans} artisans · ${stats.clients} clients`],
-          ['Annonces actives', stats.listings, 'Produits et services visibles'],
-          ['Commandes', stats.orders, `${stats.pendingPayments} paiement(s) en attente`],
-          ['Volume terminé', formatXAF(stats.revenue), `Commission (10 %) : ${formatXAF(stats.platformFees)}${stats.servicePlatformFees ? ` · Services : ${formatXAF(stats.servicePlatformFees)}` : ''}`],
-        ].map(([label, value, detail]) => (
-          <div key={label} className="rounded-lg border border-stone-200 bg-white p-5">
-            <p className="text-sm text-stone-600">{label}</p>
-            <p className="mt-2 text-2xl font-semibold">{value}</p>
-            <p className="mt-1 text-xs text-stone-500">{detail}</p>
-          </div>
-        ))}
-      </section>
-
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          ['Femmes Artisanes', `${stats.womenArtisans ?? 0} (${stats.womenPercentage ?? 0}%)`, 'Entrepreneuriat féminin (BuyFromWomen)'],
-          ['Coopératives & GIC', `${stats.cooperativeArtisans ?? 0} (${stats.cooperativePercentage ?? 0}%)`, 'Groupements et structures collectives'],
-          ['Institutions partenaires', stats.institutions ?? 0, 'Acteurs institutionnels'],
-          ['Dispositifs & Candidatures', `${stats.programs ?? 0} prog. · ${stats.resources ?? 0} ress.`, `${stats.programApplications ?? 0} candidature(s) enregistrée(s)`],
-        ].map(([label, value, detail]) => (
-          <div key={label} className="rounded-lg border border-stone-200 bg-white p-5">
-            <p className="text-sm text-stone-600">{label}</p>
-            <p className="mt-2 text-2xl font-semibold">{value}</p>
-            <p className="mt-1 text-xs text-stone-500">{detail}</p>
-          </div>
-        ))}
-      </section>
-
-      <section className="rounded-lg border border-amber-200 bg-amber-50/60 p-6">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold text-stone-900">Indicateurs du pilote vendeur</h2>
-            <p className="mt-1 text-sm text-stone-600">Données cumulées des boutiques actives.</p>
-          </div>
-          <span className="text-xs font-medium uppercase tracking-wide text-amber-800">Lecture équipe admin</span>
-        </div>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      {view === 'overview' && (
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            ['Boutiques actives', stats.activeShops ?? 0],
-            ['Vues boutique', stats.shopViews ?? 0],
-            ['Contacts WhatsApp', stats.whatsappContacts ?? 0],
-            ['Partages', stats.shopShares ?? 0],
-            ['Ventes réussies', stats.successfulSales ?? 0],
-          ].map(([label, value]) => (
-            <div key={label} className="rounded-md border border-amber-100 bg-white p-4">
+            ['Utilisateurs', stats.users, `${stats.artisans} artisans · ${stats.clients} clients`],
+            ['Annonces actives', stats.listings, 'Produits et services visibles'],
+            ['Commandes', stats.orders, `${stats.pendingPayments} paiement(s) en attente`],
+            ['Volume terminé', formatXAF(stats.revenue), `Commission (10 %) : ${formatXAF(stats.platformFees)}${stats.servicePlatformFees ? ` · Services : ${formatXAF(stats.servicePlatformFees)}` : ''}`],
+          ].map(([label, value, detail]) => (
+            <div key={label} className="rounded-lg border border-stone-200 bg-white p-5">
               <p className="text-sm text-stone-600">{label}</p>
-              <p className="mt-2 text-2xl font-semibold text-stone-900">{value}</p>
+              <p className="mt-2 text-2xl font-semibold">{value}</p>
+              <p className="mt-1 text-xs text-stone-500">{detail}</p>
             </div>
           ))}
-        </div>
-      </section>
+        </section>
+      )}
+
+      {view === 'overview' && (
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            ['Femmes Artisanes', `${stats.womenArtisans ?? 0} (${stats.womenPercentage ?? 0}%)`, 'Entrepreneuriat féminin (BuyFromWomen)'],
+            ['Coopératives & GIC', `${stats.cooperativeArtisans ?? 0} (${stats.cooperativePercentage ?? 0}%)`, 'Groupements et structures collectives'],
+            ['Institutions partenaires', stats.institutions ?? 0, 'Acteurs institutionnels'],
+            ['Dispositifs & Candidatures', `${stats.programs ?? 0} prog. · ${stats.resources ?? 0} ress.`, `${stats.programApplications ?? 0} candidature(s) enregistrée(s)`],
+          ].map(([label, value, detail]) => (
+            <div key={label} className="rounded-lg border border-stone-200 bg-white p-5">
+              <p className="text-sm text-stone-600">{label}</p>
+              <p className="mt-2 text-2xl font-semibold">{value}</p>
+              <p className="mt-1 text-xs text-stone-500">{detail}</p>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {view === 'overview' && (
+        <section className="rounded-lg border border-amber-200 bg-amber-50/60 p-6">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-stone-900">Indicateurs du pilote vendeur</h2>
+              <p className="mt-1 text-sm text-stone-600">Données cumulées des boutiques actives.</p>
+            </div>
+            <span className="text-xs font-medium uppercase tracking-wide text-amber-800">Lecture équipe admin</span>
+          </div>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            {[
+              ['Boutiques actives', stats.activeShops ?? 0],
+              ['Vues boutique', stats.shopViews ?? 0],
+              ['Contacts WhatsApp', stats.whatsappContacts ?? 0],
+              ['Partages', stats.shopShares ?? 0],
+              ['Ventes réussies', stats.successfulSales ?? 0],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-md border border-amber-100 bg-white p-4">
+                <p className="text-sm text-stone-600">{label}</p>
+                <p className="mt-2 text-2xl font-semibold text-stone-900">{value}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {actionError && <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{actionError}</p>}
 
@@ -262,6 +270,8 @@ export default function AdminPage() {
       {view === 'moderation' && <ModerationAdmin />}
 
       {view === 'analytics' && <AnalyticsFunnel />}
+
+      {view === 'subscriptions' && <AdminSubscriptions subscriptions={data.adminSubscriptions} />}
 
       {view === 'orders' && (
         <AdminOrders
@@ -986,6 +996,87 @@ function RecentOrders({
             onPrevious={() => onPageChange((p) => Math.max(0, p - 1))}
             onNext={() => onPageChange((p) => p + 1)}
           />
+        </div>
+      )}
+    </section>
+  );
+}
+
+function AdminSubscriptions({ subscriptions }: { subscriptions: AdminSubscription[] }) {
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState<AdminSubscription['status'] | 'all'>('all');
+  const normalizedSearch = search.trim().toLowerCase();
+  const filteredSubscriptions = subscriptions.filter((subscription) => {
+    const haystack = [
+      subscription.user?.name,
+      subscription.user?.email,
+      subscription.plan?.name,
+      subscription.plan?.slug,
+      subscription.paymentReference,
+    ].filter(Boolean).join(' ').toLowerCase();
+    return (!normalizedSearch || haystack.includes(normalizedSearch)) && (status === 'all' || subscription.status === status);
+  });
+
+  const statusLabels: Record<AdminSubscription['status'], string> = {
+    pending: 'En attente',
+    active: 'Active',
+    failed: 'Échec',
+    cancelled: 'Annulée',
+  };
+
+  return (
+    <section className="space-y-4 rounded-lg border border-stone-200 bg-white p-5">
+      <div>
+        <h2 className="font-semibold">Gestion des abonnements ({filteredSubscriptions.length}/{subscriptions.length})</h2>
+        <p className="mt-1 text-sm text-stone-600">Suivez les plans souscrits, les paiements et les dates d’expiration.</p>
+      </div>
+      <div className="grid gap-3 md:grid-cols-[1fr_220px]">
+        <input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Artisan, e-mail, plan ou référence..."
+          className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
+        />
+        <select value={status} onChange={(event) => setStatus(event.target.value as AdminSubscription['status'] | 'all')} className="rounded-md border border-stone-300 px-3 py-2 text-sm">
+          <option value="all">Tous les statuts</option>
+          {Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </select>
+      </div>
+      {!filteredSubscriptions.length ? (
+        <p className="rounded-md bg-stone-50 p-4 text-sm text-stone-600">Aucun abonnement ne correspond à votre recherche.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[820px] text-left text-sm">
+            <thead className="border-b border-stone-200 text-xs uppercase tracking-wide text-stone-500">
+              <tr>
+                <th className="px-3 py-3">Artisan</th>
+                <th className="px-3 py-3">Plan</th>
+                <th className="px-3 py-3">Montant</th>
+                <th className="px-3 py-3">Statut</th>
+                <th className="px-3 py-3">Expiration</th>
+                <th className="px-3 py-3">Paiement</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredSubscriptions.map((subscription) => (
+                <tr key={subscription.id} className="border-b border-stone-100 last:border-0">
+                  <td className="px-3 py-3">
+                    <p className="font-medium text-stone-900">{subscription.user?.name ?? 'Utilisateur supprimé'}</p>
+                    <p className="text-xs text-stone-500">{subscription.user?.email ?? '—'}</p>
+                  </td>
+                  <td className="px-3 py-3 text-stone-700">{subscription.plan?.name ?? 'Plan supprimé'}</td>
+                  <td className="px-3 py-3 font-medium text-stone-900">{formatXAF(subscription.amount)}</td>
+                  <td className="px-3 py-3">
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${subscription.status === 'active' ? 'bg-emerald-100 text-emerald-700' : subscription.status === 'failed' ? 'bg-red-100 text-red-700' : 'bg-stone-100 text-stone-700'}`}>
+                      {statusLabels[subscription.status]}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3 text-stone-600">{subscription.endDate ? new Date(subscription.endDate).toLocaleDateString('fr-FR') : '—'}</td>
+                  <td className="px-3 py-3 text-xs text-stone-500">{subscription.paymentReference ?? subscription.provider}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </section>

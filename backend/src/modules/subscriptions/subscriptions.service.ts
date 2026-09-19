@@ -7,6 +7,16 @@ import { MomoService } from '../momo/momo.service.js';
 /** Limites de l'offre gratuite, à ajuster après le pilote. */
 export const FREE_PLAN_LISTING_LIMIT = 5;
 
+export type SponsoringPolicy = {
+  maxSponsored: number;
+  durationDays: number;
+};
+
+export const SPONSORING_POLICIES: Record<string, SponsoringPolicy> = {
+  'local-plus': { maxSponsored: 2, durationDays: 7 },
+  'premium-growth': { maxSponsored: 5, durationDays: 30 },
+};
+
 @Injectable()
 export class SubscriptionsService {
   constructor(
@@ -18,23 +28,96 @@ export class SubscriptionsService {
     private momoService: MomoService,
   ) {}
 
+  private readonly defaultPlans: Array<{
+    slug: string;
+    name: string;
+    price: number;
+    currency: string;
+    durationDays: number;
+    description: string;
+    features: string[];
+    sortOrder: number;
+  }> = [
+    {
+      slug: 'starter',
+      name: 'Starter',
+      price: 0,
+      currency: 'XAF',
+      durationDays: 30,
+      description: 'Pour démarrer et présenter son activité localement.',
+      features: ['Profil artisan', '5 annonces actives', 'Réception de demandes de devis', 'Messagerie et WhatsApp'],
+      sortOrder: 1,
+    },
+    {
+      slug: 'local-plus',
+      name: 'Local Plus',
+      price: 5000,
+      currency: 'XAF',
+      durationDays: 30,
+      description: 'Pour gagner en visibilité locale et attirer plus de clients.',
+      features: ['Tout le plan Starter', 'Annonces illimitées', '2 annonces mises en avant pendant 7 jours', 'Priorité sur les demandes de devis'],
+      sortOrder: 2,
+    },
+    {
+      slug: 'premium-growth',
+      name: 'Premium Growth',
+      price: 10000,
+      currency: 'XAF',
+      durationDays: 30,
+      description: 'Pour accélérer votre croissance et booster votre activité.',
+      features: ['Tout le plan Local Plus', 'Badge Premium Growth', '5 annonces mises en avant pendant 30 jours', 'Statistiques détaillées et support prioritaire'],
+      sortOrder: 3,
+    },
+  ];
+
   async getPlans(): Promise<SubscriptionPlan[]> {
-    return this.planRepository.find({ where: { isActive: true } });
+    return this.syncDefaultPlans();
+  }
+
+  async createDefaultPlans(): Promise<SubscriptionPlan[]> {
+    return this.syncDefaultPlans();
+  }
+
+  private async syncDefaultPlans(): Promise<SubscriptionPlan[]> {
+    const allPlans = await this.planRepository.find();
+    const bySlug = new Map(allPlans.filter((plan) => !!plan.slug).map((plan) => [plan.slug, plan]));
+    const legacyNames = new Map(
+      allPlans
+        .filter((plan) => ['Starter', 'Pro', 'Premium', 'Premium Artisan'].includes(plan.name))
+        .map((plan) => [plan.name, plan]),
+    );
+
+    const savedPlans: SubscriptionPlan[] = [];
+
+    for (const planData of this.defaultPlans) {
+      const existing = bySlug.get(planData.slug) ?? legacyNames.get(planData.name) ?? (await this.planRepository.findOne({ where: { name: planData.name } }));
+
+      if (existing) {
+        const updated = {
+          ...existing,
+          ...planData,
+          isActive: true,
+        };
+
+        const saved = await this.planRepository.save(updated);
+        bySlug.set(saved.slug, saved);
+        legacyNames.set(saved.name, saved);
+        savedPlans.push(saved);
+        continue;
+      }
+
+      const created = await this.planRepository.save(this.planRepository.create({ ...planData, isActive: true }));
+      bySlug.set(created.slug, created);
+      legacyNames.set(created.name, created);
+      savedPlans.push(created);
+    }
+
+    return savedPlans.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
   }
 
   async createDefaultPlan(): Promise<SubscriptionPlan> {
-    const existing = await this.planRepository.findOne({ where: { name: 'Premium Artisan' } });
-    if (existing) return existing;
-
-    return this.planRepository.save(
-      this.planRepository.create({
-        name: 'Premium Artisan',
-        price: 5000,
-        currency: 'XAF',
-        durationDays: 30,
-        description: 'Abonnement mensuel ArtisanConnect.',
-      }),
-    );
+    const plans = await this.syncDefaultPlans();
+    return plans.find((plan) => plan.slug === 'premium-growth') ?? plans[0];
   }
 
   async createSubscription(userId: string, planId: string, payerPhone?: string): Promise<Subscription & { redirectUrl?: string | null }> {
@@ -115,27 +198,41 @@ export class SubscriptionsService {
 
   /** Un abonnement compte comme Premium tant qu'il est actif et non expiré. */
   async isPremium(userId: string): Promise<boolean> {
+    const plan = await this.getActivePlan(userId);
+    return Boolean(plan && SPONSORING_POLICIES[plan.slug]);
+  }
+
+  async getSponsoringPolicy(userId: string): Promise<SponsoringPolicy | null> {
+    const plan = await this.getActivePlan(userId);
+    return plan ? SPONSORING_POLICIES[plan.slug] ?? null : null;
+  }
+
+  private async getActivePlan(userId: string): Promise<SubscriptionPlan | null> {
     const now = new Date();
-    const active = await this.subscriptionRepository.count({
+    const subscriptions = await this.subscriptionRepository.find({
       where: [
         { userId, status: 'active', endDate: MoreThan(now) },
         { userId, status: 'active', endDate: IsNull() },
       ],
+      relations: { plan: true },
+      order: { createdAt: 'DESC' },
     });
-    return active > 0;
+
+    return subscriptions.find((subscription) => Boolean(subscription.plan))?.plan ?? null;
   }
 
   async findPremiumUserIds(userIds: string[]): Promise<Set<string>> {
     if (!userIds.length) return new Set();
-    const now = new Date();
     const subscriptions = await this.subscriptionRepository.find({
-      where: [
-        { userId: In(userIds), status: 'active', endDate: MoreThan(now) },
-        { userId: In(userIds), status: 'active', endDate: IsNull() },
-      ],
-      select: { userId: true },
+      where: { userId: In(userIds), status: 'active' },
+      relations: { plan: true },
     });
-    return new Set(subscriptions.map((subscription) => subscription.userId));
+    const now = new Date();
+    return new Set(
+      subscriptions
+        .filter((subscription) => (!subscription.endDate || new Date(subscription.endDate) > now) && Boolean(subscription.plan && SPONSORING_POLICIES[subscription.plan.slug]))
+        .map((subscription) => subscription.userId),
+    );
   }
 
   /** État du plan affiché à l'artisan : offre courante, échéance et quota d'annonces. */
@@ -149,12 +246,15 @@ export class SubscriptionsService {
     const current = subscriptions.find(
       (subscription) => subscription.status === 'active' && (!subscription.endDate || new Date(subscription.endDate) > now),
     );
+    const latestWithPlan = subscriptions.find((subscription) => Boolean(subscription.plan));
+    const isPaidPlan = Boolean(current?.plan?.slug && SPONSORING_POLICIES[current.plan.slug]);
 
     return {
-      premium: Boolean(current),
-      planName: current?.plan?.name ?? 'Offre gratuite',
-      endDate: current?.endDate ?? null,
-      listingLimit: current ? null : FREE_PLAN_LISTING_LIMIT,
+      premium: isPaidPlan,
+      planName: current?.plan?.name ?? latestWithPlan?.plan?.name ?? 'Offre gratuite',
+      planSlug: current?.plan?.slug ?? latestWithPlan?.plan?.slug ?? null,
+      endDate: current?.endDate ?? latestWithPlan?.endDate ?? null,
+      listingLimit: isPaidPlan ? null : FREE_PLAN_LISTING_LIMIT,
     };
   }
 

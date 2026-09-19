@@ -4,7 +4,6 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { ListingsService } from './listings.service.js';
-import { MAX_SPONSORED_PER_SELLER } from './listings.service.js';
 import { ShopsService } from '../shops/shops.service.js';
 import { Public } from '../auth/public.decorator.js';
 import { CurrentUser, type AuthUser } from '../auth/current-user.decorator.js';
@@ -76,14 +75,15 @@ export class ListingsController {
 
   @Post(':id/sponsor')
   async sponsorListing(@CurrentUser() user: AuthUser, @Param('id') id: string) {
-    if (!(await this.subscriptionsService.isPremium(user.id))) {
+    const policy = await this.subscriptionsService.getSponsoringPolicy(user.id);
+    if (!policy) {
       throw new ForbiddenException('La mise en avant est réservée aux artisans Premium');
     }
     const sponsored = await this.listingsService.countSponsoredBySeller(user.id);
-    if (sponsored >= MAX_SPONSORED_PER_SELLER) {
-      throw new BadRequestException(`Vous pouvez mettre en avant ${MAX_SPONSORED_PER_SELLER} annonces à la fois`);
+    if (sponsored >= policy.maxSponsored) {
+      throw new BadRequestException(`Votre plan permet de mettre en avant ${policy.maxSponsored} annonces à la fois`);
     }
-    return this.listingsService.sponsor(id, user.id);
+    return this.listingsService.sponsor(id, user.id, policy.durationDays);
   }
 
   @Post(':id/sponsor/stop')

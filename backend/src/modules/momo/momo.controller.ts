@@ -7,6 +7,12 @@ export class MomoController {
   constructor(private readonly momoService: MomoService) {}
 
   @Public()
+  @Get('config/status')
+  getConfigurationStatus() {
+    return this.momoService.getConfigurationStatus();
+  }
+
+  @Public()
   @Post('payment/initiate')
   async initiatePayment(@Body() body: InitiateMomoPaymentDto) {
     return this.momoService.initiateCollectionPayment(body);

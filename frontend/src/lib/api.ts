@@ -1,4 +1,4 @@
-import type { AdminOverview, AnalyticsFunnel, ArtisanFormalization, AuthSession, CustomerRequestStatus, InstitutionDashboard, InstitutionalProgram, InstitutionalResource, Listing, Message, NotificationItem, NotificationsResponse, Order, Paginated, Payment, ProgramApplication, ProgramApplicationStatus, ProgramType, PublicArtisan, Report, ReportReason, ReportStatus, ReportTargetType, ResourceType, Review, Role, Shop, ShopType, Thread, User } from './types';
+import type { AdminOverview, AdminSubscription, AnalyticsFunnel, ArtisanFormalization, AuthSession, CustomerRequestStatus, InstitutionDashboard, InstitutionalProgram, InstitutionalResource, Listing, Message, NotificationItem, NotificationsResponse, Order, Paginated, Payment, ProgramApplication, ProgramApplicationStatus, ProgramType, PublicArtisan, Report, ReportReason, ReportStatus, ReportTargetType, ResourceType, Review, Role, Shop, ShopType, Thread, User } from './types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
@@ -176,10 +176,10 @@ export const api = {
   confirmMomoPayment: (orderId: string) =>
     post<Payment>(`/payments/order/${orderId}/momo/confirm`),
 
-  getSubscriptionPlans: () => request<Array<{ id: string; name: string; price: number; currency: string; durationDays: number; description?: string | null }>>('/subscriptions/plans'),
+  getSubscriptionPlans: () => request<Array<{ id: string; name: string; slug: string; price: number; currency: string; durationDays: number; description?: string | null; features?: string[]; sortOrder?: number }>>('/subscriptions/plans'),
 
   getPlanStatus: () =>
-    request<{ premium: boolean; planName: string; endDate: string | null; listingLimit: number | null }>('/subscriptions/status'),
+    request<{ premium: boolean; planName: string; planSlug: string | null; endDate: string | null; listingLimit: number | null }>('/subscriptions/status'),
 
   createSubscription: (planId: string, payerPhone: string) => post<{ id: string; status: string; paymentReference?: string | null; redirectUrl?: string | null; amount: number; currency: string; planId: string }>('/subscriptions/create/' + planId, { payerPhone }),
 
@@ -228,6 +228,8 @@ export const api = {
   adminListings: () => request<Listing[]>('/admin/listings'),
 
   adminOrders: () => request<Order[]>('/admin/orders'),
+
+  adminSubscriptions: () => request<AdminSubscription[]>('/admin/subscriptions'),
 
   adminCancelOrder: (id: string) => patch<Order>(`/admin/orders/${id}/cancel`, {}),
 

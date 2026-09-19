@@ -307,6 +307,10 @@ export default function DashboardPage() {
   const averageResponseLabel = requestStats.averageResponseMinutes >= 60
     ? `${Math.round(requestStats.averageResponseMinutes / 60)} h`
     : `${requestStats.averageResponseMinutes} min`;
+  const planEndDate = planStatus?.endDate ? new Date(planStatus.endDate) : null;
+  const daysUntilPlanEnd = planEndDate ? Math.ceil((planEndDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000)) : null;
+  const planNeedsRenewal = Boolean(planStatus?.planSlug && planStatus.planSlug !== 'starter' && planEndDate);
+  const planRenewalHref = planStatus?.planSlug ? `/payment?type=subscription&plan=${encodeURIComponent(planStatus.planSlug)}` : '/payment?type=subscription';
   const totalShopMetrics = shops.reduce((total, shop) => {
     const metrics = shopMetrics[shop.id] ?? { views: 0, whatsappContactClicks: 0, whatsappShareClicks: 0 };
     return {
@@ -327,16 +331,26 @@ export default function DashboardPage() {
           {planStatus?.premium ? (
             <p className="mt-1 text-sm text-stone-600">
               Annonces illimitées, mise en avant dans les résultats et priorité sur les demandes
-              {planStatus.endDate ? ` · valable jusqu’au ${new Date(planStatus.endDate).toLocaleDateString('fr-FR')}` : ''}.
+              {planEndDate ? ` · valable jusqu’au ${planEndDate.toLocaleDateString('fr-FR')}` : ''}.
             </p>
           ) : (
             <p className="mt-1 text-sm text-stone-600">
-              {listings.length} / {planStatus?.listingLimit ?? 5} annonces actives · passez à Premium pour publier sans
-              limite, apparaître en priorité et recevoir plus de demandes.
+              {planNeedsRenewal && daysUntilPlanEnd !== null && daysUntilPlanEnd < 0
+                ? 'Votre abonnement est arrivé à expiration. Renouvelez-le pour retrouver vos avantages Premium.'
+                : `${listings.length} / ${planStatus?.listingLimit ?? 5} annonces actives · passez à Premium pour publier sans limite, apparaître en priorité et recevoir plus de demandes.`}
             </p>
           )}
+          {planStatus?.premium && daysUntilPlanEnd !== null && daysUntilPlanEnd <= 7 ? (
+            <p className="mt-3 rounded-md border border-amber-200 bg-amber-100 px-3 py-2 text-sm text-amber-900">
+              Votre abonnement expire {daysUntilPlanEnd <= 0 ? 'aujourd’hui' : `dans ${daysUntilPlanEnd} jour${daysUntilPlanEnd > 1 ? 's' : ''}`}.
+            </p>
+          ) : null}
         </div>
-        {!planStatus?.premium ? (
+        {planNeedsRenewal ? (
+          <Link href={planRenewalHref} className="rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-800">
+            Renouveler mon abonnement
+          </Link>
+        ) : !planStatus?.premium ? (
           <Link href="/payment?type=subscription" className="rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-800">
             Passer à Premium
           </Link>

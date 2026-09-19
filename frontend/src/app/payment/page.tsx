@@ -18,6 +18,7 @@ function PaymentPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const type = searchParams.get('type') || 'subscription';
+  const requestedPlan = searchParams.get('plan');
   const { user, ready } = useAuth();
   const [plans, setPlans] = useState<Array<{ id: string; name: string; price: number; currency: string; durationDays: number; description?: string | null }>>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<string>('');
@@ -35,11 +36,16 @@ function PaymentPageContent() {
 
     api.getSubscriptionPlans().then((data) => {
       setPlans(data);
-      if (data[0]) setSelectedPlanId(data[0].id);
+      const requested = data.find((plan) => plan.id === requestedPlan || plan.name.toLowerCase().replace(/\s+/g, '-') === requestedPlan);
+      if (requested) {
+        setSelectedPlanId(requested.id);
+      } else if (data[0]) {
+        setSelectedPlanId(data[0].id);
+      }
     }).catch(() => setError('Impossible de charger les plans d’abonnement.'));
 
     setPayerPhone(user.phone || '');
-  }, [ready, router, user]);
+  }, [ready, requestedPlan, router, user]);
 
   const handlePay = async () => {
     if (!selectedPlanId) {

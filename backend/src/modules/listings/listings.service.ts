@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, MoreThan, Repository } from 'typeorm';
 import { Listing } from '../../entities/index.js';
 
-/** Durée d'une mise en avant et nombre d'annonces sponsorisées simultanément par artisan. */
+/** Valeurs par défaut conservées pour les appels internes qui ne fournissent pas de politique. */
 export const SPONSORING_DAYS = 7;
 export const MAX_SPONSORED_PER_SELLER = 2;
 
