@@ -15,6 +15,7 @@ export type SponsoringPolicy = {
 export const SPONSORING_POLICIES: Record<string, SponsoringPolicy> = {
   'local-plus': { maxSponsored: 2, durationDays: 7 },
   'premium-growth': { maxSponsored: 5, durationDays: 30 },
+  ...(process.env.MOMO_MODE === 'sandbox' ? { 'sandbox-test': { maxSponsored: 1, durationDays: 1 } } : {}),
 };
 
 @Injectable()
