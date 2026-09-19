@@ -43,4 +43,27 @@ describe('MomoService', () => {
 
     expect(() => service.verifyWebhookSignature({ 'x-momo-signature': 'sha256=bad-signature' }, rawBody)).toThrow();
   });
+
+  it('normalizes the Sandbox expired payer scenario', () => {
+    const service = new MomoService(new ConfigService({}));
+
+    expect(service.normalizeStatus('EXPIRED')).toBe('EXPIRED');
+    expect(service.normalizeStatus('SUCCESSFUL')).toBe('SUCCESS');
+    expect(service.normalizeStatus('REJECTED')).toBe('FAILED');
+  });
+
+  it('accepts the documented Sandbox MSISDN format', async () => {
+    const service = new MomoService(new ConfigService({}));
+
+    const result = await service.initiateCollectionPayment({
+      amount: 2500,
+      currency: 'XAF',
+      externalId: 'ORDER-test-expired',
+      payerPhone: '46733123452',
+      callbackUrl: 'https://artisanconnect-api.onrender.com/payments/momo/webhook',
+    });
+
+    expect(result.externalId).toBe('ORDER-test-expired');
+    expect(result.callbackUrl).toBe('https://artisanconnect-api.onrender.com/payments/momo/webhook');
+  });
 });
