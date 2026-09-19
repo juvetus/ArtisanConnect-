@@ -89,7 +89,7 @@ export class SubscriptionsService {
 
     const savedPlans: SubscriptionPlan[] = [];
 
-    for (const planData of this.defaultPlans) {
+    for (const planData of this.getConfiguredPlans()) {
       const existing = bySlug.get(planData.slug) ?? legacyNames.get(planData.name) ?? (await this.planRepository.findOne({ where: { name: planData.name } }));
 
       if (existing) {
@@ -113,6 +113,24 @@ export class SubscriptionsService {
     }
 
     return savedPlans.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  }
+
+  private getConfiguredPlans() {
+    if (process.env.MOMO_MODE !== 'sandbox') return this.defaultPlans;
+
+    return [
+      ...this.defaultPlans,
+      {
+        slug: 'sandbox-test',
+        name: 'Test Sandbox',
+        price: 1000,
+        currency: 'XAF',
+        durationDays: 1,
+        description: 'Offre temporaire réservée aux tests de paiement MoMo Sandbox.',
+        features: ['Paiement de test à 1 000 FCFA', 'Ne pas utiliser en production'],
+        sortOrder: 4,
+      },
+    ];
   }
 
   async createDefaultPlan(): Promise<SubscriptionPlan> {

@@ -90,13 +90,13 @@ export default async function PricingPage() {
   }
 
   const recommendedPlan = plans.find((plan) => plan.slug === 'local-plus') ?? plans[1] ?? plans[0];
-  const comparisonRows: ReadonlyArray<readonly [string, readonly [string, string, string]]> = [
-    ['Boutique en ligne', ['Incluse', 'Incluse', 'Incluse']],
-    ['Annonces actives', ['Jusqu’à 5', 'Illimitées', 'Illimitées']],
-    ['Mise en avant', ['Standard', '2 annonces / 7 jours', '5 annonces / 30 jours']],
-    ['Demandes de devis', ['Oui', 'Oui', 'Oui, priorisées']],
-    ['Badge', ['—', '—', 'Premium Growth']],
-    ['Statistiques', ['Base', 'Détaillées', 'Détaillées']],
+  const comparisonRows: ReadonlyArray<readonly [string, readonly string[]]> = [
+    ['Boutique en ligne', ['Incluse', 'Incluse', 'Incluse', 'Test uniquement']],
+    ['Annonces actives', ['Jusqu’à 5', 'Illimitées', 'Illimitées', 'Test uniquement']],
+    ['Mise en avant', ['Standard', '2 annonces / 7 jours', '5 annonces / 30 jours', 'Non']],
+    ['Demandes de devis', ['Oui', 'Oui', 'Oui, priorisées', 'Non']],
+    ['Badge', ['—', '—', 'Premium Growth', '—']],
+    ['Statistiques', ['Base', 'Détaillées', 'Détaillées', '—']],
   ];
 
   return (
@@ -111,7 +111,7 @@ export default async function PricingPage() {
         </p>
       </header>
 
-      <section className="grid gap-6 lg:grid-cols-3">
+      <section className={`grid gap-6 ${plans.length > 3 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
         {plans.map((plan) => {
           const isRecommended = recommendedPlan?.id === plan.id;
           const isFree = Number(plan.price) === 0;
