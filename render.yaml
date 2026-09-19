@@ -46,7 +46,23 @@ services:
       - key: DB_SYNCHRONIZE
         value: 'true'
       - key: FRONTEND_URL
-        value: https://artisanconnect-web.onrender.com
+        value: https://artisanconnectcm.info
+      - key: API_URL
+        value: https://artisanconnect-api.onrender.com
+      - key: MOMO_MODE
+        value: sandbox
+      - key: MOMO_BASE_URL
+        value: https://sandbox.momodeveloper.mtn.com
+      - key: MOMO_TARGET_ENVIRONMENT
+        value: sandbox
+      - key: MOMO_API_USER
+        sync: false
+      - key: MOMO_API_KEY
+        sync: false
+      - key: MOMO_SUBSCRIPTION_KEY
+        sync: false
+      - key: MOMO_WEBHOOK_SECRET
+        sync: false
       - key: SMTP_ENABLED
         value: 'true'
       - key: SMTP_HOST
