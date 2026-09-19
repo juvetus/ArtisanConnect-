@@ -12,6 +12,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
 
@@ -58,14 +59,19 @@ export default function LoginPage() {
               {t('login_forgot_password')}
             </Link>
           </div>
-          <input
-            id="password"
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600"
-          />
+          <div className="relative mt-1">
+            <input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full rounded-md border border-stone-300 px-3 py-2 pr-20 outline-none focus:border-amber-600"
+            />
+            <button type="button" onClick={() => setShowPassword((visible) => !visible)} className="absolute inset-y-0 right-0 px-3 text-sm font-medium text-amber-800 hover:text-amber-950" aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>
+              {showPassword ? 'Masquer' : 'Afficher'}
+            </button>
+          </div>
         </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}

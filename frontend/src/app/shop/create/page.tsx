@@ -46,10 +46,9 @@ export default function CreateShopPage() {
   const [category, setCategory] = useState('vannerie');
   const [isWomenLed, setIsWomenLed] = useState(false);
   const [isCooperative, setIsCooperative] = useState(false);
-  const [mobileMoneyNumber, setMobileMoneyNumber] = useState('');
   const [momoNumber, setMomoNumber] = useState('');
   const [orangeMoneyNumber, setOrangeMoneyNumber] = useState('');
-  const [mobileMoneyProvider, setMobileMoneyProvider] = useState<'momo' | 'orange_money' | 'both'>('both');
+  const [mobileMoneyProvider, setMobileMoneyProvider] = useState<'momo' | 'orange_money' | 'both'>('momo');
   const [whatsappPhone, setWhatsappPhone] = useState('');
   const [deliveryMethods, setDeliveryMethods] = useState<('workshop' | 'home' | 'carrier')[]>(['workshop', 'home']);
   const [docs, setDocs] = useState<KycDocument[]>([]);
@@ -69,6 +68,10 @@ export default function CreateShopPage() {
   }, [ready, user, router]);
 
   const requiredDocs = SHOP_REQUIRED_DOCS[type];
+  const hasPaymentNumbers = mobileMoneyProvider === 'both'
+    ? Boolean(momoNumber.trim() && orangeMoneyNumber.trim())
+    : Boolean((mobileMoneyProvider === 'momo' ? momoNumber : orangeMoneyNumber).trim());
+  const primaryMobileMoneyNumber = mobileMoneyProvider === 'orange_money' ? orangeMoneyNumber : momoNumber;
 
   const uploadDoc = async (label: string, file: File) => {
     setUploading(label);
@@ -88,10 +91,6 @@ export default function CreateShopPage() {
     }
   };
 
-  const allDocsProvided = requiredDocs.every((req) =>
-    docs.some((doc) => doc.label === req.label),
-  );
-
   const handleSubmit = async () => {
     setSubmitting(true);
     setError('');
@@ -106,9 +105,9 @@ export default function CreateShopPage() {
         latitude: latitude ?? undefined,
         longitude: longitude ?? undefined,
         category,
-        mobileMoneyNumber,
-        momoNumber: momoNumber || undefined,
-        orangeMoneyNumber: orangeMoneyNumber || undefined,
+        mobileMoneyNumber: primaryMobileMoneyNumber,
+        momoNumber: mobileMoneyProvider === 'orange_money' ? undefined : momoNumber || undefined,
+        orangeMoneyNumber: mobileMoneyProvider === 'momo' ? undefined : orangeMoneyNumber || undefined,
         mobileMoneyProvider,
         deliveryMode: deliveryMethods[0] === 'home' ? 'home' : 'workshop',
         deliveryMethods,
@@ -176,73 +175,62 @@ export default function CreateShopPage() {
 
       {step === 2 && (
         <section className="space-y-4 rounded-lg border border-stone-200 bg-white p-6">
-          <p className="text-sm text-stone-600">
-            Les pièces KYC sont facultatives au lancement. Vous pouvez les ajouter maintenant ou compléter votre dossier plus tard.
-          </p>
-          {requiredDocs.map((req) => {
-            const doc = docs.find((d) => d.label === req.label);
-            return (
-              <div key={req.label}>
-                <label htmlFor={`doc-${req.label}`} className="block text-sm font-medium">
-                  {req.labelFr} <span className="text-stone-500">(facultatif)</span> {doc && <span className="text-green-700">✓ fourni</span>}
-                </label>
-                <input
-                  id={`doc-${req.label}`}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime,application/pdf"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) uploadDoc(req.label, file);
-                  }}
-                  className="mt-1 w-full rounded-md border border-amber-300 bg-amber-50 p-2 text-sm text-stone-700 file:mr-3 file:rounded-md file:border-0 file:bg-amber-700 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-amber-800"
-                />
-                {uploading === req.label && <p className="mt-1 text-sm text-stone-500">Téléversement…</p>}
-              </div>
-            );
-          })}
-          {SHOP_OPTIONAL_DOCS[type].map((req) => {
-            const doc = docs.find((item) => item.label === req.label);
-            return (
-              <div key={req.label}>
-                <label htmlFor={`optional-doc-${req.label}`} className="block text-sm font-medium">
-                  {req.labelFr} {doc && <span className="text-green-700">✓ fourni</span>}
-                </label>
-                <input
-                  id={`optional-doc-${req.label}`}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime,application/pdf"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) uploadDoc(req.label, file);
-                  }}
-                  className="mt-1 w-full rounded-md border border-amber-300 bg-amber-50 p-2 text-sm text-stone-700 file:mr-3 file:rounded-md file:border-0 file:bg-amber-700 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-amber-800"
-                />
-              </div>
-            );
-          })}
           <div>
-            <label htmlFor="whatsapp-phone" className="block text-sm font-medium">Numéro WhatsApp pour les clients</label>
-            <input id="whatsapp-phone" type="tel" required value={whatsappPhone} onChange={(e) => setWhatsappPhone(e.target.value)} placeholder="+237 6XX XXX XXX ou +33 6 12 34 56 78" className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600" />
-            <p className="mt-1 text-xs text-stone-500">Ce numéro sera utilisé par les boutons WhatsApp de vos annonces et services.</p>
+            <label htmlFor="whatsapp-phone" className="block text-sm font-medium">WhatsApp clients <span className="font-normal text-stone-500">(facultatif)</span></label>
+            <input id="whatsapp-phone" type="tel" value={whatsappPhone} onChange={(e) => setWhatsappPhone(e.target.value)} placeholder="6XX XXX XXX" className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600" />
+            <p className="mt-1 text-xs text-stone-500">Ajoutez-le maintenant ou plus tard dans votre profil.</p>
           </div>
           <div>
-            <label htmlFor="mobile-money-provider" className="block text-sm font-medium">Moyen Mobile Money accepté</label>
-            <select id="mobile-money-provider" value={mobileMoneyProvider} onChange={(event) => setMobileMoneyProvider(event.target.value as typeof mobileMoneyProvider)} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600">
-              <option value="both">MoMo et Orange Money</option>
-              <option value="momo">MoMo uniquement</option>
-              <option value="orange_money">Orange Money uniquement</option>
-            </select>
-            <p className="mt-1 text-xs text-stone-500">Ce choix concerne les paiements. Le numéro WhatsApp est géré séparément dans votre profil.</p>
+            <p className="text-sm font-medium">Paiement Mobile Money</p>
+            <p className="mt-1 text-xs text-stone-500">Choisissez le compte qui reçoit vos paiements. Vous pourrez en ajouter un autre plus tard.</p>
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              {([
+                ['momo', 'MoMo'],
+                ['orange_money', 'Orange Money'],
+                ['both', 'Les deux'],
+              ] as const).map(([value, label]) => (
+                <label key={value} className={`cursor-pointer rounded-md border px-2 py-2 text-center text-sm font-medium ${mobileMoneyProvider === value ? 'border-amber-700 bg-amber-50 text-amber-800' : 'border-stone-300 text-stone-600'}`}>
+                  <input type="radio" name="mobile-money-provider" value={value} checked={mobileMoneyProvider === value} onChange={() => setMobileMoneyProvider(value)} className="sr-only" />
+                  {label}
+                </label>
+              ))}
+            </div>
           </div>
           {(mobileMoneyProvider === 'momo' || mobileMoneyProvider === 'both') ? <div>
             <label htmlFor="momo-phone" className="block text-sm font-medium">Numéro MoMo</label>
-            <input id="momo-phone" type="tel" required placeholder="+237..." value={momoNumber} onChange={(e) => { setMomoNumber(e.target.value); setMobileMoneyNumber(e.target.value); }} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600" />
+            <input id="momo-phone" type="tel" required placeholder="6XX XXX XXX" value={momoNumber} onChange={(e) => setMomoNumber(e.target.value)} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600" />
           </div> : null}
           {(mobileMoneyProvider === 'orange_money' || mobileMoneyProvider === 'both') ? <div>
             <label htmlFor="orange-phone" className="block text-sm font-medium">Numéro Orange Money</label>
-            <input id="orange-phone" type="tel" required placeholder="+237..." value={orangeMoneyNumber} onChange={(e) => { setOrangeMoneyNumber(e.target.value); if (!momoNumber) setMobileMoneyNumber(e.target.value); }} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600" />
+            <input id="orange-phone" type="tel" required placeholder="6XX XXX XXX" value={orangeMoneyNumber} onChange={(e) => setOrangeMoneyNumber(e.target.value)} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600" />
           </div> : null}
-          <p className="text-xs text-stone-500">Saisissez un numéro pour chaque moyen de paiement sélectionné.</p>
+          <details className="rounded-md border border-stone-200 p-3">
+            <summary className="cursor-pointer text-sm font-medium text-stone-700">Ajouter mes pièces de vérification maintenant <span className="font-normal text-stone-500">(facultatif)</span></summary>
+            <p className="mt-2 text-xs text-stone-500">Vous pourrez compléter ces pièces après la création de votre boutique.</p>
+            <div className="mt-3 space-y-3">
+              {[...requiredDocs, ...SHOP_OPTIONAL_DOCS[type]].map((req) => {
+                const doc = docs.find((item) => item.label === req.label);
+                return (
+                  <div key={req.label}>
+                    <label htmlFor={`doc-${req.label}`} className="block text-sm font-medium">
+                      {req.labelFr} {doc && <span className="text-green-700">✓ fourni</span>}
+                    </label>
+                    <input
+                      id={`doc-${req.label}`}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime,application/pdf"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) uploadDoc(req.label, file);
+                      }}
+                      className="mt-1 w-full rounded-md border border-amber-300 bg-amber-50 p-2 text-sm text-stone-700 file:mr-3 file:rounded-md file:border-0 file:bg-amber-700 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-amber-800"
+                    />
+                    {uploading === req.label && <p className="mt-1 text-sm text-stone-500">Téléversement…</p>}
+                  </div>
+                );
+              })}
+            </div>
+          </details>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex gap-3">
             <button
@@ -254,11 +242,11 @@ export default function CreateShopPage() {
             </button>
             <button
               type="button"
-              disabled={!mobileMoneyNumber.trim() || uploading !== null}
+              disabled={!hasPaymentNumbers || uploading !== null}
               onClick={() => setStep(3)}
               className="flex-1 rounded-md bg-amber-700 py-2 font-medium text-white hover:bg-amber-800 disabled:opacity-60"
             >
-              {allDocsProvided ? t('create_shop_continue') : 'Continuer sans pièces'}
+              Continuer
             </button>
           </div>
         </section>

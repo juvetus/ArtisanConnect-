@@ -21,6 +21,7 @@ export default function RegisterPage() {
   const [phoneOtp, setPhoneOtp] = useState('');
   const [phoneOtpExpected, setPhoneOtpExpected] = useState<string | null>(null);
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<Role>('client');
   const [gender, setGender] = useState<'female' | 'male' | 'cooperative' | 'other'>('female');
   const [error, setError] = useState('');
@@ -167,15 +168,20 @@ export default function RegisterPage() {
           <label htmlFor="password" className="block text-sm font-medium">
             {t('login_password')}
           </label>
-          <input
-            id="password"
-            type="password"
-            required
-            minLength={8}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600"
-          />
+          <div className="relative mt-1">
+            <input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              required
+              minLength={8}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full rounded-md border border-stone-300 px-3 py-2 pr-20 outline-none focus:border-amber-600"
+            />
+            <button type="button" onClick={() => setShowPassword((visible) => !visible)} className="absolute inset-y-0 right-0 px-3 text-sm font-medium text-amber-800 hover:text-amber-950" aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>
+              {showPassword ? 'Masquer' : 'Afficher'}
+            </button>
+          </div>
           <p className="mt-1 text-xs text-stone-500">8 caractères minimum / min 8 chars.</p>
         </div>
 

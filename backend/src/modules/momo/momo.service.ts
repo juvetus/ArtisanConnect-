@@ -1,6 +1,6 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 
 export type MomoPaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'EXPIRED';
 
@@ -157,7 +157,8 @@ export class MomoService {
   }
 
   async initiateCollectionPayment(input: InitiateMomoPaymentDto): Promise<MomoPaymentResult> {
-    const referenceId = input.externalId;
+    // MTN rejects business IDs such as SUB-<id>: X-Reference-Id must be UUID v4.
+    const referenceId = randomUUID();
     const callbackUrl = input.callbackUrl || this.getWebhookUrl('momo/webhook');
 
     if (this.isMockMode) {
@@ -170,7 +171,7 @@ export class MomoService {
         referenceId,
         transactionId: `TXN-${Date.now()}`,
         callbackUrl,
-        redirectUrl: this.buildPaymentRedirectUrl(referenceId, this.getRedirectType(referenceId), input.externalId),
+        redirectUrl: this.buildPaymentRedirectUrl(referenceId, this.getRedirectType(input.externalId), input.externalId),
         message: 'Paiement MoMo simulé - aucun appel externe effectué.',
       };
     }
@@ -227,7 +228,7 @@ export class MomoService {
         externalId: input.externalId,
         referenceId,
         callbackUrl,
-        redirectUrl: this.buildPaymentRedirectUrl(referenceId, this.getRedirectType(referenceId), input.externalId),
+        redirectUrl: this.buildPaymentRedirectUrl(referenceId, this.getRedirectType(input.externalId), input.externalId),
         message: 'Demande de paiement initiée',
         rawResponse: parsed,
       };
