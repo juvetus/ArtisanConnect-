@@ -11,7 +11,8 @@ import { Pagination } from '@/components/Pagination';
 import { categoryLabel, SERVICE_CATEGORIES } from '@/lib/categories';
 
 export default function ServicesCatalogPage() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const english = language === 'en';
   const [page, setPage] = useState(0);
   const [audienceFilter, setAudienceFilter] = useState<'all' | 'women' | 'cooperatives'>('all');
   const [draftQuery, setDraftQuery] = useState('');
@@ -39,9 +40,9 @@ export default function ServicesCatalogPage() {
     <div className="mx-auto max-w-6xl space-y-8">
       <section className="grid overflow-hidden rounded-xl bg-stone-900 text-white lg:grid-cols-[0.9fr_1.1fr]">
         <div className="flex flex-col justify-center px-6 py-8 lg:px-8">
-          <p className="text-sm font-semibold uppercase tracking-wide text-amber-300">Services artisanaux au Cameroun</p>
-          <h1 className="mt-2 text-3xl font-semibold">Trouvez l’artisan adapté à votre projet</h1>
-          <p className="mt-3 text-sm leading-6 text-stone-200">Découvrez des professionnels pour vos projets du quotidien : création, réparation, aménagement, entretien et prestations sur mesure partout au Cameroun.</p>
+          <p className="text-sm font-semibold uppercase tracking-wide text-amber-300">{english ? 'Artisan services in Cameroon' : 'Services artisanaux au Cameroun'}</p>
+          <h1 className="mt-2 text-3xl font-semibold">{english ? 'Find the right artisan for your project' : 'Trouvez l’artisan adapté à votre projet'}</h1>
+          <p className="mt-3 text-sm leading-6 text-stone-200">{english ? 'Discover professionals for everyday projects: creation, repairs, renovation, maintenance and custom services across Cameroon.' : 'Découvrez des professionnels pour vos projets du quotidien : création, réparation, aménagement, entretien et prestations sur mesure partout au Cameroun.'}</p>
         </div>
           <div className="relative flex min-h-64 items-center justify-center overflow-hidden bg-stone-950 p-2">
           <div className="relative w-full max-w-[42rem]">
@@ -56,7 +57,7 @@ export default function ServicesCatalogPage() {
           <h2 className="mt-1 text-3xl font-semibold text-stone-900">{t('services_page_title')}</h2>
           <p className="mt-2 text-stone-600">{t('services_page_subtitle')}</p>
         </div>
-        <a href="/customer-requests" className="rounded-lg bg-amber-700 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-amber-800">Je cherche un artisan</a>
+        <a href="/customer-requests" className="rounded-lg bg-amber-700 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-amber-800">{english ? 'I am looking for an artisan' : 'Je cherche un artisan'}</a>
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setAudienceFilter((prev) => (prev === 'women' ? 'all' : 'women'))}
@@ -92,24 +93,24 @@ export default function ServicesCatalogPage() {
           <input
             value={draftQuery}
             onChange={(event) => setDraftQuery(event.target.value)}
-            aria-label="Rechercher un service"
-            placeholder="Réparation frigo, robe sur mesure, plomberie…"
+            aria-label={english ? 'Search for a service' : 'Rechercher un service'}
+            placeholder={english ? 'Fridge repair, custom dress, plumbing...' : 'Réparation frigo, robe sur mesure, plomberie…'}
             className="flex-1 rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
           />
           <button type="submit" className="rounded-md bg-stone-900 px-5 py-2 text-sm font-medium text-white hover:bg-stone-800">
-            Rechercher
+            {english ? 'Search' : 'Rechercher'}
           </button>
         </form>
 
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="text-sm font-medium text-stone-700">
-            Métier
+            {english ? 'Trade' : 'Métier'}
             <select
               value={filters.category ?? ''}
               onChange={(event) => updateFilter({ category: event.target.value || undefined })}
               className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
             >
-              <option value="">Tous les métiers</option>
+              <option value="">{english ? 'All trades' : 'Tous les métiers'}</option>
               {SERVICE_CATEGORIES.map((item) => (
                 <option key={item.value} value={item.value}>{categoryLabel(item.value)}</option>
               ))}
@@ -117,13 +118,13 @@ export default function ServicesCatalogPage() {
           </label>
 
           <label className="text-sm font-medium text-stone-700">
-            Ville ou quartier
+            {english ? 'City or neighborhood' : 'Ville ou quartier'}
             <select
               value={filters.city ?? ''}
               onChange={(event) => updateFilter({ city: event.target.value || undefined })}
               className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
             >
-              <option value="">Tout le Cameroun</option>
+              <option value="">{english ? 'All Cameroon' : 'Tout le Cameroun'}</option>
               {locations?.map((location) => (
                 <optgroup key={location.label} label={`${location.label} (${location.count})`}>
                   <option value={location.label}>{location.label} — toute la ville</option>

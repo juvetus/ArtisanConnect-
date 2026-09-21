@@ -6,6 +6,9 @@ import { CITIES, NEIGHBORHOODS, labelFromSlug, slugify } from '@/lib/locations';
 import { ArtisanCard } from '@/components/ArtisanCard';
 import { ArtisanFilters } from '@/components/ArtisanFilters';
 import type { PublicArtisan } from '@/lib/types';
+import { DirectoryIntro } from '@/components/DirectoryIntro';
+import { DirectoryResultsInfo } from '@/components/DirectoryResultsInfo';
+import { DirectorySectionLabel } from '@/components/DirectorySectionLabel';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://artisanconnectcm.info';
 
@@ -94,11 +97,8 @@ export default async function ArtisansDirectoryPage({ params, searchParams }: Pa
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
 
       <header>
-        <p className="text-sm font-medium uppercase tracking-wide text-amber-700">Annuaire des artisans</p>
+        <DirectoryIntro />
         <h1 className="mt-1 text-3xl font-semibold text-stone-900">{title}</h1>
-        <p className="mt-2 text-stone-600">
-          Comparez les profils, consultez les avis et demandez un devis gratuit en quelques minutes.
-        </p>
       </header>
 
       <ArtisanFilters
@@ -112,7 +112,7 @@ export default async function ArtisansDirectoryPage({ params, searchParams }: Pa
 
       {artisans.length ? (
         <>
-          <p className="text-sm text-stone-600">{artisans.length} artisan(s) correspondant à votre recherche.</p>
+          <DirectoryResultsInfo count={artisans.length} />
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {artisans.map((artisan) => (
               <ArtisanCard key={artisan.id} artisan={artisan} />
@@ -122,8 +122,7 @@ export default async function ArtisansDirectoryPage({ params, searchParams }: Pa
       ) : (
         <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-6">
           <p className="text-sm text-amber-900">
-            Aucun artisan ne correspond encore à cette recherche. Publiez votre besoin : nous le transmettons aux
-            artisans concernés.
+            Aucun artisan ne correspond encore à cette recherche. Publiez votre besoin : nous le transmettons aux artisans concernés.
           </p>
           <Link
             href="/customer-requests"
@@ -136,7 +135,7 @@ export default async function ArtisansDirectoryPage({ params, searchParams }: Pa
 
       {suggestedNeighborhoods.length ? (
         <section className="space-y-2 border-t border-stone-200 pt-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-700">Par quartier</h2>
+          <DirectorySectionLabel kind="neighborhood" />
           <div className="flex flex-wrap gap-2">
             {suggestedNeighborhoods.map((item) => (
               <Link
@@ -152,7 +151,7 @@ export default async function ArtisansDirectoryPage({ params, searchParams }: Pa
       ) : null}
 
       <section className="space-y-2 border-t border-stone-200 pt-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-700">Recherches fréquentes</h2>
+        <DirectorySectionLabel kind="frequent" />
         <div className="flex flex-wrap gap-2">
           {CITIES.slice(0, 6).map((item) => (
             <Link

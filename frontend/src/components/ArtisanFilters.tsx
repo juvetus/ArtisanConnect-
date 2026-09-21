@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { api } from '@/lib/api';
 import { SERVICE_CATEGORIES, PRODUCT_CATEGORIES, categoryLabel } from '@/lib/categories';
 import { CITIES, NEIGHBORHOODS, slugify } from '@/lib/locations';
+import { useLanguage } from '@/lib/language-context';
 
 export function ArtisanFilters({
   category,
@@ -23,6 +24,8 @@ export function ArtisanFilters({
   query?: string;
 }) {
   const router = useRouter();
+  const { language } = useLanguage();
+  const english = language === 'en';
   const [draftQuery, setDraftQuery] = useState(query ?? '');
   // Les villes proposées viennent des boutiques réelles ; la liste statique sert de repli.
   const { data: locations } = useSWR('public-locations', api.publicLocations);
@@ -71,30 +74,30 @@ export function ArtisanFilters({
         <input
           value={draftQuery}
           onChange={(event) => setDraftQuery(event.target.value)}
-          aria-label="Rechercher un artisan, un métier ou un quartier"
-          placeholder="Plombier à Bastos, menuisier, couture…"
+          aria-label={english ? 'Search for an artisan, trade or neighborhood' : 'Rechercher un artisan, un métier ou un quartier'}
+          placeholder={english ? 'Plumber in Bastos, carpenter, tailoring...' : 'Plombier à Bastos, menuisier, couture…'}
           className="flex-1 rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
         />
         <button type="submit" className="rounded-md bg-stone-900 px-5 py-2 text-sm font-medium text-white hover:bg-stone-800">
-          Rechercher
+          {english ? 'Search' : 'Rechercher'}
         </button>
       </form>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <label className="text-sm font-medium text-stone-700">
-          Métier
+          {english ? 'Trade' : 'Métier'}
           <select
             value={category ?? ''}
             onChange={(event) => navigate({ category: event.target.value })}
             className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
           >
-            <option value="">Tous les métiers</option>
-            <optgroup label="Services">
+            <option value="">{english ? 'All trades' : 'Tous les métiers'}</option>
+            <optgroup label={english ? 'Services' : 'Services'}>
               {SERVICE_CATEGORIES.map((item) => (
                 <option key={item.value} value={item.value}>{categoryLabel(item.value)}</option>
               ))}
             </optgroup>
-            <optgroup label="Produits">
+            <optgroup label={english ? 'Products' : 'Produits'}>
               {PRODUCT_CATEGORIES.map((item) => (
                 <option key={item.value} value={item.value}>{categoryLabel(item.value)}</option>
               ))}
@@ -103,13 +106,13 @@ export function ArtisanFilters({
         </label>
 
         <label className="text-sm font-medium text-stone-700">
-          Ville
+          {english ? 'City' : 'Ville'}
           <select
             value={city ?? ''}
             onChange={(event) => navigate({ city: event.target.value, neighborhood: '' })}
             className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
           >
-            <option value="">Toutes les villes</option>
+            <option value="">{english ? 'All cities' : 'Toutes les villes'}</option>
             {availableCities.map((item) => (
               <option key={item} value={item}>{item}</option>
             ))}
@@ -117,14 +120,14 @@ export function ArtisanFilters({
         </label>
 
         <label className="text-sm font-medium text-stone-700">
-          Quartier
+          {english ? 'Neighborhood' : 'Quartier'}
           <select
             value={neighborhood ?? ''}
             onChange={(event) => navigate({ neighborhood: event.target.value })}
             disabled={!availableNeighborhoods.length}
             className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600 disabled:bg-stone-100"
           >
-            <option value="">Tous les quartiers</option>
+            <option value="">{english ? 'All neighborhoods' : 'Tous les quartiers'}</option>
             {availableNeighborhoods.map((item) => (
               <option key={item} value={item}>{item}</option>
             ))}
@@ -132,16 +135,16 @@ export function ArtisanFilters({
         </label>
 
         <label className="text-sm font-medium text-stone-700">
-          Note minimale
+          {english ? 'Minimum rating' : 'Note minimale'}
           <select
             value={String(minRating)}
             onChange={(event) => navigate({ minRating: Number(event.target.value) })}
             className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
           >
-            <option value="0">Toutes les notes</option>
-            <option value="3">3 ★ et plus</option>
-            <option value="4">4 ★ et plus</option>
-            <option value="4.5">4,5 ★ et plus</option>
+            <option value="0">{english ? 'All ratings' : 'Toutes les notes'}</option>
+            <option value="3">{english ? '3 ★ and above' : '3 ★ et plus'}</option>
+            <option value="4">{english ? '4 ★ and above' : '4 ★ et plus'}</option>
+            <option value="4.5">{english ? '4.5 ★ and above' : '4,5 ★ et plus'}</option>
           </select>
         </label>
 
@@ -152,7 +155,7 @@ export function ArtisanFilters({
             onChange={(event) => navigate({ verified: event.target.checked })}
             className="mb-2.5 h-4 w-4 rounded border-stone-300 accent-amber-700"
           />
-          <span className="mb-2">Profil contrôlé uniquement</span>
+          <span className="mb-2">{english ? 'Verified profiles only' : 'Profil contrôlé uniquement'}</span>
         </label>
       </div>
     </div>
