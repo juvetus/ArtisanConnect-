@@ -269,7 +269,7 @@ export default function OrdersPage() {
                         Payer avec Orange Money
                       </button>
                     )}
-                    {(order.deliveryMethod === 'workshop' ? order.sellerConfirmedAvailability : order.carrierVerified) && !order.buyerConfirmedReception && (
+                    {(order.deliveryMethod === 'carrier' ? order.carrierVerified : order.sellerConfirmedAvailability) && !order.buyerConfirmedReception && (
                       <button
                         onClick={() => run(order.id, () => api.confirmReception(order.id))}
                         disabled={busyId === order.id}
