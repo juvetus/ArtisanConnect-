@@ -6,7 +6,7 @@ import { ShopsService } from '../shops/shops.service.js';
 import { OrangeMoneyService } from './orange-money.service.js';
 
 /**
- * Workflow escrow Orange Money :
+ * Workflow escrow Mobile Money :
  * 1. webpayment  → l'argent du client est bloqué (status PENDING → escrow)
  * 2. confirmation vendeur ("produit disponible") sinon annulation + remboursement
  * 3. vérification transporteur (récupéré + conforme) sinon annulation + remboursement
@@ -190,8 +190,8 @@ export class EscrowService {
   private async getEscrowOrder(orderId: string, userId: string, role: 'seller' | 'buyer' | 'carrier') {
     const order = await this.ordersRepository.findOne({ where: { id: orderId } });
     if (!order) throw new NotFoundException('Commande introuvable');
-    if (order.paymentMethod !== 'orange_money') {
-      throw new BadRequestException("Ce workflow ne concerne que les commandes Orange Money");
+    if (order.paymentMethod !== 'orange_money' && order.paymentMethod !== 'momo') {
+      throw new BadRequestException('Ce workflow concerne uniquement les paiements Mobile Money');
     }
     if (role === 'seller' && order.sellerId !== userId) {
       throw new ForbiddenException('Seul le vendeur peut effectuer cette action');
