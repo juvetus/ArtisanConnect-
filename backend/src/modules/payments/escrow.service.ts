@@ -91,7 +91,7 @@ export class EscrowService {
   /** Étape 2 — Le vendeur confirme que le produit est disponible. */
   async confirmAvailability(orderId: string, sellerId: string): Promise<Order> {
     const order = await this.getEscrowOrder(orderId, sellerId, 'seller');
-    if (order.status !== 'pending') {
+    if (order.status !== 'pending' && order.status !== 'confirmed') {
       throw new BadRequestException('Cette commande ne peut plus être confirmée');
     }
     await this.ordersRepository.update(orderId, { sellerConfirmedAvailability: true, status: 'confirmed' });

@@ -449,7 +449,7 @@ export default function DashboardPage() {
                   {order.paymentMethod === 'orange_money' && order.status === 'pending' && (
                     <span className="text-sm text-orange-700">Orange Money en attente</span>
                   )}
-                  {order.paymentMethod === 'orange_money' && user && (
+                  {(order.paymentMethod === 'orange_money' || order.paymentMethod === 'momo') && user && (
                     <div className="mt-2 flex w-full flex-wrap gap-2">
                       {user.id === order.sellerId && !order.sellerConfirmedAvailability && (
                         <>
