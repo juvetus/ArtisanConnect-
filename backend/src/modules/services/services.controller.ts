@@ -1,13 +1,33 @@
-﻿import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, BadRequestException } from '@nestjs/common';
+﻿import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, BadRequestException, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { CurrentUser, type AuthUser } from '../auth/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { AdminGuard } from '../auth/admin.guard.js';
 import { Public } from '../auth/public.decorator.js';
 import { ServicesService } from './services.service.js';
+import { StorageService } from '../storage/storage.service.js';
 
 @Controller('services')
 export class ServicesController {
-  constructor(private readonly servicesService: ServicesService) {}
+  constructor(private readonly servicesService: ServicesService, private readonly storageService: StorageService) {}
+
+  private static readonly IMAGE_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+  @UseGuards(JwtAuthGuard)
+  @Post('upload-images')
+  @UseInterceptors(FilesInterceptor('files', 5, { limits: { fileSize: 5 * 1024 * 1024 } }))
+  async uploadServiceImages(@CurrentUser() user: AuthUser, @UploadedFiles() files?: Express.Multer.File[]) {
+    if (user.role !== 'artisan') throw new BadRequestException('Seuls les artisans peuvent ajouter des images');
+    if (!files?.length) throw new BadRequestException('Au moins une image est requise');
+    if (files.some((file) => !ServicesController.IMAGE_MIME.includes(file.mimetype))) {
+      throw new BadRequestException('Image invalide (JPEG, PNG, WebP ou GIF)');
+    }
+    if (!this.storageService.isEnabled()) {
+      throw new BadRequestException('Le stockage Cloudinary doit être configuré avant les uploads de production.');
+    }
+    const uploads = await Promise.all(files.map((file) => this.storageService.uploadBuffer(file.buffer, 'artisanconnect/services', 'image')));
+    return { imageUrls: uploads.map((upload) => upload.url) };
+  }
 
   // Public endpoints
     @Public()

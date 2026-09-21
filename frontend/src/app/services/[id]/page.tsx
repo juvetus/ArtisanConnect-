@@ -8,6 +8,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import type { Service } from '@/lib/types';
 import { whatsappHref } from '@/lib/whatsapp';
+import { resolveMediaUrl } from '@/lib/media';
 const LocationPicker = dynamic(() => import('@/components/LocationPicker').then((module) => module.LocationPicker), { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-md bg-stone-100" /> });
 
 export default function ServiceOrderPage() {
@@ -112,6 +113,7 @@ export default function ServiceOrderPage() {
           </div>
         </div>
         <p className="mt-6 whitespace-pre-wrap text-stone-700">{service.description}</p>
+        {service.fileUrls?.length ? <div className="mt-6"><h2 className="text-xl font-semibold text-stone-900">Réalisations</h2><div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">{service.fileUrls.map((url, index) => <img key={`${url}-${index}`} src={resolveMediaUrl(url)} alt={`${service.title} - réalisation ${index + 1}`} className="aspect-square w-full rounded-lg object-cover" />)}</div></div> : null}
         {service.tags?.length ? (
           <div className="mt-4 flex flex-wrap gap-2">
             {service.tags.map((tag) => <span key={tag} className="rounded-full bg-stone-100 px-3 py-1 text-xs text-stone-700">{tag}</span>)}

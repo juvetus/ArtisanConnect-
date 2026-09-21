@@ -484,6 +484,12 @@ export const api = {
   getMyServices: () =>
     request(`/services/me/list`),
 
+  uploadServiceImages: async (files: File[]) => {
+    const form = new FormData();
+    files.forEach((file) => form.append('files', file));
+    return request<{ imageUrls: string[] }>('/services/upload-images', { method: 'POST', body: form });
+  },
+
   updateService: (id: string, data: Partial<{ title: string; description: string; price?: number; priceMin?: number; priceMax?: number; estimatedDays: number; category: string; tags?: string[]; fileUrls?: string[] }>) =>
     patch(`/services/${id}`, data),
 

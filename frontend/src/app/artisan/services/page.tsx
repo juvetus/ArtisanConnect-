@@ -18,6 +18,7 @@ interface Service {
   estimatedDays: number;
   category: string;
   tags?: string[];
+  fileUrls?: string[];
   status: 'draft' | 'pending_validation' | 'validation_requested' | 'approved' | 'rejected';
   validationFeedback?: string;
   createdAt: string;
@@ -49,6 +50,8 @@ export default function ServicesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
   const [noticeType, setNoticeType] = useState<'success' | 'error'>('success');
+  const [serviceImages, setServiceImages] = useState<string[]>([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -81,6 +84,7 @@ export default function ServicesPage() {
         estimatedDays: parseInt(formData.estimatedDays),
         category: formData.category,
         tags: formData.tags ? formData.tags.split(',').map(t => t.trim()) : [],
+        fileUrls: serviceImages,
       };
 
       if (formData.price) {
@@ -113,6 +117,7 @@ export default function ServicesPage() {
         category: categories[0].value,
         tags: '',
       });
+      setServiceImages([]);
       setShowForm(false);
       setEditingId(null);
       await mutate();
@@ -134,8 +139,32 @@ export default function ServicesPage() {
       category: service.category,
       tags: service.tags?.join(', ') || '',
     });
+    setServiceImages(service.fileUrls ?? []);
     setEditingId(service.id);
     setShowForm(true);
+  };
+
+  const handleServiceImages = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = '';
+    if (!files.length) return;
+    if (files.length + serviceImages.length > 5) {
+      setNoticeType('error');
+      setNotice('Ajoutez au maximum 5 photos à une galerie.');
+      return;
+    }
+    setUploadingImages(true);
+    try {
+      const result = await api.uploadServiceImages(files);
+      setServiceImages((current) => [...current, ...result.imageUrls]);
+      setNoticeType('success');
+      setNotice('Photos ajoutées à la galerie.');
+    } catch (error) {
+      setNoticeType('error');
+      setNotice(error instanceof Error ? error.message : 'Le téléversement des photos a échoué.');
+    } finally {
+      setUploadingImages(false);
+    }
   };
 
   const handlePublish = async (serviceId: string) => {
@@ -318,6 +347,15 @@ export default function ServicesPage() {
                 placeholder="ex : React, WordPress, E-commerce"
                 className="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-amber-500 focus:outline-none"
               />
+            </div>
+
+            <div>
+              <label htmlFor="service-images" className="block text-sm font-medium text-stone-700">Photos du service (jusqu’à 5)</label>
+              <input id="service-images" type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif" disabled={uploadingImages || serviceImages.length >= 5} onChange={handleServiceImages} className="mt-1 block w-full rounded-md border border-amber-300 bg-amber-50 p-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-amber-700 file:px-3 file:py-2 file:font-medium file:text-white" />
+              <p className="mt-1 text-xs text-stone-500">Montrez vos réalisations : JPEG, PNG, WebP ou GIF, 5 Mo maximum par photo.</p>
+              {serviceImages.length ? <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
+                {serviceImages.map((url, index) => <div key={`${url}-${index}`} className="relative"><img src={url} alt={`Réalisation ${index + 1}`} className="aspect-square w-full rounded-md object-cover" /><button type="button" onClick={() => setServiceImages((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="absolute right-1 top-1 rounded-full bg-stone-900/80 px-2 py-1 text-xs text-white" aria-label={`Supprimer la photo ${index + 1}`}>×</button></div>)}
+              </div> : null}
             </div>
 
             <div className="flex gap-3 pt-4">
