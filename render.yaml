@@ -1,6 +1,7 @@
 services:
   - type: web
-    name: artisanconnect-api
+    name: artisanconnect-api-frankfurt
+    region: frankfurt
     runtime: node
     rootDir: backend
     buildCommand: npm ci --include=dev && npm run build
@@ -25,30 +26,30 @@ services:
         value: Administration ArtisanConnect
       - key: DB_HOST
         fromDatabase:
-          name: artisanconnect-db
+          name: artisanconnect-db-one
           property: host
       - key: DB_PORT
         fromDatabase:
-          name: artisanconnect-db
+          name: artisanconnect-db-one
           property: port
       - key: DB_USERNAME
         fromDatabase:
-          name: artisanconnect-db
+          name: artisanconnect-db-one
           property: user
       - key: DB_PASSWORD
         fromDatabase:
-          name: artisanconnect-db
+          name: artisanconnect-db-one
           property: password
       - key: DB_DATABASE
         fromDatabase:
-          name: artisanconnect-db
+          name: artisanconnect-db-one
           property: database
       - key: DB_SYNCHRONIZE
-        value: 'true'
+        value: 'false'
       - key: FRONTEND_URL
         value: https://artisanconnectcm.info
       - key: API_URL
-        value: https://artisanconnect-api.onrender.com
+        value: https://artisanconnect-api-frankfurt.onrender.com
       - key: MOMO_MODE
         value: sandbox
       - key: MOMO_BASE_URL
@@ -92,12 +93,14 @@ services:
     startCommand: npm run start
     envVars:
       - key: NEXT_PUBLIC_API_URL
-        value: https://artisanconnect-api.onrender.com
+        value: https://artisanconnect-api-frankfurt.onrender.com
       - key: NEXT_PUBLIC_SITE_URL
         value: https://artisanconnectcm.info
 
 databases:
-  - name: artisanconnect-db
-    databaseName: artisan_connect
-    user: artisan
+  - name: artisanconnect-db-one
+    region: frankfurt
+    postgresMajorVersion: '18'
+    databaseName: artisanconnect_db_one
+    user: artisanconnect_db_one_user
     plan: free
