@@ -21,6 +21,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
   );
   const isService = listing.type === 'service';
   const french = language === 'fr';
+  const location = [listing.shop?.neighborhood, listing.shop?.city].filter(Boolean).join(', ');
 
   return (
     <Link
@@ -51,7 +52,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
           <img
             src={resolveMediaUrl(listing.imageUrls?.[0] || listing.imageUrl || '')}
             alt={listing.title}
-            className="h-full w-full object-cover object-center transition duration-300 group-hover:scale-105"
+            className="h-full w-full object-contain object-center transition duration-300 group-hover:scale-[1.02]"
           />
         ) : <span className="text-sm font-medium text-stone-500">{categoryLabel(listing.category)}</span>}
       </div>
@@ -59,14 +60,14 @@ export function ListingCard({ listing }: { listing: Listing }) {
       <div className="flex flex-1 flex-col gap-2 p-4">
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs font-semibold uppercase tracking-wide text-amber-700">{categoryLabel(listing.category)}</span>
-          <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[11px] font-medium text-stone-600">{isService ? (french ? 'Service' : 'Service') : (french ? 'Produit' : 'Product')}</span>
+          <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-[11px] font-semibold text-stone-600">{isService ? (french ? 'Service' : 'Service') : (french ? 'Produit' : 'Product')}</span>
         </div>
         <h3 className="line-clamp-2 min-h-12 text-lg font-semibold leading-tight text-stone-900 group-hover:text-amber-800">{listing.title}</h3>
         <p className="line-clamp-2 text-sm leading-5 text-stone-600">{listing.description}</p>
         <div className="mt-auto flex items-end justify-between gap-3 border-t border-stone-100 pt-3">
           <div>
             <p className="text-lg font-bold text-stone-950">{formatXAF(listing.price)}</p>
-            {listing.seller ? <p className="max-w-36 truncate text-xs text-stone-500">{listing.seller.name}</p> : null}
+            <p className="max-w-48 truncate text-xs text-stone-500">{listing.seller?.name ?? (french ? 'Vendeur local' : 'Local seller')}{location ? ` · ${location}` : ''}</p>
           </div>
           <span className="text-xs font-medium text-amber-800">{french ? 'Voir détails →' : 'View details →'}</span>
         </div>
