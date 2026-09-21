@@ -1152,8 +1152,8 @@ function AdminOrders({
                     <p><strong>Vendeur :</strong> {order.seller?.name} · {order.seller?.email}</p>
                     <p><strong>Quantité :</strong> {order.quantity}</p>
                     <p><strong>Paiement :</strong> {order.paymentMethod} · {order.payment?.status ?? 'non créé'}</p>
-                    <p><strong>Livraison :</strong> {order.deliveryMethod} {order.deliveryAddress ? `· ${order.deliveryAddress}` : ''}</p>
-                    <p><strong>Suivi :</strong> {order.deliveryStatus}{order.deliveryTrackingId ? ` · ${order.deliveryTrackingId}` : ''}</p>
+                    <p><strong>Livraison :</strong> {order.deliveryMethod === 'workshop' ? "Retrait à l'atelier" : order.deliveryMethod === 'home' ? 'Livraison à domicile' : `Transporteur${order.deliveryAddress ? ` · ${order.deliveryAddress}` : ''}`}</p>
+                    {order.deliveryMethod === 'carrier' ? <p><strong>Suivi :</strong> {order.deliveryStatus}{order.deliveryTrackingId ? ` · ${order.deliveryTrackingId}` : ''}</p> : null}
                     {order.cancellationReason ? <p className="sm:col-span-2"><strong>Motif :</strong> {order.cancellationReason}</p> : null}
                     <div className="flex flex-wrap gap-2 sm:col-span-2">
                       {canManage && canCancel ? <button onClick={() => { if (window.confirm('Annuler cette commande et restituer le stock ?')) void onCancel(order.id); }} className="rounded-md bg-red-600 px-3 py-2 text-xs font-medium text-white hover:bg-red-700">Annuler la commande</button> : null}
