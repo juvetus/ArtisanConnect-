@@ -1,12 +1,27 @@
-import { Body, Controller, Delete, Get, Header, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Header, Param, Patch, Post, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { CurrentUser, type AuthUser } from '../auth/current-user.decorator.js';
 import { InstitutionGuard } from './institution.guard.js';
 import { ArtisanGuard } from './artisan.guard.js';
 import { InstitutionsService } from './institutions.service.js';
+import { StorageService } from '../storage/storage.service.js';
 
 @Controller('institutions')
 export class InstitutionsController {
-  constructor(private readonly service: InstitutionsService) {}
+  constructor(private readonly service: InstitutionsService, private readonly storage: StorageService) {}
+
+  @UseGuards(InstitutionGuard)
+  @Post('upload-media')
+  @UseInterceptors(FilesInterceptor('files', 5, { limits: { fileSize: 25 * 1024 * 1024 } }))
+  async uploadMedia(@UploadedFiles() files?: Express.Multer.File[]) {
+    if (!files?.length) throw new BadRequestException('Au moins un fichier est requis');
+    if (files.some((file) => !['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm', 'video/quicktime'].includes(file.mimetype))) {
+      throw new BadRequestException('Format non accepté (JPG, PNG, WebP, GIF, MP4, WebM ou MOV)');
+    }
+    if (!this.storage.isEnabled()) throw new BadRequestException('Le stockage Cloudinary doit être configuré.');
+    const uploads = await Promise.all(files.map((file) => this.storage.uploadBuffer(file.buffer, file.mimetype.startsWith('video/') ? 'artisanconnect/institutions/videos' : 'artisanconnect/institutions/images', file.mimetype.startsWith('video/') ? 'video' : 'image')));
+    return { imageUrls: uploads.filter((_, index) => !files[index].mimetype.startsWith('video/')).map((upload) => upload.url), videoUrls: uploads.filter((_, index) => files[index].mimetype.startsWith('video/')).map((upload) => upload.url) };
+  }
 
   @UseGuards(ArtisanGuard)
   @Get('resources')
@@ -26,13 +41,13 @@ export class InstitutionsController {
 
   @UseGuards(InstitutionGuard)
   @Post('resources')
-  createResource(@CurrentUser() user: AuthUser, @Body() body: { title: string; description: string; type: 'training' | 'guide' | 'template'; theme: string; contentUrl?: string }) {
+  createResource(@CurrentUser() user: AuthUser, @Body() body: { title: string; description: string; type: 'training' | 'guide' | 'template'; theme: string; contentUrl?: string; imageUrls?: string[]; videoUrls?: string[] }) {
     return this.service.createResource(user.id, body);
   }
 
   @UseGuards(InstitutionGuard)
   @Post('programs')
-  createProgram(@CurrentUser() user: AuthUser, @Body() body: { title: string; description: string; type: 'training' | 'support' | 'funding' | 'grant'; eligibility?: string; budget?: number; interventionZone?: string; startDate?: string; endDate?: string; objectives?: string; targetBeneficiaries?: string; impactIndicators?: string[] }) {
+  createProgram(@CurrentUser() user: AuthUser, @Body() body: { title: string; description: string; type: 'training' | 'support' | 'funding' | 'grant'; eligibility?: string; budget?: number; interventionZone?: string; startDate?: string; endDate?: string; objectives?: string; targetBeneficiaries?: string; impactIndicators?: string[]; imageUrls?: string[]; videoUrls?: string[] }) {
     return this.service.createProgram(user.id, body);
   }
 
@@ -41,7 +56,7 @@ export class InstitutionsController {
   updateResource(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,
-    @Body() body: Partial<{ title: string; description: string; type: 'training' | 'guide' | 'template'; theme: string; contentUrl?: string }>,
+    @Body() body: Partial<{ title: string; description: string; type: 'training' | 'guide' | 'template'; theme: string; contentUrl?: string; imageUrls?: string[]; videoUrls?: string[] }>,
   ) {
     return this.service.updateResource(user.id, id, body);
   }
@@ -63,6 +78,8 @@ export class InstitutionsController {
       objectives?: string;
       targetBeneficiaries?: string;
       impactIndicators?: string[];
+      imageUrls?: string[];
+      videoUrls?: string[];
       status?: 'active' | 'closed';
     }>,
   ) {

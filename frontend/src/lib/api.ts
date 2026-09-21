@@ -264,16 +264,22 @@ export const api = {
 
   institutionFormalizations: () => request<ArtisanFormalization[]>('/institutions/formalizations'),
 
-  institutionCreateResource: (data: { title: string; description: string; type: ResourceType; theme: string; contentUrl?: string }) =>
+  institutionCreateResource: (data: { title: string; description: string; type: ResourceType; theme: string; contentUrl?: string; imageUrls?: string[]; videoUrls?: string[] }) =>
     post<InstitutionalResource>('/institutions/resources', data),
 
-  institutionCreateProgram: (data: { title: string; description: string; type: ProgramType; eligibility?: string; budget?: number; interventionZone?: string; startDate?: string; endDate?: string; objectives?: string; targetBeneficiaries?: string; impactIndicators?: string[] }) =>
+  institutionUploadMedia: async (files: File[]) => {
+    const form = new FormData();
+    files.forEach((file) => form.append('files', file));
+    return request<{ imageUrls: string[]; videoUrls: string[] }>('/institutions/upload-media', { method: 'POST', body: form });
+  },
+
+  institutionCreateProgram: (data: { title: string; description: string; type: ProgramType; eligibility?: string; budget?: number; interventionZone?: string; startDate?: string; endDate?: string; objectives?: string; targetBeneficiaries?: string; impactIndicators?: string[]; imageUrls?: string[]; videoUrls?: string[] }) =>
     post<InstitutionalProgram>('/institutions/programs', data),
 
-  institutionUpdateResource: (id: string, data: Partial<{ title: string; description: string; type: ResourceType; theme: string; contentUrl?: string }>) =>
+  institutionUpdateResource: (id: string, data: Partial<{ title: string; description: string; type: ResourceType; theme: string; contentUrl?: string; imageUrls?: string[]; videoUrls?: string[] }>) =>
     patch<InstitutionalResource>(`/institutions/resources/${id}`, data),
 
-  institutionUpdateProgram: (id: string, data: Partial<{ title: string; description: string; type: ProgramType; eligibility?: string; budget?: number; interventionZone?: string; startDate?: string; endDate?: string; objectives?: string; targetBeneficiaries?: string; impactIndicators?: string[]; status?: 'active' | 'closed' }>) =>
+  institutionUpdateProgram: (id: string, data: Partial<{ title: string; description: string; type: ProgramType; eligibility?: string; budget?: number; interventionZone?: string; startDate?: string; endDate?: string; objectives?: string; targetBeneficiaries?: string; impactIndicators?: string[]; imageUrls?: string[]; videoUrls?: string[]; status?: 'active' | 'closed' }>) =>
     patch<InstitutionalProgram>(`/institutions/programs/${id}`, data),
 
   institutionDeleteResource: (id: string) =>

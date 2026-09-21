@@ -339,6 +339,8 @@ export interface InstitutionalResource {
   type: ResourceType;
   theme: string;
   contentUrl?: string | null;
+  imageUrls?: string[];
+  videoUrls?: string[];
   published: boolean;
   institution?: User;
   createdAt: string;
@@ -357,6 +359,8 @@ export interface InstitutionalProgram {
     objectives?: string | null;
     targetBeneficiaries?: string | null;
     impactIndicators?: string[];
+    imageUrls?: string[];
+    videoUrls?: string[];
   status: 'active' | 'closed';
   institution?: User;
   createdAt: string;

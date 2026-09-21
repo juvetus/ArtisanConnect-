@@ -35,12 +35,12 @@ export class InstitutionsService {
     return this.programs.find({ where: { institutionId }, relations: { institution: true }, order: { createdAt: 'DESC' } });
   }
 
-  async createResource(userId: string, data: { title: string; description: string; type: ResourceType; theme: string; contentUrl?: string }) {
+  async createResource(userId: string, data: { title: string; description: string; type: ResourceType; theme: string; contentUrl?: string; imageUrls?: string[]; videoUrls?: string[] }) {
     const resource = this.resources.create({ ...data, institution: { id: userId } as User, published: true });
     return this.resources.save(resource);
   }
 
-  async createProgram(userId: string, data: { title: string; description: string; type: ProgramType; eligibility?: string; budget?: number; interventionZone?: string; startDate?: string; endDate?: string; objectives?: string; targetBeneficiaries?: string; impactIndicators?: string[] }) {
+  async createProgram(userId: string, data: { title: string; description: string; type: ProgramType; eligibility?: string; budget?: number; interventionZone?: string; startDate?: string; endDate?: string; objectives?: string; targetBeneficiaries?: string; impactIndicators?: string[]; imageUrls?: string[]; videoUrls?: string[] }) {
     const program = this.programs.create({ ...data, institution: { id: userId } as User, status: 'active' });
     return this.programs.save(program);
   }
@@ -48,7 +48,7 @@ export class InstitutionsService {
   async updateResource(
     institutionId: string,
     resourceId: string,
-    data: Partial<{ title: string; description: string; type: ResourceType; theme: string; contentUrl?: string }>,
+    data: Partial<{ title: string; description: string; type: ResourceType; theme: string; contentUrl?: string; imageUrls?: string[]; videoUrls?: string[] }>,
   ) {
     const resource = await this.resources.findOne({
       where: { id: resourceId },
@@ -77,6 +77,8 @@ export class InstitutionsService {
       objectives?: string;
       targetBeneficiaries?: string;
       impactIndicators?: string[];
+      imageUrls?: string[];
+      videoUrls?: string[];
       status?: 'active' | 'closed';
     }>,
   ) {

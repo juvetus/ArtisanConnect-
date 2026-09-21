@@ -40,6 +40,12 @@ export class InstitutionalProgram {
   @Column({ type: 'jsonb', default: [] })
   impactIndicators: string[];
 
+  @Column('simple-array', { nullable: true })
+  imageUrls: string[];
+
+  @Column('simple-array', { nullable: true })
+  videoUrls: string[];
+
   @Column({ default: 'active' })
   status: 'active' | 'closed';
 

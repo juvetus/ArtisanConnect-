@@ -26,6 +26,12 @@ export class InstitutionalResource {
   @Column({ type: 'text', nullable: true })
   contentUrl: string | null;
 
+  @Column('simple-array', { nullable: true })
+  imageUrls: string[];
+
+  @Column('simple-array', { nullable: true })
+  videoUrls: string[];
+
   @Column({ default: true })
   published: boolean;
 
