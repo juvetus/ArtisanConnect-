@@ -133,7 +133,7 @@ export class EscrowService {
   /** Étape 4 — Le client confirme la réception du produit. */
   async confirmReception(orderId: string, buyerId: string): Promise<Order> {
     const order = await this.getEscrowOrder(orderId, buyerId, 'buyer');
-    if (!order.carrierVerified) {
+    if (order.deliveryMethod === 'carrier' && !order.carrierVerified) {
       throw new BadRequestException('Le transporteur doit vérifier le produit avant la réception');
     }
     await this.ordersRepository.update(orderId, { buyerConfirmedReception: true });

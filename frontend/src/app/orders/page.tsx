@@ -37,7 +37,7 @@ function EscrowSteps({ order }: { order: Order }) {
   const steps = [
     { label: 'Paiement bloqué (escrow)', done: Boolean(order.payment && order.payment.status !== 'pending') },
     { label: 'Vendeur : produit disponible', done: order.sellerConfirmedAvailability },
-    { label: 'Transporteur : produit récupéré et conforme', done: order.carrierVerified },
+    ...(order.deliveryMethod === 'carrier' ? [{ label: 'Transporteur : produit récupéré et conforme', done: order.carrierVerified }] : []),
     { label: 'Réception confirmée', done: order.buyerConfirmedReception },
     { label: 'Paiement libéré au vendeur', done: order.payment?.status === 'captured' },
   ];
@@ -269,7 +269,7 @@ export default function OrdersPage() {
                         Payer avec Orange Money
                       </button>
                     )}
-                    {order.carrierVerified && !order.buyerConfirmedReception && (
+                    {(order.deliveryMethod === 'workshop' ? order.sellerConfirmedAvailability : order.carrierVerified) && !order.buyerConfirmedReception && (
                       <button
                         onClick={() => run(order.id, () => api.confirmReception(order.id))}
                         disabled={busyId === order.id}
