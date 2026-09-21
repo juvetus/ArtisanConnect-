@@ -478,7 +478,9 @@ export default function InstitutionPage() {
             <input required placeholder={t('institution_resource_theme')} value={resource.theme} onChange={(e) => setResource({ ...resource, theme: e.target.value })} className="field" />
           </div>
           <input type="url" placeholder={t('institution_resource_link')} value={resource.contentUrl} onChange={(e) => setResource({ ...resource, contentUrl: e.target.value })} className="field" />
+          <label className="block text-sm font-medium text-stone-700">Médias de la ressource</label>
           <input type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime,application/pdf" disabled={uploadingMedia === 'resource'} onChange={(e) => { void uploadMedia('resource', Array.from(e.target.files ?? [])); e.target.value = ''; }} className="field" />
+          <p className="text-xs text-stone-500">Formats acceptés : JPG, PNG, WebP, GIF, MP4, WebM, MOV et PDF. Maximum 25 Mo par fichier, 5 fichiers par envoi.</p>
           <button className="rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-white">{t('institution_publish_resource')}</button>
         </form>
 
@@ -502,7 +504,9 @@ export default function InstitutionPage() {
           <input placeholder={t('institution_program_beneficiaries')} value={program.targetBeneficiaries} onChange={(e) => setProgram({ ...program, targetBeneficiaries: e.target.value })} className="field" />
           <input placeholder={t('institution_program_indicators')} value={program.impactIndicators} onChange={(e) => setProgram({ ...program, impactIndicators: e.target.value })} className="field" />
           <input placeholder={t('institution_program_eligibility')} value={program.eligibility} onChange={(e) => setProgram({ ...program, eligibility: e.target.value })} className="field" />
+          <label className="block text-sm font-medium text-stone-700">Médias du programme</label>
           <input type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime,application/pdf" disabled={uploadingMedia === 'program'} onChange={(e) => { void uploadMedia('program', Array.from(e.target.files ?? [])); e.target.value = ''; }} className="field" />
+          <p className="text-xs text-stone-500">Formats acceptés : JPG, PNG, WebP, GIF, MP4, WebM, MOV et PDF. Maximum 25 Mo par fichier, 5 fichiers par envoi.</p>
           <button className="rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-white">{t('institution_publish_program')}</button>
         </form>
       </section>
