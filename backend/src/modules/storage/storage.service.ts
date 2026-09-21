@@ -44,7 +44,7 @@ export class StorageService {
   async uploadBuffer(
     buffer: Buffer,
     folder: string,
-    resourceType: 'image' | 'raw' | 'auto' = 'auto',
+    resourceType: 'image' | 'video' | 'raw' | 'auto' = 'auto',
     deliveryType: 'upload' | 'authenticated' = 'upload',
   ): Promise<StoredUpload> {
     if (!this.enabled) {

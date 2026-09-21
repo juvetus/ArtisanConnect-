@@ -19,6 +19,7 @@ interface Service {
   category: string;
   tags?: string[];
   fileUrls?: string[];
+  videoUrls?: string[];
   status: 'draft' | 'pending_validation' | 'validation_requested' | 'approved' | 'rejected';
   validationFeedback?: string;
   createdAt: string;
@@ -52,6 +53,10 @@ export default function ServicesPage() {
   const [noticeType, setNoticeType] = useState<'success' | 'error'>('success');
   const [serviceImages, setServiceImages] = useState<string[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [serviceVideos, setServiceVideos] = useState<string[]>([]);
+  const [uploadingVideos, setUploadingVideos] = useState(false);
+  const { data: planStatus } = useSWR('artisan-plan-status', api.getPlanStatus);
+  const isPremiumGrowth = planStatus?.planSlug === 'premium-growth';
 
   const [formData, setFormData] = useState({
     title: '',
@@ -85,6 +90,7 @@ export default function ServicesPage() {
         category: formData.category,
         tags: formData.tags ? formData.tags.split(',').map(t => t.trim()) : [],
         fileUrls: serviceImages,
+        videoUrls: serviceVideos,
       };
 
       if (formData.price) {
@@ -118,6 +124,7 @@ export default function ServicesPage() {
         tags: '',
       });
       setServiceImages([]);
+      setServiceVideos([]);
       setShowForm(false);
       setEditingId(null);
       await mutate();
@@ -140,8 +147,32 @@ export default function ServicesPage() {
       tags: service.tags?.join(', ') || '',
     });
     setServiceImages(service.fileUrls ?? []);
+    setServiceVideos(service.videoUrls ?? []);
     setEditingId(service.id);
     setShowForm(true);
+  };
+
+  const handleServiceVideos = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = '';
+    if (!files.length) return;
+    if (files.length + serviceVideos.length > 3) {
+      setNoticeType('error');
+      setNotice('Ajoutez au maximum 3 vidéos à une galerie.');
+      return;
+    }
+    setUploadingVideos(true);
+    try {
+      const result = await api.uploadServiceVideos(files);
+      setServiceVideos((current) => [...current, ...result.videoUrls]);
+      setNoticeType('success');
+      setNotice('Vidéos ajoutées à la galerie Premium.');
+    } catch (error) {
+      setNoticeType('error');
+      setNotice(error instanceof Error ? error.message : 'Le téléversement des vidéos a échoué.');
+    } finally {
+      setUploadingVideos(false);
+    }
   };
 
   const handleServiceImages = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -221,6 +252,8 @@ export default function ServicesPage() {
               category: categories[0].value,
               tags: '',
             });
+            setServiceImages([]);
+            setServiceVideos([]);
           }}
           className="rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-white hover:bg-amber-800"
         >
@@ -356,6 +389,15 @@ export default function ServicesPage() {
               {serviceImages.length ? <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
                 {serviceImages.map((url, index) => <div key={`${url}-${index}`} className="relative"><img src={url} alt={`Réalisation ${index + 1}`} className="aspect-square w-full rounded-md object-cover" /><button type="button" onClick={() => setServiceImages((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="absolute right-1 top-1 rounded-full bg-stone-900/80 px-2 py-1 text-xs text-white" aria-label={`Supprimer la photo ${index + 1}`}>×</button></div>)}
               </div> : null}
+            </div>
+
+            <div className="rounded-md border border-amber-200 bg-amber-50 p-4">
+              <label htmlFor="service-videos" className="block text-sm font-medium text-stone-800">Vidéos du service <span className="text-amber-800">(Premium Growth)</span></label>
+              {isPremiumGrowth ? <>
+                <input id="service-videos" type="file" multiple accept="video/mp4,video/webm,video/quicktime" disabled={uploadingVideos || serviceVideos.length >= 3} onChange={handleServiceVideos} className="mt-2 block w-full rounded-md border border-amber-300 bg-white p-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-amber-700 file:px-3 file:py-2 file:font-medium file:text-white" />
+                <p className="mt-1 text-xs text-stone-600">Jusqu’à 3 vidéos, 25 Mo maximum par vidéo. MP4, WebM ou MOV.</p>
+                {serviceVideos.length ? <div className="mt-3 grid grid-cols-3 gap-2">{serviceVideos.map((url, index) => <div key={`${url}-${index}`} className="relative"><video src={url} controls className="aspect-video w-full rounded-md object-cover" /><button type="button" onClick={() => setServiceVideos((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="absolute right-1 top-1 rounded-full bg-stone-900/80 px-2 py-1 text-xs text-white" aria-label={`Supprimer la vidéo ${index + 1}`}>×</button></div>)}</div> : null}
+              </> : <p className="mt-1 text-sm text-stone-700">Passez au plan Premium Growth pour présenter votre travail en vidéo.</p>}
             </div>
 
             <div className="flex gap-3 pt-4">

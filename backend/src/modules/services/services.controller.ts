@@ -6,10 +6,11 @@ import { AdminGuard } from '../auth/admin.guard.js';
 import { Public } from '../auth/public.decorator.js';
 import { ServicesService } from './services.service.js';
 import { StorageService } from '../storage/storage.service.js';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service.js';
 
 @Controller('services')
 export class ServicesController {
-  constructor(private readonly servicesService: ServicesService, private readonly storageService: StorageService) {}
+  constructor(private readonly servicesService: ServicesService, private readonly storageService: StorageService, private readonly subscriptionsService: SubscriptionsService) {}
 
   private static readonly IMAGE_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
@@ -27,6 +28,23 @@ export class ServicesController {
     }
     const uploads = await Promise.all(files.map((file) => this.storageService.uploadBuffer(file.buffer, 'artisanconnect/services', 'image')));
     return { imageUrls: uploads.map((upload) => upload.url) };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('upload-videos')
+  @UseInterceptors(FilesInterceptor('files', 3, { limits: { fileSize: 25 * 1024 * 1024 } }))
+  async uploadServiceVideos(@CurrentUser() user: AuthUser, @UploadedFiles() files?: Express.Multer.File[]) {
+    if (user.role !== 'artisan') throw new BadRequestException('Seuls les artisans peuvent ajouter des vidéos');
+    if (!await this.subscriptionsService.hasActivePlan(user.id, 'premium-growth')) {
+      throw new BadRequestException('La galerie vidéo est réservée au plan Premium Growth.');
+    }
+    if (!files?.length) throw new BadRequestException('Au moins une vidéo est requise');
+    if (files.some((file) => !['video/mp4', 'video/webm', 'video/quicktime'].includes(file.mimetype))) {
+      throw new BadRequestException('Vidéo invalide (MP4, WebM ou MOV)');
+    }
+    if (!this.storageService.isEnabled()) throw new BadRequestException('Le stockage Cloudinary doit être configuré avant les uploads de production.');
+    const uploads = await Promise.all(files.map((file) => this.storageService.uploadBuffer(file.buffer, 'artisanconnect/services/videos', 'video')));
+    return { videoUrls: uploads.map((upload) => upload.url) };
   }
 
   // Public endpoints
@@ -73,6 +91,7 @@ export class ServicesController {
       category: string;
       tags?: string[];
       fileUrls?: string[];
+      videoUrls?: string[];
     },
   ) {
     return this.servicesService.createService(user.id, body);
@@ -99,6 +118,7 @@ export class ServicesController {
       category: string;
       tags?: string[];
       fileUrls?: string[];
+      videoUrls?: string[];
     }>,
   ) {
     return this.servicesService.updateService(user.id, id, body);

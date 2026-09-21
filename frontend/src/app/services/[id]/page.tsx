@@ -114,6 +114,7 @@ export default function ServiceOrderPage() {
         </div>
         <p className="mt-6 whitespace-pre-wrap text-stone-700">{service.description}</p>
         {service.fileUrls?.length ? <div className="mt-6"><h2 className="text-xl font-semibold text-stone-900">Réalisations</h2><div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">{service.fileUrls.map((url, index) => <img key={`${url}-${index}`} src={resolveMediaUrl(url)} alt={`${service.title} - réalisation ${index + 1}`} className="aspect-square w-full rounded-lg object-cover" />)}</div></div> : null}
+        {service.videoUrls?.length ? <div className="mt-6"><h2 className="text-xl font-semibold text-stone-900">Démonstrations vidéo</h2><div className="mt-3 grid gap-3 sm:grid-cols-2">{service.videoUrls.map((url, index) => <video key={`${url}-${index}`} src={resolveMediaUrl(url)} controls preload="metadata" className="w-full rounded-lg" aria-label={`${service.title} - vidéo ${index + 1}`} />)}</div></div> : null}
         {service.tags?.length ? (
           <div className="mt-4 flex flex-wrap gap-2">
             {service.tags.map((tag) => <span key={tag} className="rounded-full bg-stone-100 px-3 py-1 text-xs text-stone-700">{tag}</span>)}

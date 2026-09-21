@@ -230,6 +230,11 @@ export class SubscriptionsService {
     return Boolean(plan && SPONSORING_POLICIES[plan.slug]);
   }
 
+  async hasActivePlan(userId: string, slug: string): Promise<boolean> {
+    const plan = await this.getActivePlan(userId);
+    return plan?.slug === slug;
+  }
+
   async getSponsoringPolicy(userId: string): Promise<SponsoringPolicy | null> {
     const plan = await this.getActivePlan(userId);
     return plan ? SPONSORING_POLICIES[plan.slug] ?? null : null;

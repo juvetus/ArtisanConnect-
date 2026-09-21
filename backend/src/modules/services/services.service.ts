@@ -39,6 +39,7 @@ export class ServicesService {
     category: string;
     tags?: string[];
     fileUrls?: string[];
+    videoUrls?: string[];
   }) {
     const service = this.servicesRepository.create({
       ...data,
@@ -112,6 +113,7 @@ export class ServicesService {
     category: string;
     tags?: string[];
     fileUrls?: string[];
+    videoUrls?: string[];
   }>) {
     const service = await this.servicesRepository.findOne({
       where: { id: serviceId, artisan: { id: artisanId } },

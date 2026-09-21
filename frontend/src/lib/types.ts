@@ -420,6 +420,7 @@ export interface Service {
   category: string;
   tags?: string[];
   fileUrls?: string[];
+  videoUrls?: string[];
   status: ServiceStatus;
   validationFeedback?: string | null;
   artisan?: User;

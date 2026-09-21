@@ -36,6 +36,9 @@ export class Service {
   @Column('simple-array', { nullable: true })
   fileUrls: string[];
 
+  @Column('simple-array', { nullable: true })
+  videoUrls: string[];
+
   @Column({ type: 'enum', enum: ['draft', 'pending_validation', 'validation_requested', 'approved', 'rejected'], default: 'draft' })
   status: ServiceStatus;
 
