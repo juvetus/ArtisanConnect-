@@ -150,7 +150,7 @@ export default function HomePage() {
         <div className="grid gap-4 sm:grid-cols-2">
         {[
           { title: t('home_find_path_title'), desc: t('home_find_path_desc'), href: '/trouver-un-artisan', icon: '🔎', className: 'border-amber-300 bg-amber-50' },
-          { title: t('home_buy_path_title'), desc: t('home_buy_path_desc'), href: '#catalogue', icon: '🧺', className: 'border-stone-200 bg-white' },
+          { title: t('home_buy_path_title'), desc: t('home_buy_path_desc'), href: '/annonces', icon: '🧺', className: 'border-stone-200 bg-white' },
         ].map((path) => (
           <Link
             key={path.title}
@@ -251,7 +251,7 @@ export default function HomePage() {
             <p className="text-sm font-medium uppercase tracking-wide text-amber-700">{t('home_featured_products_badge')}</p>
             <h2 className="text-2xl font-semibold text-stone-900">{t('home_featured_products_title')}</h2>
           </div>
-          <a href="#catalogue" className="text-sm font-medium text-amber-700 hover:text-amber-800">{t('home_view_catalog')}</a>
+          <Link href="/annonces" className="text-sm font-medium text-amber-700 hover:text-amber-800">{t('home_view_catalog')}</Link>
         </div>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {featuredProducts.map((listing) => (
@@ -531,7 +531,7 @@ export default function HomePage() {
             <p className="text-sm font-medium uppercase tracking-wide text-amber-700">{t('home_services_badge')}</p>
             <h2 className="text-2xl font-semibold text-stone-900">{t('home_services_title')}</h2>
           </div>
-          <a href="/services" className="text-sm font-medium text-amber-700 hover:text-amber-800">{t('home_services_link')}</a>
+          <Link href="/services" className="text-sm font-medium text-amber-700 hover:text-amber-800">{t('home_services_link')}</Link>
         </div>
         {visibleServices.length > 0 && (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
