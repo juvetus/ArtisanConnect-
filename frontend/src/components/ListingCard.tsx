@@ -7,7 +7,7 @@ import { DemoBadge } from '@/components/DemoBadge';
 import type { Listing } from '@/lib/types';
 
 export function ListingCard({ listing }: { listing: Listing }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const isDemo = listing.id.startsWith('demo-');
   const isSponsored = Boolean(listing.sponsoredUntil && new Date(listing.sponsoredUntil) > new Date());
   const href = isDemo ? '/contact' : `/listings/${listing.id}`;
