@@ -12,6 +12,8 @@ function PaymentCallbackContent() {
   const { user, ready } = useAuth();
   const type = searchParams.get('type') || 'payment';
   const referenceId = searchParams.get('referenceId') || searchParams.get('externalId') || '';
+  const externalId = searchParams.get('externalId') || '';
+  const orderId = searchParams.get('orderId') || (externalId.startsWith('ORDER-') ? externalId.slice('ORDER-'.length) : '');
   const [status, setStatus] = useState<'loading' | 'success' | 'pending' | 'failed'>('loading');
   const [message, setMessage] = useState('Vérification du paiement en cours...');
 
@@ -41,6 +43,14 @@ function PaymentCallbackContent() {
         }
 
         const result = await api.getMomoPaymentCallback(referenceId);
+        if (result.status === 'SUCCESS' && orderId) {
+          const payment = await api.confirmMomoPayment(orderId);
+          if (payment.status === 'confirmed' || payment.status === 'captured') {
+            setStatus('success');
+            setMessage('Paiement confirmé par MoMo et commande mise à jour.');
+            return;
+          }
+        }
         setStatus(result.status === 'SUCCESS' ? 'success' : result.status === 'FAILED' || result.status === 'EXPIRED' ? 'failed' : 'pending');
         setMessage(result.status === 'SUCCESS'
           ? 'Paiement confirmé par MoMo.'
@@ -54,7 +64,7 @@ function PaymentCallbackContent() {
     };
 
     void verifyPayment();
-  }, [ready, referenceId, router, type, user]);
+  }, [externalId, orderId, ready, referenceId, router, type, user]);
 
   const badgeClass = status === 'success'
     ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
