@@ -10,7 +10,7 @@ interface AuthContextValue {
   user: User | null;
   ready: boolean;
   login: (identifier: string, password: string) => Promise<void>;
-  register: (data: { email?: string; phone?: string; password: string; name: string; role: Role; gender?: 'female' | 'male' | 'cooperative' | 'other' }) => Promise<{ developmentOtp?: string }>;
+  register: (data: { email?: string; phone?: string; password: string; name: string; role: Role; gender?: 'female' | 'male' | 'cooperative' | 'other' }) => Promise<{ developmentOtp?: string; accountStatus?: string }>;
   updateUser: (partial: Partial<User>) => void;
   logout: () => void;
 }
@@ -76,7 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       login,
       async register(data) {
         const result = await api.register(data);
-        if (data.email) await login(data.email, data.password);
+        if (data.email && data.role !== 'institution') await login(data.email, data.password);
         return result;
       },
       updateUser,

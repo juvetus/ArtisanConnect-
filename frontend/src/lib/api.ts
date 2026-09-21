@@ -71,7 +71,7 @@ const delete_ = <T>(path: string) =>
 
 export const api = {
   register: (data: { email?: string; phone?: string; password: string; name: string; role: Role; gender?: 'female' | 'male' | 'cooperative' | 'other' }) =>
-    post<User & { developmentOtp?: string }>('/auth/register', data),
+    post<User & { developmentOtp?: string; accountStatus?: string }>('/auth/register', data),
 
   login: (data: { identifier: string; password: string }) => post<AuthSession>('/auth/login', data),
 

@@ -63,6 +63,9 @@ export class AuthService {
 
     const storedEmail = email ?? `${phone!.replace('+', '')}@phone.artisanconnect.local`;
     const user = await this.usersService.create(storedEmail, password, name, role, gender);
+    if (role === 'institution') {
+      await this.usersService.update(user.id, { isActive: false });
+    }
     if (phone) await this.usersService.update(user.id, { phone, whatsappPhone: phone });
 
     // Envoi de l'email de confirmation en arrière-plan sans bloquer l'inscription
@@ -86,6 +89,8 @@ export class AuthService {
       gender: user.gender,
       verifiedEmail: false,
       verifiedPhone: false,
+      isActive: role !== 'institution',
+      ...(role === 'institution' ? { accountStatus: 'pending_review' as const } : {}),
       ...(developmentOtp ? { developmentOtp } : {}),
     };
   }

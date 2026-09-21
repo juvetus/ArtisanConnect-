@@ -33,11 +33,15 @@ export default function RegisterPage() {
     setPending(true);
     try {
       const result = await register({ name, email: contactType === 'email' ? email : undefined, phone: contactType === 'phone' ? `${phoneCountry}${phone}` : undefined, password, role, gender });
+      if (role === 'institution') {
+        setError('Votre demande institutionnelle a été reçue. Elle sera vérifiée par notre équipe avant activation. Vous recevrez une confirmation par e-mail.');
+        return;
+      }
       if (contactType === 'phone') {
         setPhoneOtpExpected(result.developmentOtp ?? null);
         return;
       }
-      router.push(role === 'artisan' ? '/dashboard' : role === 'institution' ? '/institution' : '/');
+      router.push(role === 'artisan' ? '/dashboard' : '/');
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.status === 409) {
