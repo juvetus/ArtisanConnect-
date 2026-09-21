@@ -5,7 +5,7 @@ import { Subscription, SubscriptionPlan } from '../../entities/index.js';
 import { MomoService } from '../momo/momo.service.js';
 
 /** Limites de l'offre gratuite, à ajuster après le pilote. */
-export const FREE_PLAN_LISTING_LIMIT = 5;
+export const FREE_PLAN_LISTING_LIMIT = 3;
 
 export type SponsoringPolicy = {
   maxSponsored: number;
@@ -46,8 +46,8 @@ export class SubscriptionsService {
       price: 0,
       currency: 'XAF',
       durationDays: 30,
-      description: 'Pour démarrer et présenter son activité localement.',
-      features: ['Profil artisan', '5 annonces actives', 'Réception de demandes de devis', 'Messagerie et WhatsApp'],
+      description: 'Pour commencer sans risque et tester les premières demandes.',
+      features: ['Profil artisan', '3 annonces actives', 'Réception de demandes de devis', 'Messagerie et WhatsApp'],
       sortOrder: 1,
     },
     {
@@ -56,7 +56,7 @@ export class SubscriptionsService {
       price: 1000,
       currency: 'XAF',
       durationDays: 7,
-      description: 'Un petit coup de visibilité pour tester la plateforme sans gros budget.',
+      description: 'Pour tester la visibilité avec le prix d’un petit coup de pouce.',
       features: ['Tout le plan Starter', '1 annonce mise en avant pendant 7 jours', 'Badge de visibilité locale'],
       sortOrder: 2,
     },
@@ -66,7 +66,7 @@ export class SubscriptionsService {
       price: 3000,
       currency: 'XAF',
       durationDays: 30,
-      description: 'Pour rester visible tout le mois avec un budget accessible.',
+      description: 'Le meilleur point de départ pour être visible tout le mois.',
       features: ['Tout le plan Starter', 'Annonces illimitées', '2 annonces mises en avant pendant 7 jours', 'Priorité locale'],
       sortOrder: 3,
     },
@@ -76,7 +76,7 @@ export class SubscriptionsService {
       price: 5000,
       currency: 'XAF',
       durationDays: 30,
-      description: 'Pour attirer régulièrement de nouveaux clients et mieux présenter son activité.',
+      description: 'Pour les artisans qui publient souvent et veulent suivre leur activité.',
       features: ['Tout le plan Local Plus', '3 annonces mises en avant pendant 15 jours', 'Statistiques de base', 'Support prioritaire'],
       sortOrder: 4,
     },
@@ -87,7 +87,7 @@ export class SubscriptionsService {
       currency: 'XAF',
       durationDays: 30,
       description: 'Pour accélérer votre croissance et booster votre activité.',
-      features: ['Tout le plan Local Plus', 'Badge Premium Growth', '5 annonces mises en avant pendant 30 jours', 'Statistiques détaillées et support prioritaire'],
+      features: ['Tout le plan Local Plus', 'Badge Premium Growth', '5 annonces mises en avant pendant 30 jours', 'Galerie vidéo des services', 'Statistiques détaillées et support prioritaire'],
       sortOrder: 5,
     },
   ];

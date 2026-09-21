@@ -33,8 +33,8 @@ const FALLBACK_PLANS: Plan[] = [
     price: 0,
     currency: 'XAF',
     durationDays: 30,
-    description: 'Pour démarrer et présenter son activité localement.',
-    features: ['Profil artisan', '5 annonces actives', 'Réception de demandes de devis', 'Messagerie et WhatsApp'],
+    description: 'Pour commencer sans risque et tester les premières demandes.',
+    features: ['Profil artisan', '3 annonces actives', 'Réception de demandes de devis', 'Messagerie et WhatsApp'],
     sortOrder: 1,
   },
   {
@@ -44,7 +44,7 @@ const FALLBACK_PLANS: Plan[] = [
     price: 1000,
     currency: 'XAF',
     durationDays: 7,
-    description: 'Un petit coup de visibilité pour tester la plateforme sans gros budget.',
+    description: 'Pour tester la visibilité avec le prix d’un petit coup de pouce.',
     features: ['Tout le plan Starter', '1 annonce mise en avant pendant 7 jours', 'Badge de visibilité locale'],
     sortOrder: 2,
   },
@@ -55,7 +55,7 @@ const FALLBACK_PLANS: Plan[] = [
     price: 3000,
     currency: 'XAF',
     durationDays: 30,
-    description: 'Pour rester visible tout le mois avec un budget accessible.',
+    description: 'Le meilleur point de départ pour être visible tout le mois.',
     features: ['Tout le plan Starter', 'Annonces illimitées', '2 annonces mises en avant pendant 7 jours', 'Priorité locale'],
     sortOrder: 3,
   },
@@ -66,7 +66,7 @@ const FALLBACK_PLANS: Plan[] = [
     price: 5000,
     currency: 'XAF',
     durationDays: 30,
-    description: 'Pour attirer régulièrement de nouveaux clients et mieux présenter son activité.',
+    description: 'Pour les artisans qui publient souvent et veulent suivre leur activité.',
     features: ['Tout le plan Local Plus', '3 annonces mises en avant pendant 15 jours', 'Statistiques de base', 'Support prioritaire'],
     sortOrder: 4,
   },
@@ -78,7 +78,7 @@ const FALLBACK_PLANS: Plan[] = [
     currency: 'XAF',
     durationDays: 30,
     description: 'Pour accélérer votre croissance et booster votre activité.',
-    features: ['Tout le plan Local Plus', 'Badge Premium Growth', '5 annonces mises en avant pendant 30 jours', 'Statistiques détaillées et support prioritaire'],
+    features: ['Tout le plan Local Plus', 'Badge Premium Growth', '5 annonces mises en avant pendant 30 jours', 'Galerie vidéo des services', 'Statistiques détaillées et support prioritaire'],
     sortOrder: 5,
   },
 ];
@@ -114,10 +114,11 @@ export default async function PricingPage() {
   const recommendedPlan = plans.find((plan) => plan.slug === 'local-plus') ?? plans[1] ?? plans[0];
   const comparisonRows: ReadonlyArray<readonly [string, readonly string[]]> = [
     ['Boutique en ligne', ['Incluse', 'Incluse', 'Incluse', 'Incluse', 'Incluse']],
-    ['Annonces actives', ['Jusqu’à 5', 'Jusqu’à 5', 'Illimitées', 'Illimitées', 'Illimitées']],
+    ['Annonces actives', ['Jusqu’à 3', 'Jusqu’à 3', 'Illimitées', 'Illimitées', 'Illimitées']],
     ['Mise en avant', ['Standard', '1 annonce / 7 jours', '2 annonces / 7 jours', '3 annonces / 15 jours', '5 annonces / 30 jours']],
     ['Demandes de devis', ['Oui', 'Oui', 'Oui', 'Oui, priorisées', 'Oui, prioritaires']],
     ['Badge', ['—', 'Visibilité locale', '—', '—', 'Premium Growth']],
+    ['Galerie vidéo', ['—', '—', '—', '—', 'Oui']],
     ['Statistiques', ['Base', 'Base', 'Base', 'Base', 'Détaillées']],
   ];
 
@@ -126,10 +127,10 @@ export default async function PricingPage() {
       <header className="rounded-xl bg-stone-900 px-6 py-10 text-white lg:px-10">
         <p className="text-sm font-semibold uppercase tracking-wide text-amber-300">Nos offres</p>
         <h1 className="mt-3 max-w-3xl text-3xl font-semibold leading-tight md:text-4xl">
-          Commencez gratuitement. Passez au bon niveau dès que vous voulez gagner plus de visibilité.
+          Commencez petit, testez pendant 7 jours, puis choisissez l’offre qui correspond à votre activité.
         </h1>
         <p className="mt-4 max-w-2xl text-stone-200">
-          ArtisanConnect aide les artisans camerounais à vendre plus facilement, avec un compte simple à démarrer et des options de croissance selon leurs besoins.
+          Pas besoin de gros budget : à partir de 1 000 FCFA, mettez une annonce en avant et mesurez l’intérêt des clients.
         </p>
       </header>
 
