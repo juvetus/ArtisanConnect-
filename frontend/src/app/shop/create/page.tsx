@@ -274,7 +274,7 @@ export default function CreateShopPage() {
           <div><p className="mb-2 text-sm font-medium">{t('create_shop_position')}</p><LocationPicker latitude={latitude} longitude={longitude} onChange={([lat, lng]) => { setLatitude(lat); setLongitude(lng); }} /></div>
           <div>
             <label htmlFor="shop-description" className="block text-sm font-medium">
-              {t('create_shop_desc')}
+              {t('create_shop_desc')} <span className="text-red-700" aria-hidden>*</span>
             </label>
             <textarea
               id="shop-description"
@@ -282,8 +282,11 @@ export default function CreateShopPage() {
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              aria-describedby="shop-description-help"
+              placeholder="Présentez votre activité, vos produits ou vos services."
               className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600"
             />
+            <p id="shop-description-help" className="mt-1 text-xs text-stone-600">Champ obligatoire : cette description aide les clients à comprendre votre activité.</p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -354,6 +357,7 @@ export default function CreateShopPage() {
             </div>
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
+          {(!name || !description) && <p className="text-sm text-amber-800">Renseignez le nom et la description de votre boutique pour continuer.</p>}
           <div className="flex gap-3">
             <button
               type="button"

@@ -91,9 +91,11 @@ function ProfileForm({ user }: { user: User }) {
   const [whatsappPhone, setWhatsappPhone] = useState(user.whatsappPhone ?? user.phone ?? '');
   const [location, setLocation] = useState(user.location ?? '');
   const [bio, setBio] = useState(user.bio ?? '');
+  const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl ?? '');
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const { data: shops, isLoading: shopsLoading } = useSWR<Shop[]>(user.role === 'artisan' ? ['profile-shops', user.id] : null, api.myShops);
 
   const save = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -112,6 +114,22 @@ function ProfileForm({ user }: { user: User }) {
     }
   };
 
+  const uploadAvatar = async (file: File) => {
+    setUploadingAvatar(true);
+    setNotice('');
+    setError('');
+    try {
+      const result = await api.uploadAvatar(file);
+      setAvatarUrl(result.avatarUrl);
+      updateUser({ avatarUrl: result.avatarUrl });
+      setNotice('Photo de profil mise à jour.');
+    } catch (uploadError) {
+      setError(uploadError instanceof ApiError ? uploadError.message : 'Impossible de téléverser cette photo.');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <header>
@@ -120,6 +138,16 @@ function ProfileForm({ user }: { user: User }) {
         <p className="mt-2 text-stone-600">Mettez à jour vos informations de contact et le numéro utilisé par WhatsApp.</p>
       </header>
       <form onSubmit={save} className="space-y-5 rounded-lg border border-stone-200 bg-white p-6">
+        <div>
+          <label htmlFor="profile-avatar" className="block text-sm font-medium text-stone-700">Photo de profil vendeur</label>
+          <div className="mt-2 flex items-center gap-4">
+            {avatarUrl ? <img src={avatarUrl} alt="Aperçu de la photo de profil" className="h-20 w-20 rounded-full object-cover" /> : <div className="flex h-20 w-20 items-center justify-center rounded-full bg-amber-100 text-2xl font-semibold text-amber-800" aria-hidden>{name.charAt(0).toUpperCase()}</div>}
+            <div>
+              <input id="profile-avatar" type="file" accept="image/jpeg,image/png,image/webp" disabled={uploadingAvatar} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadAvatar(file); }} className="block w-full text-sm text-stone-600 file:mr-3 file:rounded-md file:border-0 file:bg-amber-700 file:px-3 file:py-2 file:font-medium file:text-white hover:file:bg-amber-800" />
+              <p className="mt-1 text-xs text-stone-500">JPG, PNG ou WebP, 5 Mo maximum. Cette photo sera visible sur votre carte artisan.</p>
+            </div>
+          </div>
+        </div>
         <div>
           <label htmlFor="profile-name" className="block text-sm font-medium text-stone-700">Nom ou raison sociale</label>
           <input id="profile-name" required value={name} onChange={(event) => setName(event.target.value)} className="field mt-1" />

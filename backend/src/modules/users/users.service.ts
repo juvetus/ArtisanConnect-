@@ -29,14 +29,14 @@ export class UsersService {
   async findByIdentifierWithPassword(identifier: string): Promise<User | null> {
     return this.usersRepository.findOne({
       where: [{ email: identifier }, { phone: identifier }],
-      select: { id: true, email: true, phone: true, whatsappPhone: true, name: true, role: true, gender: true, passwordHash: true, isActive: true, verifiedEmail: true, verifiedPhone: true },
+      select: { id: true, email: true, phone: true, whatsappPhone: true, avatarUrl: true, name: true, role: true, gender: true, passwordHash: true, isActive: true, verifiedEmail: true, verifiedPhone: true },
     });
   }
 
   async findByEmailWithPassword(email: string): Promise<User | null> {
     return this.usersRepository.findOne({
       where: { email },
-      select: { id: true, email: true, phone: true, whatsappPhone: true, name: true, role: true, gender: true, passwordHash: true, isActive: true, verifiedEmail: true, verifiedPhone: true },
+      select: { id: true, email: true, phone: true, whatsappPhone: true, avatarUrl: true, name: true, role: true, gender: true, passwordHash: true, isActive: true, verifiedEmail: true, verifiedPhone: true },
     });
   }
 

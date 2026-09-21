@@ -348,7 +348,7 @@ export class ShopsService {
           views: Number(shop.views ?? 0),
           premium: premiumSellerIds.has(shop.sellerId),
           createdAt: shop.createdAt,
-          coverImageUrl: coverByShop.get(shop.id) ?? null,
+          coverImageUrl: shop.seller?.avatarUrl ?? coverByShop.get(shop.id) ?? null,
           rating,
           verification: computeVerification(shop, {
             phoneVerified: Boolean(shop.seller?.verifiedPhone),
@@ -357,6 +357,7 @@ export class ShopsService {
           seller: {
             id: shop.sellerId,
             name: shop.seller?.name ?? null,
+            avatarUrl: shop.seller?.avatarUrl ?? null,
             verifiedPhone: Boolean(shop.seller?.verifiedPhone),
           },
         };

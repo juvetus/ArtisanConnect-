@@ -137,42 +137,40 @@ export default function HomePage() {
             <p className="mt-3 max-w-2xl text-stone-200">
               {t('home_hero_subtitle')}
             </p>
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              <Link href="/trouver-un-artisan" className="rounded-lg bg-amber-600 px-6 py-3 text-base font-semibold text-white hover:bg-amber-700">{t('home_hero_cta_find')}</Link>
-              <Link href="/customer-requests" className="rounded-lg bg-white px-6 py-3 text-base font-semibold text-stone-900 hover:bg-stone-100">{t('home_hero_cta_quote')}</Link>
-            </div>
-            <Link href="/register" className="mt-4 inline-block text-sm font-medium text-amber-200 underline underline-offset-4 hover:text-amber-100">
-              {t('home_hero_secondary')}
-            </Link>
           </div>
           <div className="min-h-64 bg-[url('/images/african-market-artisan-stockcake.jpg')] bg-cover bg-center" aria-hidden />
         </div>
       </section>
 
-      <section aria-label={t('home_paths_badge')} className="grid gap-4 sm:grid-cols-3">
+      <section aria-label={t('home_paths_badge')} className="space-y-3">
+        <div>
+          <p className="text-sm font-medium uppercase tracking-wide text-amber-700">{t('home_paths_badge')}</p>
+          <h2 className="text-2xl font-semibold text-stone-900">{t('home_choose_path_title')}</h2>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
         {[
-          { title: t('home_path_find_title'), desc: t('home_path_find_desc'), href: '/trouver-un-artisan', icon: '🔎' },
-          { title: t('home_path_buy_title'), desc: t('home_path_buy_desc'), href: '#catalogue', icon: '🧺' },
-          { title: t('home_path_sell_title'), desc: t('home_path_sell_desc'), href: '/register', icon: '🛠️' },
+          { title: t('home_find_path_title'), desc: t('home_find_path_desc'), href: '/trouver-un-artisan', icon: '🔎', className: 'border-amber-300 bg-amber-50' },
+          { title: t('home_buy_path_title'), desc: t('home_buy_path_desc'), href: '#catalogue', icon: '🧺', className: 'border-stone-200 bg-white' },
         ].map((path) => (
           <Link
             key={path.title}
             href={path.href}
-            className="rounded-xl border border-stone-200 bg-white p-5 transition hover:border-amber-600 hover:shadow-sm"
+            className={`rounded-xl border p-5 transition hover:border-amber-600 hover:shadow-sm ${path.className}`}
           >
-            <span aria-hidden className="text-2xl">{path.icon}</span>
-            <p className="mt-2 text-lg font-semibold text-stone-900">{path.title}</p>
+            <span aria-hidden className="text-3xl">{path.icon}</span>
+            <p className="mt-3 text-xl font-semibold text-stone-900">{path.title}</p>
             <p className="mt-1 text-sm text-stone-600">{path.desc}</p>
           </Link>
         ))}
+        </div>
+        <Link href="/register" className="inline-block text-sm font-medium text-amber-800 underline underline-offset-4 hover:text-amber-950">
+          {t('home_hero_secondary')}
+        </Link>
       </section>
 
-      <section className="space-y-4">
-        <div>
-          <p className="text-sm font-medium uppercase tracking-wide text-amber-700">{t('home_popular_categories_badge')}</p>
-          <h2 className="text-2xl font-semibold text-stone-900">{t('home_popular_categories_title')}</h2>
-        </div>
-        <div className="flex flex-wrap gap-2">
+      <details className="rounded-lg border border-stone-200 bg-white p-4">
+        <summary className="cursor-pointer text-lg font-semibold text-stone-900">{t('home_choose_trade')}</summary>
+        <div className="mt-4 flex flex-wrap gap-2">
           {POPULAR_CATEGORIES.map((value) => {
             const category = CATEGORIES.find((item) => item.value === value);
             if (!category) return null;
@@ -192,7 +190,7 @@ export default function HomePage() {
             );
           })}
         </div>
-      </section>
+      </details>
 
       <section id="artisans" className="scroll-mt-6 space-y-4">
         <div>

@@ -85,7 +85,13 @@ export const api = {
 
   resetPassword: (token: string, password: string) => post<{ success: boolean; message: string }>('/auth/reset-password', { token, password }),
 
-    updateProfile: (id: string, data: { name?: string; phone?: string; whatsappPhone?: string; location?: string; bio?: string }) => patch<User>(`/users/${id}`, data),
+    updateProfile: (id: string, data: { name?: string; phone?: string; whatsappPhone?: string; location?: string; bio?: string; avatarUrl?: string }) => patch<User>(`/users/${id}`, data),
+
+    uploadAvatar: async (file: File) => {
+      const form = new FormData();
+      form.append('file', file);
+      return request<{ avatarUrl: string }>('/users/avatar', { method: 'POST', body: form });
+    },
 
     getUser: (id: string) => request<User>(`/users/${id}`),
 

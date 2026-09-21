@@ -28,7 +28,7 @@ export class User {
   bio: string;
 
   @Column({ nullable: true })
-  avatarUrl: string;
+  avatarUrl: string | null;
 
   @Column({ nullable: true })
   location: string;

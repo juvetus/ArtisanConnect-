@@ -33,6 +33,7 @@ import { AnalyticsEvents1758400000000 } from './migrations/1758400000000-analyti
 import { ShopAvailability1758500000000 } from './migrations/1758500000000-shop-availability.js';
 import { CustomerRequestAttachments1758600000000 } from './migrations/1758600000000-customer-request-attachments.js';
 import { ListingSponsoring1758700000000 } from './migrations/1758700000000-listing-sponsoring.js';
+import { UserAvatar1758800000000 } from './migrations/1758800000000-user-avatar.js';
 
 @Module({
   imports: [
@@ -47,7 +48,7 @@ import { ListingSponsoring1758700000000 } from './migrations/1758700000000-listi
         database: configService.get('DB_DATABASE', 'artisan_connect'),
         entities: [User, Listing, Order, Payment, Review, Message, InstitutionalResource, InstitutionalProgram, ArtisanFormalization, Shop, Notification, Service, ServiceOrder, ServiceQuote, ServicePayment, ServiceReview, ServiceValidationHistory, ProgramApplication, Subscription, SubscriptionPlan, Payout, CustomerRequest, Report, AnalyticsEvent],
         synchronize: configService.get('DB_SYNCHRONIZE', configService.get('NODE_ENV') === 'development' ? 'true' : 'false') === 'true',
-        migrations: [PilotTrustFeatures1758200000000, CustomerRequestStatuses1758300000000, AnalyticsEvents1758400000000, ShopAvailability1758500000000, CustomerRequestAttachments1758600000000, ListingSponsoring1758700000000],
+        migrations: [PilotTrustFeatures1758200000000, CustomerRequestStatuses1758300000000, AnalyticsEvents1758400000000, ShopAvailability1758500000000, CustomerRequestAttachments1758600000000, ListingSponsoring1758700000000, UserAvatar1758800000000],
         // En production `synchronize` est désactivé : le schéma évolue uniquement par migrations.
         migrationsRun: configService.get('DB_SYNCHRONIZE', configService.get('NODE_ENV') === 'development' ? 'true' : 'false') !== 'true',
         logging: configService.get('NODE_ENV') === 'development',

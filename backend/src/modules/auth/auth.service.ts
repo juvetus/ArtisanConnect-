@@ -113,6 +113,7 @@ export class AuthService {
         email: user.email,
         phone: user.phone,
         whatsappPhone: user.whatsappPhone,
+        avatarUrl: user.avatarUrl,
         name: user.name,
         role: user.role,
         gender: user.gender,

@@ -133,7 +133,7 @@ export interface PublicArtisan {
   coverImageUrl?: string | null;
   rating: { average: number | null; count: number };
   verification: VerificationState;
-  seller: { id: string; name: string | null; verifiedPhone: boolean };
+  seller: { id: string; name: string | null; avatarUrl?: string | null; verifiedPhone: boolean };
 }
 
 /** Preuves KYC exigées par type de boutique (miroir du backend). */
@@ -175,6 +175,7 @@ export interface User {
   location?: string;
   phone?: string;
   whatsappPhone?: string;
+  avatarUrl?: string | null;
   verifiedEmail?: boolean;
   isActive?: boolean;
 }
