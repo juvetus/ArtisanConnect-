@@ -53,6 +53,7 @@ export default function ResourcesPage() {
                 <h3 className="mt-4 font-semibold">{resource.title}</h3>
                 <p className="mt-2 flex-1 text-sm leading-6 text-stone-600">{resource.description}</p>
                 {resource.contentUrl && <a href={resource.contentUrl} target="_blank" rel="noreferrer" className="mt-4 text-sm font-medium text-amber-700 underline">Ouvrir le document ↗</a>}
+                {resource.pdfUrls?.map((url, index) => <a key={`${url}-${index}`} href={url} target="_blank" rel="noreferrer" className="mt-2 text-sm font-medium text-amber-700 underline">PDF {index + 1} ↗</a>)}
               </article>
             ))}
             {!resources?.length && <p className="text-stone-600">{language === 'en' ? 'No resources published yet.' : 'Aucune ressource publiée pour le moment.'}</p>}
@@ -72,6 +73,7 @@ export default function ResourcesPage() {
                 </div>
                 <p className="mt-2 text-sm leading-6 text-stone-600">{program.description}</p>
                 {program.eligibility && <p className="mt-3 border-t border-stone-100 pt-3 text-sm text-stone-600"><strong>{language === 'en' ? 'Eligibility:' : 'Éligibilité :'}</strong> {program.eligibility}</p>}
+                {program.pdfUrls?.map((url, index) => <a key={`${url}-${index}`} href={url} target="_blank" rel="noreferrer" className="mt-3 block text-sm font-medium text-amber-700 underline">PDF {index + 1} ↗</a>)}
                 {user?.role === 'artisan' ? <button onClick={() => { setActiveProgram(program.id); setMotivation(''); setNotice(''); }} className="mt-4 rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-white hover:bg-amber-800">{t('resources_apply_button')}</button> : null}
               </article>
             ))}

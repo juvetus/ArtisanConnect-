@@ -341,6 +341,7 @@ export interface InstitutionalResource {
   contentUrl?: string | null;
   imageUrls?: string[];
   videoUrls?: string[];
+  pdfUrls?: string[];
   published: boolean;
   institution?: User;
   createdAt: string;
@@ -361,6 +362,7 @@ export interface InstitutionalProgram {
     impactIndicators?: string[];
     imageUrls?: string[];
     videoUrls?: string[];
+    pdfUrls?: string[];
   status: 'active' | 'closed';
   institution?: User;
   createdAt: string;

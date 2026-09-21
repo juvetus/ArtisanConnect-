@@ -32,6 +32,9 @@ export class InstitutionalResource {
   @Column('simple-array', { nullable: true })
   videoUrls: string[];
 
+  @Column('simple-array', { nullable: true })
+  pdfUrls: string[];
+
   @Column({ default: true })
   published: boolean;
 

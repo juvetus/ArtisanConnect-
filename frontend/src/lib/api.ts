@@ -264,16 +264,16 @@ export const api = {
 
   institutionFormalizations: () => request<ArtisanFormalization[]>('/institutions/formalizations'),
 
-  institutionCreateResource: (data: { title: string; description: string; type: ResourceType; theme: string; contentUrl?: string; imageUrls?: string[]; videoUrls?: string[] }) =>
+  institutionCreateResource: (data: { title: string; description: string; type: ResourceType; theme: string; contentUrl?: string; imageUrls?: string[]; videoUrls?: string[]; pdfUrls?: string[] }) =>
     post<InstitutionalResource>('/institutions/resources', data),
 
   institutionUploadMedia: async (files: File[]) => {
     const form = new FormData();
     files.forEach((file) => form.append('files', file));
-    return request<{ imageUrls: string[]; videoUrls: string[] }>('/institutions/upload-media', { method: 'POST', body: form });
+    return request<{ imageUrls: string[]; videoUrls: string[]; pdfUrls: string[] }>('/institutions/upload-media', { method: 'POST', body: form });
   },
 
-  institutionCreateProgram: (data: { title: string; description: string; type: ProgramType; eligibility?: string; budget?: number; interventionZone?: string; startDate?: string; endDate?: string; objectives?: string; targetBeneficiaries?: string; impactIndicators?: string[]; imageUrls?: string[]; videoUrls?: string[] }) =>
+  institutionCreateProgram: (data: { title: string; description: string; type: ProgramType; eligibility?: string; budget?: number; interventionZone?: string; startDate?: string; endDate?: string; objectives?: string; targetBeneficiaries?: string; impactIndicators?: string[]; imageUrls?: string[]; videoUrls?: string[]; pdfUrls?: string[] }) =>
     post<InstitutionalProgram>('/institutions/programs', data),
 
   institutionUpdateResource: (id: string, data: Partial<{ title: string; description: string; type: ResourceType; theme: string; contentUrl?: string; imageUrls?: string[]; videoUrls?: string[] }>) =>

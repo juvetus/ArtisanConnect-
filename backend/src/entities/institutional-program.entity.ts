@@ -46,6 +46,9 @@ export class InstitutionalProgram {
   @Column('simple-array', { nullable: true })
   videoUrls: string[];
 
+  @Column('simple-array', { nullable: true })
+  pdfUrls: string[];
+
   @Column({ default: 'active' })
   status: 'active' | 'closed';
 

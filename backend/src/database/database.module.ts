@@ -36,6 +36,7 @@ import { ListingSponsoring1758700000000 } from './migrations/1758700000000-listi
 import { UserAvatar1758800000000 } from './migrations/1758800000000-user-avatar.js';
 import { ServiceVideos1758900000000 } from './migrations/1758900000000-service-videos.js';
 import { InstitutionMedia1759000000000 } from './migrations/1759000000000-institution-media.js';
+import { InstitutionPdfs1759100000000 } from './migrations/1759100000000-institution-pdfs.js';
 
 @Module({
   imports: [
@@ -50,7 +51,7 @@ import { InstitutionMedia1759000000000 } from './migrations/1759000000000-instit
         database: configService.get('DB_DATABASE', 'artisan_connect'),
         entities: [User, Listing, Order, Payment, Review, Message, InstitutionalResource, InstitutionalProgram, ArtisanFormalization, Shop, Notification, Service, ServiceOrder, ServiceQuote, ServicePayment, ServiceReview, ServiceValidationHistory, ProgramApplication, Subscription, SubscriptionPlan, Payout, CustomerRequest, Report, AnalyticsEvent],
         synchronize: configService.get('DB_SYNCHRONIZE', configService.get('NODE_ENV') === 'development' ? 'true' : 'false') === 'true',
-        migrations: [PilotTrustFeatures1758200000000, CustomerRequestStatuses1758300000000, AnalyticsEvents1758400000000, ShopAvailability1758500000000, CustomerRequestAttachments1758600000000, ListingSponsoring1758700000000, UserAvatar1758800000000, ServiceVideos1758900000000, InstitutionMedia1759000000000],
+        migrations: [PilotTrustFeatures1758200000000, CustomerRequestStatuses1758300000000, AnalyticsEvents1758400000000, ShopAvailability1758500000000, CustomerRequestAttachments1758600000000, ListingSponsoring1758700000000, UserAvatar1758800000000, ServiceVideos1758900000000, InstitutionMedia1759000000000, InstitutionPdfs1759100000000],
         // En production `synchronize` est désactivé : le schéma évolue uniquement par migrations.
         migrationsRun: configService.get('DB_SYNCHRONIZE', configService.get('NODE_ENV') === 'development' ? 'true' : 'false') !== 'true',
         logging: configService.get('NODE_ENV') === 'development',

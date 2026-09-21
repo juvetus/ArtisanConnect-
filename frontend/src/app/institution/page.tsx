@@ -16,8 +16,8 @@ export default function InstitutionPage() {
   const [noticeType, setNoticeType] = useState<'success' | 'error'>('success');
   const [resource, setResource] = useState({ title: '', description: '', type: 'training' as ResourceType, theme: '', contentUrl: '' });
   const [program, setProgram] = useState({ title: '', description: '', type: 'support' as ProgramType, eligibility: '', budget: '', interventionZone: '', startDate: '', endDate: '', objectives: '', targetBeneficiaries: '', impactIndicators: '' });
-  const [resourceMedia, setResourceMedia] = useState<{ imageUrls: string[]; videoUrls: string[] }>({ imageUrls: [], videoUrls: [] });
-  const [programMedia, setProgramMedia] = useState<{ imageUrls: string[]; videoUrls: string[] }>({ imageUrls: [], videoUrls: [] });
+  const [resourceMedia, setResourceMedia] = useState<{ imageUrls: string[]; videoUrls: string[]; pdfUrls: string[] }>({ imageUrls: [], videoUrls: [], pdfUrls: [] });
+  const [programMedia, setProgramMedia] = useState<{ imageUrls: string[]; videoUrls: string[]; pdfUrls: string[] }>({ imageUrls: [], videoUrls: [], pdfUrls: [] });
   const [uploadingMedia, setUploadingMedia] = useState<'resource' | 'program' | null>(null);
 
   const resourceLabels: Record<ResourceType, string> = {
@@ -59,7 +59,7 @@ export default function InstitutionPage() {
     try {
       await api.institutionCreateResource({ ...resource, ...resourceMedia });
       setResource({ title: '', description: '', type: 'training', theme: '', contentUrl: '' });
-      setResourceMedia({ imageUrls: [], videoUrls: [] });
+      setResourceMedia({ imageUrls: [], videoUrls: [], pdfUrls: [] });
       setNoticeType('success');
       setNotice(language === 'en' ? 'Resource published successfully.' : 'Ressource publiée avec succès.');
       await mutate();
@@ -80,7 +80,7 @@ export default function InstitutionPage() {
         impactIndicators: program.impactIndicators.split(',').map((item) => item.trim()).filter(Boolean),
       });
       setProgram({ title: '', description: '', type: 'support', eligibility: '', budget: '', interventionZone: '', startDate: '', endDate: '', objectives: '', targetBeneficiaries: '', impactIndicators: '' });
-      setProgramMedia({ imageUrls: [], videoUrls: [] });
+      setProgramMedia({ imageUrls: [], videoUrls: [], pdfUrls: [] });
       setNoticeType('success');
       setNotice(language === 'en' ? 'Program published successfully.' : 'Programme publié avec succès.');
       await mutate();
@@ -97,7 +97,7 @@ export default function InstitutionPage() {
     try {
       const uploaded = await api.institutionUploadMedia(files);
       const setter = kind === 'resource' ? setResourceMedia : setProgramMedia;
-      setter((current) => ({ imageUrls: [...current.imageUrls, ...uploaded.imageUrls], videoUrls: [...current.videoUrls, ...uploaded.videoUrls] }));
+      setter((current) => ({ imageUrls: [...current.imageUrls, ...uploaded.imageUrls], videoUrls: [...current.videoUrls, ...uploaded.videoUrls], pdfUrls: [...current.pdfUrls, ...uploaded.pdfUrls] }));
     } catch (error) {
       setNoticeType('error');
       setNotice(error instanceof Error ? error.message : 'Le téléversement a échoué.');
@@ -478,7 +478,7 @@ export default function InstitutionPage() {
             <input required placeholder={t('institution_resource_theme')} value={resource.theme} onChange={(e) => setResource({ ...resource, theme: e.target.value })} className="field" />
           </div>
           <input type="url" placeholder={t('institution_resource_link')} value={resource.contentUrl} onChange={(e) => setResource({ ...resource, contentUrl: e.target.value })} className="field" />
-          <input type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" disabled={uploadingMedia === 'resource'} onChange={(e) => { void uploadMedia('resource', Array.from(e.target.files ?? [])); e.target.value = ''; }} className="field" />
+          <input type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime,application/pdf" disabled={uploadingMedia === 'resource'} onChange={(e) => { void uploadMedia('resource', Array.from(e.target.files ?? [])); e.target.value = ''; }} className="field" />
           <button className="rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-white">{t('institution_publish_resource')}</button>
         </form>
 
@@ -502,7 +502,7 @@ export default function InstitutionPage() {
           <input placeholder={t('institution_program_beneficiaries')} value={program.targetBeneficiaries} onChange={(e) => setProgram({ ...program, targetBeneficiaries: e.target.value })} className="field" />
           <input placeholder={t('institution_program_indicators')} value={program.impactIndicators} onChange={(e) => setProgram({ ...program, impactIndicators: e.target.value })} className="field" />
           <input placeholder={t('institution_program_eligibility')} value={program.eligibility} onChange={(e) => setProgram({ ...program, eligibility: e.target.value })} className="field" />
-          <input type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" disabled={uploadingMedia === 'program'} onChange={(e) => { void uploadMedia('program', Array.from(e.target.files ?? [])); e.target.value = ''; }} className="field" />
+          <input type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime,application/pdf" disabled={uploadingMedia === 'program'} onChange={(e) => { void uploadMedia('program', Array.from(e.target.files ?? [])); e.target.value = ''; }} className="field" />
           <button className="rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-white">{t('institution_publish_program')}</button>
         </form>
       </section>

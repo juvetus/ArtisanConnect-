@@ -35,12 +35,12 @@ export class InstitutionsService {
     return this.programs.find({ where: { institutionId }, relations: { institution: true }, order: { createdAt: 'DESC' } });
   }
 
-  async createResource(userId: string, data: { title: string; description: string; type: ResourceType; theme: string; contentUrl?: string; imageUrls?: string[]; videoUrls?: string[] }) {
+  async createResource(userId: string, data: { title: string; description: string; type: ResourceType; theme: string; contentUrl?: string; imageUrls?: string[]; videoUrls?: string[]; pdfUrls?: string[] }) {
     const resource = this.resources.create({ ...data, institution: { id: userId } as User, published: true });
     return this.resources.save(resource);
   }
 
-  async createProgram(userId: string, data: { title: string; description: string; type: ProgramType; eligibility?: string; budget?: number; interventionZone?: string; startDate?: string; endDate?: string; objectives?: string; targetBeneficiaries?: string; impactIndicators?: string[]; imageUrls?: string[]; videoUrls?: string[] }) {
+  async createProgram(userId: string, data: { title: string; description: string; type: ProgramType; eligibility?: string; budget?: number; interventionZone?: string; startDate?: string; endDate?: string; objectives?: string; targetBeneficiaries?: string; impactIndicators?: string[]; imageUrls?: string[]; videoUrls?: string[]; pdfUrls?: string[] }) {
     const program = this.programs.create({ ...data, institution: { id: userId } as User, status: 'active' });
     return this.programs.save(program);
   }

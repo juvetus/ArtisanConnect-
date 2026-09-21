@@ -15,12 +15,16 @@ export class InstitutionsController {
   @UseInterceptors(FilesInterceptor('files', 5, { limits: { fileSize: 25 * 1024 * 1024 } }))
   async uploadMedia(@UploadedFiles() files?: Express.Multer.File[]) {
     if (!files?.length) throw new BadRequestException('Au moins un fichier est requis');
-    if (files.some((file) => !['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm', 'video/quicktime'].includes(file.mimetype))) {
-      throw new BadRequestException('Format non accepté (JPG, PNG, WebP, GIF, MP4, WebM ou MOV)');
+    if (files.some((file) => !['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm', 'video/quicktime', 'application/pdf'].includes(file.mimetype))) {
+      throw new BadRequestException('Format non accepté (JPG, PNG, WebP, GIF, MP4, WebM, MOV ou PDF)');
     }
     if (!this.storage.isEnabled()) throw new BadRequestException('Le stockage Cloudinary doit être configuré.');
-    const uploads = await Promise.all(files.map((file) => this.storage.uploadBuffer(file.buffer, file.mimetype.startsWith('video/') ? 'artisanconnect/institutions/videos' : 'artisanconnect/institutions/images', file.mimetype.startsWith('video/') ? 'video' : 'image')));
-    return { imageUrls: uploads.filter((_, index) => !files[index].mimetype.startsWith('video/')).map((upload) => upload.url), videoUrls: uploads.filter((_, index) => files[index].mimetype.startsWith('video/')).map((upload) => upload.url) };
+    const uploads = await Promise.all(files.map((file) => this.storage.uploadBuffer(file.buffer, file.mimetype.startsWith('video/') ? 'artisanconnect/institutions/videos' : file.mimetype === 'application/pdf' ? 'artisanconnect/institutions/pdfs' : 'artisanconnect/institutions/images', file.mimetype.startsWith('video/') ? 'video' : file.mimetype === 'application/pdf' ? 'raw' : 'image')));
+    return {
+      imageUrls: uploads.filter((_, index) => files[index].mimetype.startsWith('image/')).map((upload) => upload.url),
+      videoUrls: uploads.filter((_, index) => files[index].mimetype.startsWith('video/')).map((upload) => upload.url),
+      pdfUrls: uploads.filter((_, index) => files[index].mimetype === 'application/pdf').map((upload) => upload.url),
+    };
   }
 
   @UseGuards(ArtisanGuard)
@@ -41,13 +45,13 @@ export class InstitutionsController {
 
   @UseGuards(InstitutionGuard)
   @Post('resources')
-  createResource(@CurrentUser() user: AuthUser, @Body() body: { title: string; description: string; type: 'training' | 'guide' | 'template'; theme: string; contentUrl?: string; imageUrls?: string[]; videoUrls?: string[] }) {
+  createResource(@CurrentUser() user: AuthUser, @Body() body: { title: string; description: string; type: 'training' | 'guide' | 'template'; theme: string; contentUrl?: string; imageUrls?: string[]; videoUrls?: string[]; pdfUrls?: string[] }) {
     return this.service.createResource(user.id, body);
   }
 
   @UseGuards(InstitutionGuard)
   @Post('programs')
-  createProgram(@CurrentUser() user: AuthUser, @Body() body: { title: string; description: string; type: 'training' | 'support' | 'funding' | 'grant'; eligibility?: string; budget?: number; interventionZone?: string; startDate?: string; endDate?: string; objectives?: string; targetBeneficiaries?: string; impactIndicators?: string[]; imageUrls?: string[]; videoUrls?: string[] }) {
+  createProgram(@CurrentUser() user: AuthUser, @Body() body: { title: string; description: string; type: 'training' | 'support' | 'funding' | 'grant'; eligibility?: string; budget?: number; interventionZone?: string; startDate?: string; endDate?: string; objectives?: string; targetBeneficiaries?: string; impactIndicators?: string[]; imageUrls?: string[]; videoUrls?: string[]; pdfUrls?: string[] }) {
     return this.service.createProgram(user.id, body);
   }
 
