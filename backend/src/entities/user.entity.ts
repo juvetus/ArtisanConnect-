@@ -27,7 +27,7 @@ export class User {
   @Column({ type: 'text', nullable: true })
   bio: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   avatarUrl: string | null;
 
   @Column({ nullable: true })
