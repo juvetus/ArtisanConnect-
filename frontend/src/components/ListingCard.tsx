@@ -19,11 +19,13 @@ export function ListingCard({ listing }: { listing: Listing }) {
     listing.shop?.isCooperative ||
     listing.seller?.gender === 'cooperative',
   );
+  const isService = listing.type === 'service';
+  const french = language === 'fr';
 
   return (
     <Link
       href={href}
-      className="group relative flex flex-col overflow-hidden rounded-lg border border-stone-200 bg-white transition hover:border-amber-600 hover:shadow-sm"
+      className="group relative flex h-full flex-col overflow-hidden rounded-lg border border-stone-200 bg-white transition hover:border-amber-600 hover:shadow-md"
     >
       {isDemo && <DemoBadge className="absolute right-2 top-2 z-10 shadow" />}
       {!isDemo && isSponsored && (
@@ -44,7 +46,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
           {t('badge_coop')}
         </span>
       )}
-      <div className="relative flex h-52 w-full items-center justify-center overflow-hidden bg-stone-100 text-4xl">
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-stone-100 text-4xl">
         {(listing.imageUrls?.[0] || listing.imageUrl) ? (
           <img
             src={resolveMediaUrl(listing.imageUrls?.[0] || listing.imageUrl || '')}
@@ -54,17 +56,19 @@ export function ListingCard({ listing }: { listing: Listing }) {
         ) : <span className="text-sm font-medium text-stone-500">{categoryLabel(listing.category)}</span>}
       </div>
 
-      <div className="flex flex-1 flex-col gap-1 p-4">
-        <span className="text-xs uppercase tracking-wide text-stone-500">
-          {categoryLabel(listing.category)}
-        </span>
-        <h3 className="font-medium group-hover:text-amber-800">{listing.title}</h3>
-        <p className="line-clamp-2 text-sm text-stone-600">{listing.description}</p>
-        <div className="mt-auto flex items-baseline justify-between gap-2 pt-3">
-          <span className="text-lg font-semibold">{formatXAF(listing.price)}</span>
-          {listing.seller && (
-            <span className="truncate text-xs text-stone-500">{listing.seller.name}</span>
-          )}
+      <div className="flex flex-1 flex-col gap-2 p-4">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-semibold uppercase tracking-wide text-amber-700">{categoryLabel(listing.category)}</span>
+          <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[11px] font-medium text-stone-600">{isService ? (french ? 'Service' : 'Service') : (french ? 'Produit' : 'Product')}</span>
+        </div>
+        <h3 className="line-clamp-2 min-h-12 text-lg font-semibold leading-tight text-stone-900 group-hover:text-amber-800">{listing.title}</h3>
+        <p className="line-clamp-2 text-sm leading-5 text-stone-600">{listing.description}</p>
+        <div className="mt-auto flex items-end justify-between gap-3 border-t border-stone-100 pt-3">
+          <div>
+            <p className="text-lg font-bold text-stone-950">{formatXAF(listing.price)}</p>
+            {listing.seller ? <p className="max-w-36 truncate text-xs text-stone-500">{listing.seller.name}</p> : null}
+          </div>
+          <span className="text-xs font-medium text-amber-800">{french ? 'Voir détails →' : 'View details →'}</span>
         </div>
       </div>
     </Link>
