@@ -12,7 +12,7 @@ function createService(options: { emailFails?: boolean } = {}) {
     recipientId: 'recipient-1',
     content: 'Bonjour, votre commande est prête.',
     fileUrls: [],
-  } as Message;
+  } as unknown as Message;
 
   const messagesRepository = {
     create: vi.fn().mockImplementation((message) => message),

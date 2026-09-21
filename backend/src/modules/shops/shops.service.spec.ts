@@ -179,7 +179,7 @@ describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
       name: 'Atelier Bois Noble',
       status: 'pending',
       sellerId: 'artisan-user-id',
-    } as Shop;
+    } as unknown as Shop;
 
     mockShopsRepo.findOne = vi.fn()
       .mockResolvedValueOnce(pendingShop) // appel au début de review()
@@ -200,7 +200,7 @@ describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
       name: 'Atelier Flou',
       status: 'pending',
       sellerId: 'artisan-user-id',
-    } as Shop;
+    } as unknown as Shop;
 
     mockShopsRepo.findOne = vi.fn()
       .mockResolvedValueOnce(pendingShop)
@@ -224,7 +224,7 @@ describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
       viewsCount: 2,
       whatsappContactClicks: 1,
       whatsappShareClicks: 0,
-    } as Shop;
+    } as unknown as Shop;
 
     mockShopsRepo.findOne = vi.fn().mockResolvedValue(shop);
     mockShopsRepo.save = vi.fn().mockImplementation(async (value) => value);
