@@ -4,6 +4,9 @@ export const TRANSLATIONS = {
   fr: {
     // Navigation
     nav_home: 'Accueil',
+    nav_find_artisan: 'Trouver un artisan',
+    nav_pricing: 'Tarifs',
+    nav_opportunities: 'Opportunités',
     nav_services: 'Services',
     nav_listings: 'Annonces',
     nav_contact: 'Nous contacter',
@@ -496,6 +499,9 @@ export const TRANSLATIONS = {
   en: {
     // Navigation
     nav_home: 'Home',
+    nav_find_artisan: 'Find an artisan',
+    nav_pricing: 'Pricing',
+    nav_opportunities: 'Opportunities',
     nav_services: 'Services',
     nav_listings: 'Listings',
     nav_contact: 'Contact Us',

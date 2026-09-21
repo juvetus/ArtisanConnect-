@@ -89,10 +89,10 @@ export function Header() {
           className={`${menuOpen ? 'flex' : 'hidden'} order-3 max-h-[calc(100vh-8rem)] min-w-0 w-full min-h-0 flex-col items-stretch gap-1 overflow-auto border-t border-stone-200 pt-3 text-sm md:order-none md:flex md:max-h-none md:w-full md:flex-1 md:flex-col md:items-stretch md:justify-start md:gap-1 md:overflow-y-auto md:border-t-0 md:border-0 md:pt-0 md:text-sm [&>a]:shrink-0 [&>a]:whitespace-nowrap [&>a]:px-2 [&>a]:py-2 [&>button]:shrink-0 [&>button]:whitespace-nowrap [&>button]:px-2 [&>button]:py-2`}
         >
           <Link href="/" className={navLinkClass('/')}>
-            Annonces
+            {t('nav_listings')}
           </Link>
           <Link href="/trouver-un-artisan" className={navLinkClass('/trouver-un-artisan')}>
-            Trouver un artisan
+            {t('nav_find_artisan')}
           </Link>
           <Link href="/services" className={navLinkClass('/services')}>
             {t('nav_services')}
@@ -101,7 +101,7 @@ export function Header() {
             {t('nav_how_it_works')}
           </Link>
           <Link href="/tarifs" className={navLinkClass('/tarifs')}>
-            Tarifs
+            {t('nav_pricing')}
           </Link>
           <Link href="/blog" className={navLinkClass('/blog')}>
             Blog
@@ -166,7 +166,7 @@ export function Header() {
               )}
               {user.role === 'artisan' && (
                 <Link href="/artisan/customer-requests" className={navLinkClass('/artisan/customer-requests')}>
-                  Opportunités
+                  {t('nav_opportunities')}
                 </Link>
               )}
               {user.role === 'artisan' && (
@@ -189,7 +189,7 @@ export function Header() {
               </Link>
               {user.role === 'client' && (
                 <Link href="/customer-requests" className={navLinkClass('/customer-requests')}>
-                  Trouver un artisan
+                  {t('nav_find_artisan')}
                 </Link>
               )}
               <Link
