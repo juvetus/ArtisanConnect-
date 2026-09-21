@@ -13,9 +13,10 @@ export type SponsoringPolicy = {
 };
 
 export const SPONSORING_POLICIES: Record<string, SponsoringPolicy> = {
+  'visibilite-7': { maxSponsored: 1, durationDays: 7 },
   'local-plus': { maxSponsored: 2, durationDays: 7 },
+  'croissance': { maxSponsored: 3, durationDays: 15 },
   'premium-growth': { maxSponsored: 5, durationDays: 30 },
-  ...(process.env.MOMO_MODE === 'sandbox' ? { 'sandbox-test': { maxSponsored: 1, durationDays: 1 } } : {}),
 };
 
 @Injectable()
@@ -50,14 +51,34 @@ export class SubscriptionsService {
       sortOrder: 1,
     },
     {
+      slug: 'visibilite-7',
+      name: 'Visibilité 7 jours',
+      price: 1000,
+      currency: 'XAF',
+      durationDays: 7,
+      description: 'Un petit coup de visibilité pour tester la plateforme sans gros budget.',
+      features: ['Tout le plan Starter', '1 annonce mise en avant pendant 7 jours', 'Badge de visibilité locale'],
+      sortOrder: 2,
+    },
+    {
       slug: 'local-plus',
       name: 'Local Plus',
+      price: 3000,
+      currency: 'XAF',
+      durationDays: 30,
+      description: 'Pour rester visible tout le mois avec un budget accessible.',
+      features: ['Tout le plan Starter', 'Annonces illimitées', '2 annonces mises en avant pendant 7 jours', 'Priorité locale'],
+      sortOrder: 3,
+    },
+    {
+      slug: 'croissance',
+      name: 'Croissance',
       price: 5000,
       currency: 'XAF',
       durationDays: 30,
-      description: 'Pour gagner en visibilité locale et attirer plus de clients.',
-      features: ['Tout le plan Starter', 'Annonces illimitées', '2 annonces mises en avant pendant 7 jours', 'Priorité sur les demandes de devis'],
-      sortOrder: 2,
+      description: 'Pour attirer régulièrement de nouveaux clients et mieux présenter son activité.',
+      features: ['Tout le plan Local Plus', '3 annonces mises en avant pendant 15 jours', 'Statistiques de base', 'Support prioritaire'],
+      sortOrder: 4,
     },
     {
       slug: 'premium-growth',
@@ -67,7 +88,7 @@ export class SubscriptionsService {
       durationDays: 30,
       description: 'Pour accélérer votre croissance et booster votre activité.',
       features: ['Tout le plan Local Plus', 'Badge Premium Growth', '5 annonces mises en avant pendant 30 jours', 'Statistiques détaillées et support prioritaire'],
-      sortOrder: 3,
+      sortOrder: 5,
     },
   ];
 
@@ -119,19 +140,7 @@ export class SubscriptionsService {
   private getConfiguredPlans() {
     if (process.env.MOMO_MODE !== 'sandbox') return this.defaultPlans;
 
-    return [
-      ...this.defaultPlans,
-      {
-        slug: 'sandbox-test',
-        name: 'Test Sandbox',
-        price: 1000,
-        currency: 'XAF',
-        durationDays: 1,
-        description: 'Offre temporaire réservée aux tests de paiement MoMo Sandbox.',
-        features: ['Paiement de test à 1 000 FCFA', 'Ne pas utiliser en production'],
-        sortOrder: 4,
-      },
-    ];
+    return this.defaultPlans;
   }
 
   async createDefaultPlan(): Promise<SubscriptionPlan> {

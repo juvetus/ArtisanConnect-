@@ -36,9 +36,9 @@ describe('SubscriptionsService', () => {
 
     const plans = await service.createDefaultPlans();
 
-    expect(plans.map((plan) => plan.slug)).toEqual(['starter', 'local-plus', 'premium-growth']);
-    expect(plans.map((plan) => Number(plan.price))).toEqual([0, 5000, 10000]);
-    expect(savedPlans).toHaveLength(3);
+    expect(plans.map((plan) => plan.slug)).toEqual(['starter', 'visibilite-7', 'local-plus', 'croissance', 'premium-growth']);
+    expect(plans.map((plan) => Number(plan.price))).toEqual([0, 1000, 3000, 5000, 10000]);
+    expect(savedPlans).toHaveLength(5);
   });
 
   it('applique une politique de mise en avant selon le plan actif', async () => {

@@ -38,15 +38,37 @@ const FALLBACK_PLANS: Plan[] = [
     sortOrder: 1,
   },
   {
+    id: 'visibilite-7',
+    slug: 'visibilite-7',
+    name: 'Visibilité 7 jours',
+    price: 1000,
+    currency: 'XAF',
+    durationDays: 7,
+    description: 'Un petit coup de visibilité pour tester la plateforme sans gros budget.',
+    features: ['Tout le plan Starter', '1 annonce mise en avant pendant 7 jours', 'Badge de visibilité locale'],
+    sortOrder: 2,
+  },
+  {
     id: 'local-plus',
     slug: 'local-plus',
     name: 'Local Plus',
+    price: 3000,
+    currency: 'XAF',
+    durationDays: 30,
+    description: 'Pour rester visible tout le mois avec un budget accessible.',
+    features: ['Tout le plan Starter', 'Annonces illimitées', '2 annonces mises en avant pendant 7 jours', 'Priorité locale'],
+    sortOrder: 3,
+  },
+  {
+    id: 'croissance',
+    slug: 'croissance',
+    name: 'Croissance',
     price: 5000,
     currency: 'XAF',
     durationDays: 30,
-    description: 'Pour gagner en visibilité locale et attirer plus de clients.',
-    features: ['Tout le plan Starter', 'Annonces illimitées', '2 annonces mises en avant pendant 7 jours', 'Priorité sur les demandes de devis'],
-    sortOrder: 2,
+    description: 'Pour attirer régulièrement de nouveaux clients et mieux présenter son activité.',
+    features: ['Tout le plan Local Plus', '3 annonces mises en avant pendant 15 jours', 'Statistiques de base', 'Support prioritaire'],
+    sortOrder: 4,
   },
   {
     id: 'premium-growth',
@@ -57,7 +79,7 @@ const FALLBACK_PLANS: Plan[] = [
     durationDays: 30,
     description: 'Pour accélérer votre croissance et booster votre activité.',
     features: ['Tout le plan Local Plus', 'Badge Premium Growth', '5 annonces mises en avant pendant 30 jours', 'Statistiques détaillées et support prioritaire'],
-    sortOrder: 3,
+    sortOrder: 5,
   },
 ];
 
@@ -91,12 +113,12 @@ export default async function PricingPage() {
 
   const recommendedPlan = plans.find((plan) => plan.slug === 'local-plus') ?? plans[1] ?? plans[0];
   const comparisonRows: ReadonlyArray<readonly [string, readonly string[]]> = [
-    ['Boutique en ligne', ['Incluse', 'Incluse', 'Incluse', 'Test uniquement']],
-    ['Annonces actives', ['Jusqu’à 5', 'Illimitées', 'Illimitées', 'Test uniquement']],
-    ['Mise en avant', ['Standard', '2 annonces / 7 jours', '5 annonces / 30 jours', 'Non']],
-    ['Demandes de devis', ['Oui', 'Oui', 'Oui, priorisées', 'Non']],
-    ['Badge', ['—', '—', 'Premium Growth', '—']],
-    ['Statistiques', ['Base', 'Détaillées', 'Détaillées', '—']],
+    ['Boutique en ligne', ['Incluse', 'Incluse', 'Incluse', 'Incluse', 'Incluse']],
+    ['Annonces actives', ['Jusqu’à 5', 'Jusqu’à 5', 'Illimitées', 'Illimitées', 'Illimitées']],
+    ['Mise en avant', ['Standard', '1 annonce / 7 jours', '2 annonces / 7 jours', '3 annonces / 15 jours', '5 annonces / 30 jours']],
+    ['Demandes de devis', ['Oui', 'Oui', 'Oui', 'Oui, priorisées', 'Oui, prioritaires']],
+    ['Badge', ['—', 'Visibilité locale', '—', '—', 'Premium Growth']],
+    ['Statistiques', ['Base', 'Base', 'Base', 'Base', 'Détaillées']],
   ];
 
   return (
@@ -130,7 +152,7 @@ export default async function PricingPage() {
 
               <p className="mt-3 text-3xl font-semibold text-stone-900">
                 {isFree ? '0 FCFA' : `${formatXAF(Number(plan.price))}`}
-                {!isFree ? <span className="text-base font-normal text-stone-600"> / mois</span> : null}
+                {!isFree ? <span className="text-base font-normal text-stone-600"> / {plan.durationDays === 30 ? '30 jours' : `${plan.durationDays} jours`}</span> : null}
               </p>
 
               <p className="mt-2 text-sm text-stone-600">{plan.description || 'Offre adaptée à votre activité.'}</p>
