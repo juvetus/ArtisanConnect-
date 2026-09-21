@@ -4,6 +4,7 @@ import { useState } from 'react';
 import useSWR from 'swr';
 import { api, ApiError } from '@/lib/api';
 import type { Report, ReportReason, ReportStatus } from '@/lib/types';
+import { Pagination } from './Pagination';
 
 const REASON_LABELS: Record<ReportReason, string> = {
   fraud: 'Arnaque / fraude',
@@ -30,6 +31,7 @@ const TARGET_LINK: Record<Report['targetType'], (id: string) => string | null> =
 
 export function ModerationAdmin() {
   const [statusFilter, setStatusFilter] = useState<ReportStatus | 'all'>('open');
+  const [page, setPage] = useState(0);
   const [error, setError] = useState('');
   const { data: reports, isLoading, mutate } = useSWR(
     ['admin-reports', statusFilter],
@@ -60,7 +62,7 @@ export function ModerationAdmin() {
           Statut
           <select
             value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value as ReportStatus | 'all')}
+            onChange={(event) => { setStatusFilter(event.target.value as ReportStatus | 'all'); setPage(0); }}
             className="ml-2 rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
           >
             <option value="open">À traiter</option>
@@ -82,7 +84,7 @@ export function ModerationAdmin() {
         </p>
       ) : (
         <ul className="space-y-3">
-          {reports.map((report) => {
+          {reports.slice(page * 10, (page + 1) * 10).map((report) => {
             const href = TARGET_LINK[report.targetType](report.targetId);
             return (
               <li key={report.id} className="rounded-lg border border-stone-200 p-4">
@@ -143,6 +145,9 @@ export function ModerationAdmin() {
           })}
         </ul>
       )}
+      {reports && reports.length > 10 ? (
+        <Pagination page={page} hasPrevious={page > 0} hasNext={(page + 1) * 10 < reports.length} onPrevious={() => setPage((current) => Math.max(0, current - 1))} onNext={() => setPage((current) => current + 1)} />
+      ) : null}
     </section>
   );
 }

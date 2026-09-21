@@ -1005,6 +1005,7 @@ function RecentOrders({
 function AdminSubscriptions({ subscriptions }: { subscriptions: AdminSubscription[] }) {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<AdminSubscription['status'] | 'all'>('all');
+  const [page, setPage] = useState(0);
   const normalizedSearch = search.trim().toLowerCase();
   const filteredSubscriptions = subscriptions.filter((subscription) => {
     const haystack = [
@@ -1033,11 +1034,11 @@ function AdminSubscriptions({ subscriptions }: { subscriptions: AdminSubscriptio
       <div className="grid gap-3 md:grid-cols-[1fr_220px]">
         <input
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => { setSearch(event.target.value); setPage(0); }}
           placeholder="Artisan, e-mail, plan ou référence..."
           className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
         />
-        <select value={status} onChange={(event) => setStatus(event.target.value as AdminSubscription['status'] | 'all')} className="rounded-md border border-stone-300 px-3 py-2 text-sm">
+        <select value={status} onChange={(event) => { setStatus(event.target.value as AdminSubscription['status'] | 'all'); setPage(0); }} className="rounded-md border border-stone-300 px-3 py-2 text-sm">
           <option value="all">Tous les statuts</option>
           {Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
@@ -1058,7 +1059,7 @@ function AdminSubscriptions({ subscriptions }: { subscriptions: AdminSubscriptio
               </tr>
             </thead>
             <tbody>
-              {filteredSubscriptions.map((subscription) => (
+              {filteredSubscriptions.slice(page * 10, (page + 1) * 10).map((subscription) => (
                 <tr key={subscription.id} className="border-b border-stone-100 last:border-0">
                   <td className="px-3 py-3">
                     <p className="font-medium text-stone-900">{subscription.user?.name ?? 'Utilisateur supprimé'}</p>
@@ -1079,6 +1080,7 @@ function AdminSubscriptions({ subscriptions }: { subscriptions: AdminSubscriptio
           </table>
         </div>
       )}
+      {filteredSubscriptions.length > 10 ? <Pagination page={page} hasPrevious={page > 0} hasNext={(page + 1) * 10 < filteredSubscriptions.length} onPrevious={() => setPage((current) => Math.max(0, current - 1))} onNext={() => setPage((current) => current + 1)} /> : null}
     </section>
   );
 }
@@ -1097,6 +1099,7 @@ function AdminOrders({
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<Order['status'] | 'all'>('all');
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
   const normalizedSearch = search.trim().toLowerCase();
   const filteredOrders = orders.filter((order) => {
     const haystack = [order.id, order.listing?.title, order.buyer?.name, order.buyer?.email, order.seller?.name, order.seller?.email, order.paymentMethod]
@@ -1113,8 +1116,8 @@ function AdminOrders({
         <p className="mt-1 text-sm text-stone-600">Recherchez une commande, consultez tous ses détails, annulez-la ou enregistrez un remboursement.</p>
       </div>
       <div className="grid gap-3 md:grid-cols-[1fr_220px]">
-        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="ID, client, vendeur, article, e-mail..." className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600" />
-        <select value={status} onChange={(event) => setStatus(event.target.value as Order['status'] | 'all')} className="rounded-md border border-stone-300 px-3 py-2 text-sm">
+        <input value={search} onChange={(event) => { setSearch(event.target.value); setPage(0); }} placeholder="ID, client, vendeur, article, e-mail..." className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600" />
+        <select value={status} onChange={(event) => { setStatus(event.target.value as Order['status'] | 'all'); setPage(0); }} className="rounded-md border border-stone-300 px-3 py-2 text-sm">
           <option value="all">Tous les statuts</option>
           <option value="pending">En attente</option>
           <option value="confirmed">Confirmées</option>
@@ -1124,7 +1127,7 @@ function AdminOrders({
       </div>
       {!filteredOrders.length ? <p className="rounded-md bg-stone-50 p-4 text-sm text-stone-600">Aucune commande ne correspond à votre recherche.</p> : (
         <div className="divide-y divide-stone-100">
-          {filteredOrders.map((order) => {
+          {filteredOrders.slice(page * 10, (page + 1) * 10).map((order) => {
             const isExpanded = expanded === order.id;
             const canCancel = order.status !== 'cancelled' && order.status !== 'completed';
             const canRefund = order.payment?.status === 'confirmed' || order.payment?.status === 'captured';
@@ -1164,6 +1167,7 @@ function AdminOrders({
           })}
         </div>
       )}
+      {filteredOrders.length > 10 ? <Pagination page={page} hasPrevious={page > 0} hasNext={(page + 1) * 10 < filteredOrders.length} onPrevious={() => setPage((current) => Math.max(0, current - 1))} onNext={() => setPage((current) => current + 1)} /> : null}
     </section>
   );
 }

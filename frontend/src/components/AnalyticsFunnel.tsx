@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import useSWR from 'swr';
 import { api } from '@/lib/api';
+import { Pagination } from './Pagination';
 
 const FUNNEL_STEPS: { key: string; label: string }[] = [
   { key: 'visitors', label: 'Visiteurs' },
@@ -16,6 +17,7 @@ const FUNNEL_STEPS: { key: string; label: string }[] = [
 
 export function AnalyticsFunnel() {
   const [days, setDays] = useState(30);
+  const [rankingPage, setRankingPage] = useState(0);
   const { data, isLoading } = useSWR(['analytics-funnel', days], ([, period]) => api.analyticsFunnel(period as number));
 
   const funnel = data?.funnel;
@@ -32,7 +34,7 @@ export function AnalyticsFunnel() {
           Période
           <select
             value={days}
-            onChange={(event) => setDays(Number(event.target.value))}
+            onChange={(event) => { setDays(Number(event.target.value)); setRankingPage(0); }}
             className="ml-2 rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
           >
             <option value={7}>7 jours</option>
@@ -94,7 +96,7 @@ export function AnalyticsFunnel() {
                   <p className="mt-2 text-sm text-stone-500">Aucune donnée sur la période.</p>
                 ) : (
                   <ul className="mt-2 space-y-1 text-sm">
-                    {rows.map((row) => (
+                    {rows.slice(rankingPage * 5, (rankingPage + 1) * 5).map((row) => (
                       <li key={row.label} className="flex justify-between gap-3 border-b border-stone-100 py-1 last:border-0">
                         <span className="truncate text-stone-700">{row.label}</span>
                         <span className="font-medium text-stone-900">{row.count}</span>
@@ -102,6 +104,7 @@ export function AnalyticsFunnel() {
                     ))}
                   </ul>
                 )}
+                {rows.length > 5 ? <Pagination page={rankingPage} hasPrevious={rankingPage > 0} hasNext={(rankingPage + 1) * 5 < rows.length} onPrevious={() => setRankingPage((current) => Math.max(0, current - 1))} onNext={() => setRankingPage((current) => current + 1)} /> : null}
               </div>
             ))}
           </div>
