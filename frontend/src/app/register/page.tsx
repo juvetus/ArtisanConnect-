@@ -76,7 +76,7 @@ export default function RegisterPage() {
       </p>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4 rounded-lg border border-stone-200 bg-white p-6">
-        <p className="text-xs text-stone-600"><span className="text-red-700" aria-hidden="true">*</span> Champ obligatoire</p>
+        <p className="text-xs text-stone-600"><span className="text-red-700" aria-hidden="true">*</span> {t('form_required')}</p>
         <fieldset className="grid grid-cols-2 gap-3">
           <legend className="mb-2 text-sm font-medium">{t('register_i_am')}</legend>
           {(['client', 'artisan', 'institution'] as const).map((value) => (
@@ -102,14 +102,14 @@ export default function RegisterPage() {
         </fieldset>
 
         <fieldset className="grid grid-cols-2 gap-2">
-          <legend className="mb-2 text-sm font-medium">Créer avec</legend>
+          <legend className="mb-2 text-sm font-medium">{t('register_with')}</legend>
           <button type="button" onClick={() => setContactType('email')} className={`rounded-md border px-3 py-2 text-sm ${contactType === 'email' ? 'border-amber-600 bg-amber-50' : 'border-stone-300'}`}>Email</button>
-          <button type="button" onClick={() => setContactType('phone')} className={`rounded-md border px-3 py-2 text-sm ${contactType === 'phone' ? 'border-amber-600 bg-amber-50' : 'border-stone-300'}`}>Téléphone</button>
+          <button type="button" onClick={() => setContactType('phone')} className={`rounded-md border px-3 py-2 text-sm ${contactType === 'phone' ? 'border-amber-600 bg-amber-50' : 'border-stone-300'}`}>{t('register_phone')}</button>
         </fieldset>
 
         <div>
           <label htmlFor="name" className="block text-sm font-medium">
-            {t('register_name')} <span className="text-red-700" aria-hidden="true">*</span><span className="sr-only"> (obligatoire)</span>
+            {t('register_name')} <span className="text-red-700" aria-hidden="true">*</span><span className="sr-only"> ({t('form_required').toLowerCase()})</span>
           </label>
           <input
             id="name"
@@ -148,7 +148,7 @@ export default function RegisterPage() {
 
         {contactType === 'email' ? <div>
           <label htmlFor="email" className="block text-sm font-medium">
-            {t('login_email')} <span className="text-red-700" aria-hidden="true">*</span><span className="sr-only"> (obligatoire)</span>
+            {t('login_email')} <span className="text-red-700" aria-hidden="true">*</span><span className="sr-only"> ({t('form_required').toLowerCase()})</span>
           </label>
           <input
             id="email"
@@ -159,19 +159,19 @@ export default function RegisterPage() {
             className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600"
           />
         </div> : <div>
-          <label htmlFor="phone" className="block text-sm font-medium">Numéro de téléphone <span className="text-red-700" aria-hidden="true">*</span><span className="sr-only"> (obligatoire)</span></label>
+          <label htmlFor="phone" className="block text-sm font-medium">{t('register_phone_label')} <span className="text-red-700" aria-hidden="true">*</span><span className="sr-only"> ({t('form_required').toLowerCase()})</span></label>
           <div className="mt-1 flex gap-2">
-            <select value={phoneCountry} onChange={(e) => setPhoneCountry(e.target.value)} className="w-36 rounded-md border border-stone-300 px-2 py-2 text-sm outline-none focus:border-amber-600" aria-label="Pays et indicatif">
+            <select value={phoneCountry} onChange={(e) => setPhoneCountry(e.target.value)} className="w-36 rounded-md border border-stone-300 px-2 py-2 text-sm outline-none focus:border-amber-600" aria-label={t('register_phone_country')}>
               {PHONE_COUNTRIES.map((country) => <option key={`${country.code}-${country.dialCode}`} value={country.dialCode}>{country.name} ({country.dialCode})</option>)}
             </select>
             <input id="phone" type="tel" required value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))} placeholder="6XX XXX XXX" className="min-w-0 flex-1 rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600" />
           </div>
-          <p className="mt-1 text-xs text-stone-500">Choisissez le pays puis saisissez le numéro sans l’indicatif.</p>
+          <p className="mt-1 text-xs text-stone-500">{t('register_phone_help')}</p>
         </div>}
 
         <div>
           <label htmlFor="password" className="block text-sm font-medium">
-            {t('login_password')} <span className="text-red-700" aria-hidden="true">*</span><span className="sr-only"> (obligatoire)</span>
+            {t('login_password')} <span className="text-red-700" aria-hidden="true">*</span><span className="sr-only"> ({t('form_required').toLowerCase()})</span>
           </label>
           <div className="relative mt-1">
             <input
@@ -183,11 +183,11 @@ export default function RegisterPage() {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full rounded-md border border-stone-300 px-3 py-2 pr-20 outline-none focus:border-amber-600"
             />
-            <button type="button" onClick={() => setShowPassword((visible) => !visible)} className="absolute inset-y-0 right-0 px-3 text-sm font-medium text-amber-800 hover:text-amber-950" aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>
-              {showPassword ? 'Masquer' : 'Afficher'}
+            <button type="button" onClick={() => setShowPassword((visible) => !visible)} className="absolute inset-y-0 right-0 px-3 text-sm font-medium text-amber-800 hover:text-amber-950" aria-label={showPassword ? t('register_password_hide') : t('register_password_show')}>
+              {showPassword ? t('register_password_hide') : t('register_password_show')}
             </button>
           </div>
-          <p className="mt-1 text-xs text-stone-500">8 caractères minimum / min 8 chars.</p>
+          <p className="mt-1 text-xs text-stone-500">{t('register_password_hint')}</p>
         </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}
