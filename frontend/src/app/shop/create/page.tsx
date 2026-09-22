@@ -11,23 +11,7 @@ import { PRODUCT_CATEGORIES, categoryLabel } from '@/lib/categories';
 import { SHOP_OPTIONAL_DOCS, SHOP_REQUIRED_DOCS, type KycDocument, type ShopType } from '@/lib/types';
 const LocationPicker = dynamic(() => import('@/components/LocationPicker').then((module) => module.LocationPicker), { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-md bg-stone-100" /> });
 
-const SHOP_TYPES: { value: ShopType; title: string; description: string }[] = [
-  {
-    value: 'artisan',
-    title: 'Boutique Artisan',
-    description: "Atelier réel, production propre. Validation manuelle par l'équipe.",
-  },
-  {
-    value: 'reseller',
-    title: 'Boutique Revendeur',
-    description: 'Stock réel sans atelier. Validation automatique si preuves OK.',
-  },
-  {
-    value: 'individual',
-    title: 'Vendeur Individuel',
-    description: 'Affaires personnelles. Validation automatique si preuves OK.',
-  },
-];
+const SHOP_TYPES: ShopType[] = ['artisan', 'reseller', 'individual'];
 
 export default function CreateShopPage() {
   const { user, ready } = useAuth();
@@ -149,18 +133,18 @@ export default function CreateShopPage() {
 
       {step === 1 && (
         <section className="space-y-3">
-          {SHOP_TYPES.map((option) => (
+          {SHOP_TYPES.map((shopType) => (
             <button
-              key={option.value}
+              key={shopType}
               type="button"
-              onClick={() => setType(option.value)}
-              className={`w-full rounded-lg border p-4 text-left transition ${type === option.value
+              onClick={() => setType(shopType)}
+              className={`w-full rounded-lg border p-4 text-left transition ${type === shopType
                   ? 'border-amber-700 bg-amber-50'
                   : 'border-stone-200 bg-white hover:border-stone-300'
                 }`}
             >
-              <p className="font-medium">{option.title}</p>
-              <p className="mt-1 text-sm text-stone-600">{option.description}</p>
+              <p className="font-medium">{t(`create_shop_type_${shopType}`)}</p>
+              <p className="mt-1 text-sm text-stone-600">{t(`create_shop_type_${shopType}_desc`)}</p>
             </button>
           ))}
           <button
@@ -168,7 +152,7 @@ export default function CreateShopPage() {
             onClick={() => setStep(2)}
             className="w-full rounded-md bg-amber-700 py-2 font-medium text-white hover:bg-amber-800"
           >
-            Continuer
+            {t('create_shop_continue')}
           </button>
         </section>
       )}
