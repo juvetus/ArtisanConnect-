@@ -342,7 +342,6 @@ export interface InstitutionalResource {
   imageUrls?: string[];
   videoUrls?: string[];
   externalUrls?: string[];
-  externalUrls?: string[];
   pdfUrls?: string[];
   published: boolean;
   institution?: User;
@@ -429,6 +428,7 @@ export interface Service {
   tags?: string[];
   fileUrls?: string[];
   videoUrls?: string[];
+  externalUrls?: string[];
   status: ServiceStatus;
   validationFeedback?: string | null;
   artisan?: User;
