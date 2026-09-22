@@ -23,6 +23,8 @@ export default function ServiceOrderQuotePage() {
   const [price, setPrice] = useState('');
   const [days, setDays] = useState('');
   const [details, setDetails] = useState('');
+  const [terms, setTerms] = useState('Paiement selon les étapes convenues. Validité : 5 jours.');
+  const [items, setItems] = useState([{ description: '', quantity: '1', unitPrice: '' }]);
   const [response, setResponse] = useState('');
   const [deliveryFeedback, setDeliveryFeedback] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -68,6 +70,8 @@ export default function ServiceOrderQuotePage() {
         proposedPrice: Number(price),
         proposedDays: Number(days),
         details,
+        terms,
+        items: items.filter((item) => item.description.trim() && item.unitPrice).map((item) => ({ description: item.description.trim(), quantity: Number(item.quantity), unitPrice: Number(item.unitPrice) })),
       });
       setNotice('Devis envoyé au client.');
       await load();
@@ -203,16 +207,20 @@ export default function ServiceOrderQuotePage() {
             <div><label htmlFor="price" className="block text-sm font-medium text-stone-700">Prix final (FCFA) *</label><input id="price" required type="number" min="1" value={price} onChange={(event) => setPrice(event.target.value)} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2" /></div>
             <div><label htmlFor="days" className="block text-sm font-medium text-stone-700">Délai proposé (jours) *</label><input id="days" required type="number" min="1" value={days} onChange={(event) => setDays(event.target.value)} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2" /></div>
           </div>
-          <div><label htmlFor="details" className="block text-sm font-medium text-stone-700">Détail des phases et livrables *</label><textarea id="details" required minLength={20} rows={6} value={details} onChange={(event) => setDetails(event.target.value)} placeholder="Phase 1 : cadrage...\nPhase 2 : réalisation...\nLivrables : ..." className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2" /></div>
+          <div><label className="block text-sm font-medium text-stone-700">Lignes de prestation *</label>{items.map((item, index) => <div key={index} className="mt-2 grid gap-2 sm:grid-cols-[1fr_100px_140px_auto]"><input required value={item.description} onChange={(event) => setItems((current) => current.map((line, lineIndex) => lineIndex === index ? { ...line, description: event.target.value } : line))} placeholder="Prestation ou livrable" className="rounded-md border border-stone-300 px-3 py-2" /><input required type="number" min="1" value={item.quantity} onChange={(event) => setItems((current) => current.map((line, lineIndex) => lineIndex === index ? { ...line, quantity: event.target.value } : line))} placeholder="Qté" className="rounded-md border border-stone-300 px-3 py-2" /><input required type="number" min="0" value={item.unitPrice} onChange={(event) => setItems((current) => current.map((line, lineIndex) => lineIndex === index ? { ...line, unitPrice: event.target.value } : line))} placeholder="Prix FCFA" className="rounded-md border border-stone-300 px-3 py-2" />{items.length > 1 ? <button type="button" onClick={() => setItems((current) => current.filter((_, lineIndex) => lineIndex !== index))} className="rounded-md border border-stone-300 px-3 text-sm">×</button> : null}</div>)}<button type="button" onClick={() => setItems((current) => [...current, { description: '', quantity: '1', unitPrice: '' }])} className="mt-2 text-sm font-medium text-amber-700 underline">+ Ajouter une ligne</button></div>
+          <div><label htmlFor="details" className="block text-sm font-medium text-stone-700">Détail des phases et livrables *</label><textarea id="details" required minLength={20} rows={4} value={details} onChange={(event) => setDetails(event.target.value)} placeholder="Phase 1 : cadrage...\nPhase 2 : réalisation..." className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2" /></div>
+          <div><label htmlFor="terms" className="block text-sm font-medium text-stone-700">Conditions et validité</label><textarea id="terms" rows={3} value={terms} onChange={(event) => setTerms(event.target.value)} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2" /></div>
           <button disabled={submitting} className="rounded-md bg-amber-700 px-5 py-2 font-medium text-white hover:bg-amber-800 disabled:bg-stone-400">{submitting ? 'Envoi...' : 'Envoyer le devis'}</button>
         </form>
       ) : null}
 
       {quote ? (
         <section className="space-y-5 rounded-lg border border-stone-200 bg-white p-6">
-          <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-semibold text-stone-900">Devis de {quote.artisan?.name || 'l’artisan'}</h2><p className="mt-1 text-sm text-stone-600">Statut : {quote.status}</p></div><p className="text-sm text-stone-500">Réponse avant le {new Date(quote.expiresAt).toLocaleDateString('fr-FR')}</p></div>
+          <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-semibold text-stone-900">Devis {quote.quoteNumber ?? ''} de {quote.artisan?.name || 'l’artisan'}</h2><p className="mt-1 text-sm text-stone-600">Statut : {quote.status}</p></div><p className="text-sm text-stone-500">Réponse avant le {new Date(quote.expiresAt).toLocaleDateString('fr-FR')}</p></div>
+          {quote.items?.length ? <div className="overflow-x-auto"><table className="mt-4 w-full text-left text-sm"><thead><tr className="border-b border-stone-200"><th className="py-2">Prestation</th><th className="py-2">Qté</th><th className="py-2">Prix unitaire</th><th className="py-2">Total</th></tr></thead><tbody>{quote.items.map((item, index) => <tr key={`${item.description}-${index}`} className="border-b border-stone-100"><td className="py-2">{item.description}</td><td className="py-2">{item.quantity}</td><td className="py-2">{item.unitPrice.toLocaleString('fr-FR')} FCFA</td><td className="py-2 font-medium">{Math.round(item.quantity * item.unitPrice).toLocaleString('fr-FR')} FCFA</td></tr>)}</tbody></table></div> : null}
           <div className="grid gap-4 sm:grid-cols-2"><div className="rounded-md bg-stone-50 p-4"><p className="text-xs uppercase text-stone-500">Prix final</p><p className="mt-1 text-xl font-semibold text-stone-900">{quote.proposedPrice} FCFA</p></div><div className="rounded-md bg-stone-50 p-4"><p className="text-xs uppercase text-stone-500">Délai</p><p className="mt-1 text-xl font-semibold text-stone-900">{quote.proposedDays} jours</p></div></div>
           <div><p className="text-sm font-medium text-stone-700">Phases et livrables</p><p className="mt-2 whitespace-pre-wrap text-sm text-stone-600">{quote.details}</p></div>
+          {quote.terms ? <p className="rounded-md bg-stone-50 p-3 text-sm text-stone-600"><strong>Conditions :</strong> {quote.terms}</p> : null}
           {canRespond ? <div className="space-y-3 border-t border-stone-200 pt-5"><textarea value={response} onChange={(event) => setResponse(event.target.value)} rows={3} placeholder="Message facultatif à l’artisan" className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm" /><div className="flex gap-3"><button disabled={submitting} onClick={() => void respond(true)} className="rounded-md bg-green-600 px-4 py-2 font-medium text-white hover:bg-green-700 disabled:bg-stone-400">Accepter le devis</button><button disabled={submitting} onClick={() => void respond(false)} className="rounded-md bg-red-600 px-4 py-2 font-medium text-white hover:bg-red-700 disabled:bg-stone-400">Refuser le devis</button></div></div> : null}
           {quote.clientResponse ? <p className="rounded-md bg-stone-50 p-3 text-sm text-stone-600">Réponse client : {quote.clientResponse}</p> : null}
         </section>

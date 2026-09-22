@@ -593,7 +593,7 @@ export const api = {
 
     getServiceQuote: (id: string) => request(`/service-orders/${id}/quote`),
 
-    proposeServiceQuote: (id: string, data: { proposedPrice: number; proposedDays: number; details: string }) =>
+    proposeServiceQuote: (id: string, data: { proposedPrice: number; proposedDays: number; details: string; items?: { description: string; quantity: number; unitPrice: number }[]; terms?: string }) =>
       post(`/service-orders/${id}/quote`, data),
 
     respondToServiceQuote: (id: string, accepted: boolean, response?: string) =>

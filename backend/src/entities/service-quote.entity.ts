@@ -12,10 +12,15 @@ import { ServiceOrder } from './service-order.entity.js';
 
 export type ServiceQuoteStatus = 'pending' | 'accepted' | 'rejected';
 
+export type ServiceQuoteItem = { description: string; quantity: number; unitPrice: number };
+
 @Entity('service_quotes')
 export class ServiceQuote {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ unique: true })
+  quoteNumber: string;
 
   @Column()
   orderId: string;
@@ -26,11 +31,20 @@ export class ServiceQuote {
   @Column({ type: 'decimal', precision: 12, scale: 2 })
   proposedPrice: number;
 
+  @Column({ default: 'XAF' })
+  currency: string;
+
   @Column()
   proposedDays: number;
 
   @Column({ type: 'text' })
   details: string;
+
+  @Column({ type: 'jsonb', default: [] })
+  items: ServiceQuoteItem[];
+
+  @Column({ type: 'text', nullable: true })
+  terms: string | null;
 
   @Column({ type: 'enum', enum: ['pending', 'accepted', 'rejected'], default: 'pending' })
   status: ServiceQuoteStatus;

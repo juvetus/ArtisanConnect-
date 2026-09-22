@@ -511,11 +511,15 @@ export type ServiceQuoteStatus = 'pending' | 'accepted' | 'rejected';
 
 export interface ServiceQuote {
   id: string;
+  quoteNumber: string;
   orderId: string;
   artisanId: string;
   proposedPrice: number;
   proposedDays: number;
   details: string;
+  items?: { description: string; quantity: number; unitPrice: number }[];
+  terms?: string | null;
+  currency?: string;
   status: ServiceQuoteStatus;
   clientResponse?: string | null;
   expiresAt: string;

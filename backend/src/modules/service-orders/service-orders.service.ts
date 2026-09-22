@@ -205,8 +205,15 @@ export class ServiceOrdersService {
     proposedPrice: number;
     proposedDays: number;
     details: string;
+    items?: { description: string; quantity: number; unitPrice: number }[];
+    terms?: string;
   }) {
-    if (!Number.isFinite(data.proposedPrice) || data.proposedPrice <= 0) {
+    const items = (data.items ?? []).map((item) => ({ description: item.description.trim(), quantity: Number(item.quantity), unitPrice: Number(item.unitPrice) }));
+    if (items.some((item) => !item.description || !Number.isFinite(item.quantity) || item.quantity <= 0 || !Number.isFinite(item.unitPrice) || item.unitPrice < 0)) {
+      throw new BadRequestException('Les lignes du devis sont invalides');
+    }
+    const calculatedTotal = items.length ? Math.round(items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0)) : Number(data.proposedPrice);
+    if (!Number.isFinite(calculatedTotal) || calculatedTotal <= 0) {
       throw new BadRequestException('Le prix proposé doit être supérieur à zéro');
     }
     if (!Number.isInteger(data.proposedDays) || data.proposedDays < 1) {
@@ -232,12 +239,17 @@ export class ServiceOrdersService {
 
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 5);
+    const quoteNumber = `DEV-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
     const quote = this.quotesRepository.create({
       orderId,
       artisanId,
-      proposedPrice: data.proposedPrice,
+      quoteNumber,
+      currency: 'XAF',
+      proposedPrice: calculatedTotal,
       proposedDays: data.proposedDays,
       details: data.details.trim(),
+      items,
+      terms: data.terms?.trim() || null,
       status: 'pending',
       clientResponse: null,
       expiresAt,

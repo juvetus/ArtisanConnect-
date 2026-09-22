@@ -100,12 +100,14 @@ export class ServiceOrdersController {
   proposeQuote(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,
-    @Body() body: { proposedPrice: number; proposedDays: number; details: string },
+    @Body() body: { proposedPrice: number; proposedDays: number; details: string; items?: { description: string; quantity: number; unitPrice: number }[]; terms?: string },
   ) {
     return this.serviceOrdersService.proposeQuote(user.id, id, {
       proposedPrice: Number(body.proposedPrice),
       proposedDays: Number(body.proposedDays),
       details: body.details,
+      items: body.items,
+      terms: body.terms,
     });
   }
 

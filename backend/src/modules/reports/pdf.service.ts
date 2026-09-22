@@ -155,12 +155,16 @@ export class PdfService {
       .filter(Boolean)
       .map((line) => [line]);
 
+    const itemRows = Array.isArray(quote.items) && quote.items.length
+      ? quote.items.map((item: any) => [String(item.description), String(item.quantity), `${Number(item.unitPrice).toLocaleString('fr-FR')} FCFA`, `${Math.round(Number(item.quantity) * Number(item.unitPrice)).toLocaleString('fr-FR')} FCFA`])
+      : [[quote.details ?? 'Prestation', '1', `${Number(quote.proposedPrice).toLocaleString('fr-FR')} FCFA`, `${Number(quote.proposedPrice).toLocaleString('fr-FR')} FCFA`]];
     return this.render('Devis de service', 'Proposition commerciale', [
       {
         heading: 'Références',
         headers: ['Champ', 'Valeur'],
         columns: [0.34, 0.66],
         rows: [
+          ['Numéro de devis', quote.quoteNumber ?? quote.id],
           ['Commande', order.id],
           ['Service', order.service?.title ?? order.serviceId],
           ['Artisan', order.artisan?.name ?? order.artisanId],
@@ -168,17 +172,15 @@ export class PdfService {
         ],
       },
       {
-        heading: 'Proposition',
-        headers: ['Prix proposé', 'Délai', 'Valable jusqu’au'],
-        columns: [0.34, 0.33, 0.33],
+        heading: 'Lignes de prestation',
+        headers: ['Désignation', 'Qté', 'Prix unitaire', 'Total'],
+        columns: [0.42, 0.12, 0.23, 0.23],
         rows: [
-          [
-            `${Number(quote.proposedPrice).toLocaleString('fr-FR')} FCFA`,
-            `${quote.proposedDays} jours`,
-            new Date(quote.expiresAt).toLocaleDateString('fr-FR'),
-          ],
+          ...itemRows,
         ],
       },
+      { heading: 'Résumé', headers: ['Total', 'Délai', 'Valable jusqu’au'], columns: [0.34, 0.33, 0.33], rows: [[`${Number(quote.proposedPrice).toLocaleString('fr-FR')} FCFA`, `${quote.proposedDays} jours`, new Date(quote.expiresAt).toLocaleDateString('fr-FR')]] },
+      { heading: 'Conditions', headers: [''], columns: [1], rows: [[quote.terms ?? 'À convenir avec le client.']] },
       {
         heading: 'Phases et livrables',
         headers: ['Détail de la prestation'],
