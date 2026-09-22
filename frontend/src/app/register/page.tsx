@@ -76,6 +76,7 @@ export default function RegisterPage() {
       </p>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4 rounded-lg border border-stone-200 bg-white p-6">
+        <p className="text-xs text-stone-600"><span className="text-red-700" aria-hidden="true">*</span> Champ obligatoire</p>
         <fieldset className="grid grid-cols-2 gap-3">
           <legend className="mb-2 text-sm font-medium">{t('register_i_am')}</legend>
           {(['client', 'artisan', 'institution'] as const).map((value) => (

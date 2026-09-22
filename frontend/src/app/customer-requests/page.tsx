@@ -104,6 +104,7 @@ function CustomerRequestsContent() {
         <p className="mt-2 text-stone-600">Décrivez votre besoin et laissez des artisans du Cameroun vous proposer une solution.</p>
       </header>
       <form onSubmit={submit} className="space-y-5 rounded-lg border border-stone-200 bg-white p-6">
+        <p className="text-xs text-stone-600"><span className="text-red-700" aria-hidden="true">*</span> Champ obligatoire</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <div><label htmlFor="request-category" className="block text-sm font-medium text-stone-700">Métier ou catégorie *</label><input id="request-category" required value={category} onChange={(event) => setCategory(event.target.value)} placeholder="Menuiserie, couture, plomberie..." className="field mt-1" /></div>
           <div><label htmlFor="request-city" className="block text-sm font-medium text-stone-700">Ville *</label><input id="request-city" required value={city} onChange={(event) => setCity(event.target.value)} placeholder="Douala, Yaoundé..." className="field mt-1" /></div>

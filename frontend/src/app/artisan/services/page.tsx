@@ -285,6 +285,7 @@ export default function ServicesPage() {
             {editingId ? 'Modifier le service' : 'Créer un nouveau service'}
           </h2>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <p className="text-xs text-stone-600"><span className="text-red-700" aria-hidden="true">*</span> Champ obligatoire</p>
             <div>
               <label className="block text-sm font-medium text-stone-700">Titre</label>
               <input

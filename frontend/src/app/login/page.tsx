@@ -36,6 +36,7 @@ export default function LoginPage() {
       <p className="mt-1 text-sm text-stone-600">{t('login_subtitle')}</p>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4 rounded-lg border border-stone-200 bg-white p-6">
+        <p className="text-xs text-stone-600"><span className="text-red-700" aria-hidden="true">*</span> Champ obligatoire</p>
         <div>
           <label htmlFor="identifier" className="block text-sm font-medium">
             Email ou numéro de téléphone

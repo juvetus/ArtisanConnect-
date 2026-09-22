@@ -175,6 +175,7 @@ export default function CreateShopPage() {
 
       {step === 2 && (
         <section className="space-y-4 rounded-lg border border-stone-200 bg-white p-6">
+          <p className="text-xs text-stone-600"><span className="text-red-700" aria-hidden="true">*</span> Champ obligatoire</p>
           <div>
             <label htmlFor="whatsapp-phone" className="block text-sm font-medium">WhatsApp clients <span className="font-normal text-stone-500">(facultatif)</span></label>
             <input id="whatsapp-phone" type="tel" value={whatsappPhone} onChange={(e) => setWhatsappPhone(e.target.value)} placeholder="6XX XXX XXX" className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600" />
@@ -254,6 +255,7 @@ export default function CreateShopPage() {
 
       {step === 3 && (
         <section className="space-y-4 rounded-lg border border-stone-200 bg-white p-6">
+          <p className="text-xs text-stone-600"><span className="text-red-700" aria-hidden="true">*</span> Champ obligatoire</p>
           <div>
             <label htmlFor="shop-name" className="block text-sm font-medium">
               {t('create_shop_name')}
