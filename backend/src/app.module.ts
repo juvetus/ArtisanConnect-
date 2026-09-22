@@ -31,6 +31,7 @@ import { PayoutsModule } from './modules/payouts/payouts.module.js';
 import { CustomerRequestsModule } from './modules/customer-requests/customer-requests.module.js';
 import { ModerationModule } from './modules/moderation/moderation.module.js';
 import { AnalyticsModule } from './modules/analytics/analytics.module.js';
+import { AssistantModule } from './modules/assistant/assistant.module.js';
 
 @Module({
   imports: [
@@ -65,6 +66,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module.js';
     CustomerRequestsModule,
     ModerationModule,
     AnalyticsModule,
+    AssistantModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: JwtAuthGuard }],

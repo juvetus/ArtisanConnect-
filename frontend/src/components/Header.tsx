@@ -170,6 +170,11 @@ export function Header() {
                 </Link>
               )}
               {user.role === 'artisan' && (
+                <Link href="/assistant" className={navLinkClass('/assistant')}>
+                  {t('nav_assistant')}
+                </Link>
+              )}
+              {user.role === 'artisan' && (
                 <Link href="/formalization" className={navLinkClass('/formalization')}>
                   {t('nav_formalization')}
                 </Link>

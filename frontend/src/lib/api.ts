@@ -85,6 +85,9 @@ export const api = {
 
   resetPassword: (token: string, password: string) => post<{ success: boolean; message: string }>('/auth/reset-password', { token, password }),
 
+  assistantGenerate: (data: { task: string; input: string; language?: 'fr' | 'en'; context?: string }) =>
+    post<{ content: string; provider: 'ai' | 'local' }>('/assistant/generate', data),
+
     updateProfile: (id: string, data: { name?: string; phone?: string; whatsappPhone?: string; location?: string; bio?: string; avatarUrl?: string }) => patch<User>(`/users/${id}`, data),
 
     uploadAvatar: async (file: File) => {
