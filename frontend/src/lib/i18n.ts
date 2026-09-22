@@ -340,6 +340,8 @@ export const TRANSLATIONS = {
     // Messages Page
     messages_page_title: 'Messagerie',
     messages_no_conv: 'Aucune conversation sélectionnée.',
+    messages_no_threads: 'Aucune conversation. Contactez un artisan depuis une annonce.',
+    messages_new_conversation: 'Nouvelle conversation',
     messages_empty: 'Aucun message. Écrivez le premier !',
     messages_placeholder: 'Votre message…',
     messages_send: 'Envoyer',
@@ -894,6 +896,8 @@ export const TRANSLATIONS = {
     // Messages Page
     messages_page_title: 'Messages',
     messages_no_conv: 'No conversation selected.',
+    messages_no_threads: 'No conversations yet. Contact an artisan from a listing.',
+    messages_new_conversation: 'New conversation',
     messages_empty: 'No messages yet. Send the first one!',
     messages_placeholder: 'Your message…',
     messages_send: 'Send',

@@ -128,7 +128,7 @@ function MessagesContent() {
         <aside className="space-y-2">
           {threads?.length === 0 && !activeId ? (
             <p className="rounded-lg border border-stone-200 bg-white p-4 text-sm text-stone-600">
-              Aucune conversation. Contactez un artisan depuis une annonce.
+              {t('messages_no_threads')}
             </p>
           ) : (
             threads?.map((thread) => (
@@ -157,12 +157,12 @@ function MessagesContent() {
 
         {activeId ? (
           <div>
-            <p className="mb-2 font-medium">{activeThread?.user.name ?? 'Nouvelle conversation'}</p>
+            <p className="mb-2 font-medium">{activeThread?.user.name ?? t('messages_new_conversation')}</p>
             <Conversation otherUserId={activeId} serviceOrderId={serviceOrderId} />
           </div>
         ) : (
           <p className="rounded-lg border border-stone-200 bg-white p-8 text-center text-stone-600">
-            Sélectionnez une conversation.
+            {t('messages_no_conv')}
           </p>
         )}
       </div>
