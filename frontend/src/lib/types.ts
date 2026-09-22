@@ -341,6 +341,8 @@ export interface InstitutionalResource {
   contentUrl?: string | null;
   imageUrls?: string[];
   videoUrls?: string[];
+  externalUrls?: string[];
+  externalUrls?: string[];
   pdfUrls?: string[];
   published: boolean;
   institution?: User;

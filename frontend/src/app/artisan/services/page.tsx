@@ -20,6 +20,7 @@ interface Service {
   tags?: string[];
   fileUrls?: string[];
   videoUrls?: string[];
+  externalUrls?: string[];
   status: 'draft' | 'pending_validation' | 'validation_requested' | 'approved' | 'rejected';
   validationFeedback?: string;
   createdAt: string;
@@ -55,6 +56,7 @@ export default function ServicesPage() {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [serviceVideos, setServiceVideos] = useState<string[]>([]);
   const [uploadingVideos, setUploadingVideos] = useState(false);
+  const [externalUrls, setExternalUrls] = useState<string[]>([]);
   const { data: planStatus } = useSWR('artisan-plan-status', api.getPlanStatus);
   const isPremiumGrowth = planStatus?.planSlug === 'premium-growth';
 
@@ -91,6 +93,7 @@ export default function ServicesPage() {
         tags: formData.tags ? formData.tags.split(',').map(t => t.trim()) : [],
         fileUrls: serviceImages,
         videoUrls: serviceVideos,
+        externalUrls: externalUrls.filter((url) => url.trim()),
       };
 
       if (formData.price) {
@@ -125,6 +128,7 @@ export default function ServicesPage() {
       });
       setServiceImages([]);
       setServiceVideos([]);
+      setExternalUrls([]);
       setShowForm(false);
       setEditingId(null);
       await mutate();
@@ -148,6 +152,7 @@ export default function ServicesPage() {
     });
     setServiceImages(service.fileUrls ?? []);
     setServiceVideos(service.videoUrls ?? []);
+    setExternalUrls(service.externalUrls ?? []);
     setEditingId(service.id);
     setShowForm(true);
   };
@@ -254,6 +259,7 @@ export default function ServicesPage() {
             });
             setServiceImages([]);
             setServiceVideos([]);
+            setExternalUrls([]);
           }}
           className="rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-white hover:bg-amber-800"
         >
@@ -398,6 +404,13 @@ export default function ServicesPage() {
                 <p className="mt-1 text-xs text-stone-600">Jusqu’à 3 vidéos, 25 Mo maximum par vidéo. MP4, WebM ou MOV.</p>
                 {serviceVideos.length ? <div className="mt-3 grid grid-cols-3 gap-2">{serviceVideos.map((url, index) => <div key={`${url}-${index}`} className="relative"><video src={url} controls className="aspect-video w-full rounded-md object-cover" /><button type="button" onClick={() => setServiceVideos((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="absolute right-1 top-1 rounded-full bg-stone-900/80 px-2 py-1 text-xs text-white" aria-label={`Supprimer la vidéo ${index + 1}`}>×</button></div>)}</div> : null}
               </> : <p className="mt-1 text-sm text-stone-700">Passez au plan Premium Growth pour présenter votre travail en vidéo.</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-stone-700">Liens de réalisations</label>
+              <p className="mt-1 text-xs text-stone-500">Ajoutez votre site, portfolio, Instagram, Facebook ou toute page présentant votre travail.</p>
+              {externalUrls.map((url, index) => <div key={index} className="mt-2 flex gap-2"><input type="url" aria-label={`Lien site ou réseau social ${index + 1}`} value={url} onChange={(event) => setExternalUrls((current) => current.map((item, itemIndex) => itemIndex === index ? event.target.value : item))} placeholder="Site, Instagram, Facebook, TikTok : https://..." className="field flex-1" /><button type="button" onClick={() => setExternalUrls((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="rounded-md border border-stone-300 px-3 text-sm">×</button></div>)}
+              {externalUrls.length < 5 ? <button type="button" onClick={() => setExternalUrls((current) => [...current, ''])} className="mt-2 text-sm font-medium text-amber-700 underline">+ Ajouter un lien</button> : null}
             </div>
 
             <div className="flex gap-3 pt-4">

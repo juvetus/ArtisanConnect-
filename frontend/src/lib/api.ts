@@ -487,7 +487,7 @@ export const api = {
   getService: (id: string) =>
     request(`/services/${id}`),
 
-  createService: (data: { title: string; description: string; price?: number; priceMin?: number; priceMax?: number; estimatedDays: number; category: string; tags?: string[]; fileUrls?: string[]; videoUrls?: string[] }) =>
+  createService: (data: { title: string; description: string; price?: number; priceMin?: number; priceMax?: number; estimatedDays: number; category: string; tags?: string[]; fileUrls?: string[]; videoUrls?: string[]; externalUrls?: string[] }) =>
     post(`/services`, data),
 
   getMyServices: () =>
@@ -505,7 +505,7 @@ export const api = {
     return request<{ videoUrls: string[] }>('/services/upload-videos', { method: 'POST', body: form });
   },
 
-  updateService: (id: string, data: Partial<{ title: string; description: string; price?: number; priceMin?: number; priceMax?: number; estimatedDays: number; category: string; tags?: string[]; fileUrls?: string[]; videoUrls?: string[] }>) =>
+  updateService: (id: string, data: Partial<{ title: string; description: string; price?: number; priceMin?: number; priceMax?: number; estimatedDays: number; category: string; tags?: string[]; fileUrls?: string[]; videoUrls?: string[]; externalUrls?: string[] }>) =>
     patch(`/services/${id}`, data),
 
   publishService: (id: string) =>

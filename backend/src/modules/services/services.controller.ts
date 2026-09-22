@@ -92,6 +92,7 @@ export class ServicesController {
       tags?: string[];
       fileUrls?: string[];
       videoUrls?: string[];
+      externalUrls?: string[];
     },
   ) {
     return this.servicesService.createService(user.id, body);
@@ -119,6 +120,7 @@ export class ServicesController {
       tags?: string[];
       fileUrls?: string[];
       videoUrls?: string[];
+      externalUrls?: string[];
     }>,
   ) {
     return this.servicesService.updateService(user.id, id, body);
