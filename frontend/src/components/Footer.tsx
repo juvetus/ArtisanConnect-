@@ -19,7 +19,7 @@ export function Footer() {
           <p className="font-medium text-white">{t('footer_explore')}</p>
           <div className="mt-2 flex flex-col gap-1 text-sm">
             <Link href="/services" className="hover:text-white">{t('nav_services')}</Link>
-            <Link href="/" className="hover:text-white">{t('nav_listings')}</Link>
+            <Link href="/annonces" className="hover:text-white">{t('nav_listings')}</Link>
             <Link href="/how-it-works" className="hover:text-white">{t('nav_how_it_works')}</Link>
             <Link href="/institutions" className="hover:text-white">{t('nav_institutions')}</Link>
             <Link href="/clients" className="hover:text-white">{t('nav_clients')}</Link>
