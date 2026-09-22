@@ -159,20 +159,20 @@ export default function CreateShopPage() {
 
       {step === 2 && (
         <section className="space-y-4 rounded-lg border border-stone-200 bg-white p-6">
-          <p className="text-xs text-stone-600"><span className="text-red-700" aria-hidden="true">*</span> Champ obligatoire</p>
+          <p className="text-xs text-stone-600"><span className="text-red-700" aria-hidden="true">*</span> {t('form_required')}</p>
           <div>
-            <label htmlFor="whatsapp-phone" className="block text-sm font-medium">WhatsApp clients <span className="font-normal text-stone-500">(facultatif)</span></label>
+            <label htmlFor="whatsapp-phone" className="block text-sm font-medium">{t('create_shop_whatsapp')} <span className="font-normal text-stone-500">({t('create_shop_optional')})</span></label>
             <input id="whatsapp-phone" type="tel" value={whatsappPhone} onChange={(e) => setWhatsappPhone(e.target.value)} placeholder="6XX XXX XXX" className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600" />
-            <p className="mt-1 text-xs text-stone-500">Ajoutez-le maintenant ou plus tard dans votre profil.</p>
+            <p className="mt-1 text-xs text-stone-500">{t('create_shop_whatsapp_help')}</p>
           </div>
           <div>
-            <p className="text-sm font-medium">Paiement Mobile Money</p>
-            <p className="mt-1 text-xs text-stone-500">Choisissez le compte qui reçoit vos paiements. Vous pourrez en ajouter un autre plus tard.</p>
+            <p className="text-sm font-medium">{t('create_shop_payment_title')}</p>
+            <p className="mt-1 text-xs text-stone-500">{t('create_shop_payment_help')}</p>
             <div className="mt-2 grid grid-cols-3 gap-2">
               {([
                 ['momo', 'MoMo'],
                 ['orange_money', 'Orange Money'],
-                ['both', 'Les deux'],
+                ['both', t('create_shop_payment_both')],
               ] as const).map(([value, label]) => (
                 <label key={value} className={`cursor-pointer rounded-md border px-2 py-2 text-center text-sm font-medium ${mobileMoneyProvider === value ? 'border-amber-700 bg-amber-50 text-amber-800' : 'border-stone-300 text-stone-600'}`}>
                   <input type="radio" name="mobile-money-provider" value={value} checked={mobileMoneyProvider === value} onChange={() => setMobileMoneyProvider(value)} className="sr-only" />
@@ -182,23 +182,23 @@ export default function CreateShopPage() {
             </div>
           </div>
           {(mobileMoneyProvider === 'momo' || mobileMoneyProvider === 'both') ? <div>
-            <label htmlFor="momo-phone" className="block text-sm font-medium">Numéro MoMo</label>
+            <label htmlFor="momo-phone" className="block text-sm font-medium">{t('create_shop_momo_number')}</label>
             <input id="momo-phone" type="tel" required placeholder="6XX XXX XXX" value={momoNumber} onChange={(e) => setMomoNumber(e.target.value)} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600" />
           </div> : null}
           {(mobileMoneyProvider === 'orange_money' || mobileMoneyProvider === 'both') ? <div>
-            <label htmlFor="orange-phone" className="block text-sm font-medium">Numéro Orange Money</label>
+            <label htmlFor="orange-phone" className="block text-sm font-medium">{t('create_shop_orange_money_number')}</label>
             <input id="orange-phone" type="tel" required placeholder="6XX XXX XXX" value={orangeMoneyNumber} onChange={(e) => setOrangeMoneyNumber(e.target.value)} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600" />
           </div> : null}
           <details className="rounded-md border border-stone-200 p-3">
-            <summary className="cursor-pointer text-sm font-medium text-stone-700">Ajouter mes pièces de vérification maintenant <span className="font-normal text-stone-500">(facultatif)</span></summary>
-            <p className="mt-2 text-xs text-stone-500">Vous pourrez compléter ces pièces après la création de votre boutique.</p>
+            <summary className="cursor-pointer text-sm font-medium text-stone-700">{t('create_shop_add_documents')} <span className="font-normal text-stone-500">({t('create_shop_optional')})</span></summary>
+            <p className="mt-2 text-xs text-stone-500">{t('create_shop_documents_help')}</p>
             <div className="mt-3 space-y-3">
               {[...requiredDocs, ...SHOP_OPTIONAL_DOCS[type]].map((req) => {
                 const doc = docs.find((item) => item.label === req.label);
                 return (
                   <div key={req.label}>
                     <label htmlFor={`doc-${req.label}`} className="block text-sm font-medium">
-                      {req.labelFr} {doc && <span className="text-green-700">✓ fourni</span>}
+                      {req.labelFr} {doc && <span className="text-green-700">✓ {t('create_shop_document_provided')}</span>}
                     </label>
                     <input
                       id={`doc-${req.label}`}
@@ -210,7 +210,7 @@ export default function CreateShopPage() {
                       }}
                       className="mt-1 w-full rounded-md border border-amber-300 bg-amber-50 p-2 text-sm text-stone-700 file:mr-3 file:rounded-md file:border-0 file:bg-amber-700 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-amber-800"
                     />
-                    {uploading === req.label && <p className="mt-1 text-sm text-stone-500">Téléversement…</p>}
+                    {uploading === req.label && <p className="mt-1 text-sm text-stone-500">{t('create_shop_uploading')}</p>}
                   </div>
                 );
               })}
@@ -231,7 +231,7 @@ export default function CreateShopPage() {
               onClick={() => setStep(3)}
               className="flex-1 rounded-md bg-amber-700 py-2 font-medium text-white hover:bg-amber-800 disabled:opacity-60"
             >
-              Continuer
+              {t('create_shop_continue')}
             </button>
           </div>
         </section>
