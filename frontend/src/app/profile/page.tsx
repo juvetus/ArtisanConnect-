@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { ApiError, api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { useLanguage } from '@/lib/language-context';
 import type { Shop, User } from '@/lib/types';
 
 function ShopPaymentForm({ shop }: { shop: Shop }) {
@@ -85,6 +86,7 @@ function ShopPaymentForm({ shop }: { shop: Shop }) {
 
 function ProfileForm({ user }: { user: User }) {
   const { updateUser } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   const [name, setName] = useState(user.name ?? '');
   const [phone, setPhone] = useState(user.phone ?? '');
@@ -134,48 +136,48 @@ function ProfileForm({ user }: { user: User }) {
     <div className="mx-auto max-w-2xl space-y-6">
       <header>
         <p className="text-sm font-medium uppercase tracking-wide text-amber-700">ArtisanConnect</p>
-        <h1 className="mt-1 text-3xl font-semibold text-stone-900">Mon profil</h1>
-        <p className="mt-2 text-stone-600">Mettez à jour vos informations de contact et le numéro utilisé par WhatsApp.</p>
+        <h1 className="mt-1 text-3xl font-semibold text-stone-900">{t('profile_title')}</h1>
+        <p className="mt-2 text-stone-600">{t('profile_subtitle')}</p>
       </header>
       <form onSubmit={save} className="space-y-5 rounded-lg border border-stone-200 bg-white p-6">
         <div>
-          <label htmlFor="profile-avatar" className="block text-sm font-medium text-stone-700">Photo de profil vendeur</label>
+          <label htmlFor="profile-avatar" className="block text-sm font-medium text-stone-700">{t('profile_photo')}</label>
           <div className="mt-2 flex items-center gap-4">
-            {avatarUrl ? <img src={avatarUrl} alt="Aperçu de la photo de profil" className="h-20 w-20 rounded-full object-cover" /> : <div className="flex h-20 w-20 items-center justify-center rounded-full bg-amber-100 text-2xl font-semibold text-amber-800" aria-hidden>{name.charAt(0).toUpperCase()}</div>}
+            {avatarUrl ? <img src={avatarUrl} alt={t('profile_photo_alt')} className="h-20 w-20 rounded-full object-cover" /> : <div className="flex h-20 w-20 items-center justify-center rounded-full bg-amber-100 text-2xl font-semibold text-amber-800" aria-hidden>{name.charAt(0).toUpperCase()}</div>}
             <div>
               <input id="profile-avatar" type="file" accept="image/jpeg,image/png,image/webp" disabled={uploadingAvatar} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadAvatar(file); }} className="block w-full text-sm text-stone-600 file:mr-3 file:rounded-md file:border-0 file:bg-amber-700 file:px-3 file:py-2 file:font-medium file:text-white hover:file:bg-amber-800" />
-              <p className="mt-1 text-xs text-stone-500">JPG, PNG ou WebP, 5 Mo maximum. Cette photo sera visible sur votre carte artisan.</p>
+              <p className="mt-1 text-xs text-stone-500">{t('profile_photo_help')}</p>
             </div>
           </div>
         </div>
         <div>
-          <label htmlFor="profile-name" className="block text-sm font-medium text-stone-700">Nom ou raison sociale</label>
+          <label htmlFor="profile-name" className="block text-sm font-medium text-stone-700">{t('profile_name')}</label>
           <input id="profile-name" required value={name} onChange={(event) => setName(event.target.value)} className="field mt-1" />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label htmlFor="profile-phone" className="block text-sm font-medium text-stone-700">Téléphone du profil</label>
+            <label htmlFor="profile-phone" className="block text-sm font-medium text-stone-700">{t('profile_phone')}</label>
             <input id="profile-phone" type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+237... ou +33..." className="field mt-1" />
           </div>
           <div>
-            <label htmlFor="profile-whatsapp" className="block text-sm font-medium text-stone-700">Téléphone WhatsApp</label>
+            <label htmlFor="profile-whatsapp" className="block text-sm font-medium text-stone-700">{t('profile_whatsapp')}</label>
             <input id="profile-whatsapp" type="tel" value={whatsappPhone} onChange={(event) => setWhatsappPhone(event.target.value)} placeholder="+237... ou +33..." className="field mt-1" />
           </div>
         </div>
-        <p className="-mt-2 text-xs text-stone-500">Le numéro WhatsApp est utilisé par les clients pour vous contacter. Il peut être différent du numéro Mobile Money de votre boutique.</p>
+        <p className="-mt-2 text-xs text-stone-500">{t('profile_whatsapp_help')}</p>
         <div>
-          <label htmlFor="profile-location" className="block text-sm font-medium text-stone-700">Ville et pays</label>
+          <label htmlFor="profile-location" className="block text-sm font-medium text-stone-700">{t('profile_location')}</label>
           <input id="profile-location" value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Douala, Cameroun" className="field mt-1" />
         </div>
         <div>
-          <label htmlFor="profile-bio" className="block text-sm font-medium text-stone-700">Présentation</label>
-          <textarea id="profile-bio" rows={5} value={bio} onChange={(event) => setBio(event.target.value)} placeholder="Présentez votre activité..." className="field mt-1" />
+          <label htmlFor="profile-bio" className="block text-sm font-medium text-stone-700">{t('profile_bio')}</label>
+          <textarea id="profile-bio" rows={5} value={bio} onChange={(event) => setBio(event.target.value)} placeholder={t('profile_bio_placeholder')} className="field mt-1" />
         </div>
         {notice ? <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">{notice}</p> : null}
         {error ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
         <div className="flex flex-wrap gap-3">
-          <button type="submit" disabled={saving} className="rounded-md bg-amber-700 px-5 py-2.5 font-medium text-white hover:bg-amber-800 disabled:opacity-60">{saving ? 'Enregistrement...' : 'Enregistrer les modifications'}</button>
-          <button type="button" onClick={() => router.back()} className="rounded-md border border-stone-300 px-5 py-2.5 text-sm font-medium text-stone-700 hover:bg-stone-50">Retour</button>
+          <button type="submit" disabled={saving} className="rounded-md bg-amber-700 px-5 py-2.5 font-medium text-white hover:bg-amber-800 disabled:opacity-60">{saving ? t('profile_saving') : t('profile_save')}</button>
+          <button type="button" onClick={() => router.back()} className="rounded-md border border-stone-300 px-5 py-2.5 text-sm font-medium text-stone-700 hover:bg-stone-50">{t('profile_back')}</button>
         </div>
       </form>
       {user.role === 'artisan' ? (
