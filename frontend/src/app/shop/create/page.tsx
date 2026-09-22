@@ -258,7 +258,7 @@ export default function CreateShopPage() {
           <p className="text-xs text-stone-600"><span className="text-red-700" aria-hidden="true">*</span> Champ obligatoire</p>
           <div>
             <label htmlFor="shop-name" className="block text-sm font-medium">
-              {t('create_shop_name')}
+              {t('create_shop_name')} <span className="text-red-700" aria-hidden="true">*</span><span className="sr-only"> (obligatoire)</span>
             </label>
             <input
               id="shop-name"
@@ -269,7 +269,7 @@ export default function CreateShopPage() {
             />
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
-            <div><label htmlFor="shop-city" className="block text-sm font-medium">{t('create_shop_city')}</label><input id="shop-city" required value={city} onChange={(e) => setCity(e.target.value)} placeholder="Douala, Yaoundé..." className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2" /></div>
+            <div><label htmlFor="shop-city" className="block text-sm font-medium">{t('create_shop_city')} <span className="text-red-700" aria-hidden="true">*</span><span className="sr-only"> (obligatoire)</span></label><input id="shop-city" required value={city} onChange={(e) => setCity(e.target.value)} placeholder="Douala, Yaoundé..." className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2" /></div>
             <div><label htmlFor="shop-neighborhood" className="block text-sm font-medium">{t('create_shop_neighborhood')}</label><input id="shop-neighborhood" value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} placeholder="Bonamoussadi..." className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2" /></div>
             <div><label htmlFor="shop-market" className="block text-sm font-medium">{t('create_shop_market')}</label><input id="shop-market" value={market} onChange={(e) => setMarket(e.target.value)} placeholder="Marché central..." className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2" /></div>
           </div>

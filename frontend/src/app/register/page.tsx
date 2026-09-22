@@ -109,7 +109,7 @@ export default function RegisterPage() {
 
         <div>
           <label htmlFor="name" className="block text-sm font-medium">
-            {t('register_name')}
+            {t('register_name')} <span className="text-red-700" aria-hidden="true">*</span><span className="sr-only"> (obligatoire)</span>
           </label>
           <input
             id="name"
@@ -148,7 +148,7 @@ export default function RegisterPage() {
 
         {contactType === 'email' ? <div>
           <label htmlFor="email" className="block text-sm font-medium">
-            {t('login_email')}
+            {t('login_email')} <span className="text-red-700" aria-hidden="true">*</span><span className="sr-only"> (obligatoire)</span>
           </label>
           <input
             id="email"
@@ -159,7 +159,7 @@ export default function RegisterPage() {
             className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600"
           />
         </div> : <div>
-          <label htmlFor="phone" className="block text-sm font-medium">Numéro de téléphone</label>
+          <label htmlFor="phone" className="block text-sm font-medium">Numéro de téléphone <span className="text-red-700" aria-hidden="true">*</span><span className="sr-only"> (obligatoire)</span></label>
           <div className="mt-1 flex gap-2">
             <select value={phoneCountry} onChange={(e) => setPhoneCountry(e.target.value)} className="w-36 rounded-md border border-stone-300 px-2 py-2 text-sm outline-none focus:border-amber-600" aria-label="Pays et indicatif">
               {PHONE_COUNTRIES.map((country) => <option key={`${country.code}-${country.dialCode}`} value={country.dialCode}>{country.name} ({country.dialCode})</option>)}
@@ -171,7 +171,7 @@ export default function RegisterPage() {
 
         <div>
           <label htmlFor="password" className="block text-sm font-medium">
-            {t('login_password')}
+            {t('login_password')} <span className="text-red-700" aria-hidden="true">*</span><span className="sr-only"> (obligatoire)</span>
           </label>
           <div className="relative mt-1">
             <input

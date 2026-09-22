@@ -287,7 +287,7 @@ export default function ServicesPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <p className="text-xs text-stone-600"><span className="text-red-700" aria-hidden="true">*</span> Champ obligatoire</p>
             <div>
-              <label className="block text-sm font-medium text-stone-700">Titre</label>
+              <label className="block text-sm font-medium text-stone-700">Titre <span className="text-red-700" aria-hidden="true">*</span><span className="sr-only"> (obligatoire)</span></label>
               <input
                 type="text"
                 required
@@ -299,7 +299,7 @@ export default function ServicesPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-stone-700">Description</label>
+              <label className="block text-sm font-medium text-stone-700">Description <span className="text-red-700" aria-hidden="true">*</span><span className="sr-only"> (obligatoire)</span></label>
               <textarea
                 required
                 value={formData.description}
@@ -327,7 +327,7 @@ export default function ServicesPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-stone-700">Délai estimé (jours)</label>
+                <label className="block text-sm font-medium text-stone-700">Délai estimé (jours) <span className="text-red-700" aria-hidden="true">*</span><span className="sr-only"> (obligatoire)</span></label>
                 <input
                   type="number"
                   required

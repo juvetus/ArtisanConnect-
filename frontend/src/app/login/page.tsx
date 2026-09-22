@@ -39,7 +39,7 @@ export default function LoginPage() {
         <p className="text-xs text-stone-600"><span className="text-red-700" aria-hidden="true">*</span> Champ obligatoire</p>
         <div>
           <label htmlFor="identifier" className="block text-sm font-medium">
-            Email ou numéro de téléphone
+            Email ou numéro de téléphone <span className="text-red-700" aria-hidden="true">*</span><span className="sr-only"> (obligatoire)</span>
           </label>
           <input
             id="identifier"
@@ -54,7 +54,7 @@ export default function LoginPage() {
         <div>
           <div className="flex items-center justify-between">
             <label htmlFor="password" className="block text-sm font-medium">
-              {t('login_password')}
+              {t('login_password')} <span className="text-red-700" aria-hidden="true">*</span><span className="sr-only"> (obligatoire)</span>
             </label>
             <Link href="/forgot-password" className="text-xs text-amber-700 hover:underline">
               {t('login_forgot_password')}
