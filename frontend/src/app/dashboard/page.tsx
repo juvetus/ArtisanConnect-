@@ -492,10 +492,10 @@ export default function DashboardPage() {
         <section className="rounded-xl border border-amber-200 bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-700">Partagez votre savoir-faire</p>
-              <h2 className="mt-1 text-xl font-semibold text-stone-950">Votre boutique, en un scan</h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-700">{t('dashboard_qr_badge')}</p>
+              <h2 className="mt-1 text-xl font-semibold text-stone-950">{t('dashboard_qr_title')}</h2>
               <p className="mt-1 text-sm text-stone-600">
-                Affichez ce code dans votre atelier, sur votre stand ou dans vos messages. Vos clients pourront découvrir vos créations en quelques secondes.
+                {t('dashboard_qr_description')}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -504,10 +504,10 @@ export default function DashboardPage() {
                 onClick={handlePrintCatalogue}
                 className="rounded-md border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-50"
               >
-                Affiche / catalogue
+                {t('dashboard_qr_catalogue')}
               </button>
               <Link href="/shop/create" className="text-sm font-medium text-amber-700 hover:text-amber-800">
-                Créer une autre boutique
+                {t('dashboard_qr_create_shop')}
               </Link>
             </div>
           </div>
@@ -520,13 +520,13 @@ export default function DashboardPage() {
                 <article key={shop.id} className="flex flex-col items-center rounded-md border border-stone-200 p-4 text-center">
                   <h3 className="font-semibold text-stone-900">{shop.name}</h3>
                   <div className="mt-3 grid w-full grid-cols-3 gap-2 text-center text-xs text-stone-600">
-                    <div className="rounded bg-stone-100 p-2"><div className="text-[10px] uppercase tracking-wide text-stone-500">Vues</div><div className="mt-1 font-semibold text-stone-900">{metrics.views}</div></div>
+                    <div className="rounded bg-stone-100 p-2"><div className="text-[10px] uppercase tracking-wide text-stone-500">{t('dashboard_qr_views')}</div><div className="mt-1 font-semibold text-stone-900">{metrics.views}</div></div>
                     <div className="rounded bg-stone-100 p-2"><div className="text-[10px] uppercase tracking-wide text-stone-500">WhatsApp</div><div className="mt-1 font-semibold text-stone-900">{metrics.whatsappContactClicks}</div></div>
-                    <div className="rounded bg-stone-100 p-2"><div className="text-[10px] uppercase tracking-wide text-stone-500">Partages</div><div className="mt-1 font-semibold text-stone-900">{metrics.whatsappShareClicks}</div></div>
+                    <div className="rounded bg-stone-100 p-2"><div className="text-[10px] uppercase tracking-wide text-stone-500">{t('dashboard_qr_shares')}</div><div className="mt-1 font-semibold text-stone-900">{metrics.whatsappShareClicks}</div></div>
                   </div>
                   <img
                     src={qrCodeUrl}
-                    alt={`QR code de la boutique ${shop.name}`}
+                    alt={t('dashboard_qr_alt', { name: shop.name })}
                     width={200}
                     height={200}
                     className="mt-3 h-48 w-48"
@@ -534,10 +534,10 @@ export default function DashboardPage() {
                   <p className="mt-2 break-all text-xs text-stone-500">{shopUrl}</p>
                   <div className="mt-3 flex flex-wrap justify-center gap-2">
                     <a href={shopUrl} target="_blank" rel="noreferrer" className="rounded-md border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-50">
-                      Voir la boutique
+                      {t('dashboard_qr_view_shop')}
                     </a>
                     <a href={qrCodeUrl} target="_blank" rel="noreferrer" className="rounded-md bg-amber-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-800">
-                      Ouvrir le QR code
+                      {t('dashboard_qr_open')}
                     </a>
                   </div>
                 </article>

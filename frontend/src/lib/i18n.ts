@@ -221,6 +221,16 @@ export const TRANSLATIONS = {
     dashboard_orders_received: 'Commandes reçues',
     dashboard_no_orders: 'Aucune commande reçue pour le moment.',
     dashboard_no_listings: 'Aucune annonce publiée.',
+    dashboard_qr_badge: 'Partagez votre savoir-faire',
+    dashboard_qr_title: 'Votre boutique, en un scan',
+    dashboard_qr_description: 'Affichez ce code dans votre atelier, sur votre stand ou dans vos messages. Vos clients pourront découvrir vos créations en quelques secondes.',
+    dashboard_qr_catalogue: 'Affiche / catalogue',
+    dashboard_qr_create_shop: 'Créer une autre boutique',
+    dashboard_qr_views: 'Vues',
+    dashboard_qr_shares: 'Partages',
+    dashboard_qr_alt: 'QR code de la boutique {name}',
+    dashboard_qr_view_shop: 'Voir la boutique',
+    dashboard_qr_open: 'Ouvrir le QR code',
 
     // Resources & Programs
     resources_title: 'Ressources pour les artisans',
@@ -744,6 +754,16 @@ export const TRANSLATIONS = {
     dashboard_orders_received: 'Received Orders',
     dashboard_no_orders: 'No orders received yet.',
     dashboard_no_listings: 'No listings published yet.',
+    dashboard_qr_badge: 'Share your craft',
+    dashboard_qr_title: 'Your shop, one scan away',
+    dashboard_qr_description: 'Display this code in your workshop, at your stand, or in your messages. Customers can discover your creations in seconds.',
+    dashboard_qr_catalogue: 'Poster / catalogue',
+    dashboard_qr_create_shop: 'Create another shop',
+    dashboard_qr_views: 'Views',
+    dashboard_qr_shares: 'Shares',
+    dashboard_qr_alt: 'QR code for {name} shop',
+    dashboard_qr_view_shop: 'View shop',
+    dashboard_qr_open: 'Open QR code',
 
     // Resources & Programs
     resources_title: 'Resources for Artisans',
