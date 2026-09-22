@@ -109,7 +109,7 @@ export default function ServicesPage() {
       if (editingId) {
         await api.updateService(editingId, data);
         setNoticeType('success');
-        setNotice('Service mis à jour avec succès.');
+        setNotice('Service mis à jour et envoyé pour validation.');
       } else {
         await api.createService(data);
         setNoticeType('success');
@@ -543,6 +543,15 @@ export default function ServicesPage() {
                     </>
                   )}
 
+                  {service.status === 'pending_validation' && (
+                    <button
+                      onClick={() => handleEdit(service)}
+                      className="rounded-md bg-stone-200 px-3 py-2 text-sm font-medium text-stone-700 hover:bg-stone-300"
+                    >
+                      Modifier
+                    </button>
+                  )}
+
                   {service.status === 'rejected' && (
                     <>
                       <button
@@ -558,6 +567,15 @@ export default function ServicesPage() {
                         Renvoyer
                       </button>
                     </>
+                  )}
+
+                  {service.status === 'approved' && (
+                    <button
+                      onClick={() => handleEdit(service)}
+                      className="rounded-md bg-stone-200 px-3 py-2 text-sm font-medium text-stone-700 hover:bg-stone-300"
+                    >
+                      Modifier
+                    </button>
                   )}
                 </div>
               </div>

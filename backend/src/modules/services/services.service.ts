@@ -125,12 +125,13 @@ export class ServicesService {
       throw new NotFoundException('Service not found');
     }
 
-    // Only allow updates if service is in draft or validation_requested status
-    if (service.status !== 'draft' && service.status !== 'validation_requested') {
-      throw new ForbiddenException('Cannot update service in current status');
-    }
-
     Object.assign(service, data);
+    if (service.status !== 'draft') {
+      service.status = 'pending_validation';
+      service.validationFeedback = null;
+      service.validatedBy = null;
+      service.validatedAt = null;
+    }
     return this.servicesRepository.save(service);
   }
 
