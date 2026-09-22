@@ -31,6 +31,7 @@ export default function AssistantPage() {
   const [provider, setProvider] = useState<'ai' | 'local' | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
   const selected = TASKS.find((item) => item.value === task) ?? TASKS[0];
 
   const generate = async () => {
@@ -38,10 +39,19 @@ export default function AssistantPage() {
     setLoading(true); setError('');
     try {
       const response = await api.assistantGenerate({ task, input, context, language });
-      setResult(response.content); setProvider(response.provider);
+      setResult(response.content); setProvider(response.provider); setCopied(false);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : (english ? 'Generation failed.' : 'La génération a échoué.'));
     } finally { setLoading(false); }
+  };
+
+  const copyResult = async () => {
+    await navigator.clipboard.writeText(result);
+    setCopied(true);
+  };
+
+  const openWhatsApp = () => {
+    window.open(`https://wa.me/?text=${encodeURIComponent(result)}`, '_blank', 'noopener,noreferrer');
   };
 
   if (!ready || !user) return <p className="text-stone-600">{english ? 'Loading...' : 'Chargement...'}</p>;
@@ -51,14 +61,14 @@ export default function AssistantPage() {
     <div className="mx-auto max-w-5xl space-y-6">
       <header><p className="text-sm font-medium uppercase tracking-wide text-amber-700">ArtisanConnect AI</p><h1 className="mt-1 text-3xl font-semibold">{english ? 'Your artisan writing assistant' : 'Votre assistant pour artisans'}</h1><p className="mt-2 text-stone-600">{english ? 'Create clear content for your workshop, products, clients and opportunities.' : 'Créez des textes clairs pour votre atelier, vos produits, vos clients et vos opportunités.'}</p></header>
       <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
-        <aside className="space-y-2 rounded-xl border border-stone-200 bg-white p-3">{TASKS.map((item) => <button key={item.value} type="button" onClick={() => { setTask(item.value); setResult(''); }} className={`w-full rounded-md px-3 py-2 text-left text-sm ${task === item.value ? 'bg-amber-700 font-medium text-white' : 'text-stone-700 hover:bg-stone-100'}`}>{english ? item.en : item.fr}</button>)}</aside>
+        <aside className="space-y-2 rounded-xl border border-stone-200 bg-white p-3">{TASKS.map((item) => <button key={item.value} type="button" onClick={() => { setTask(item.value); setResult(''); setCopied(false); }} className={`w-full rounded-md px-3 py-2 text-left text-sm ${task === item.value ? 'bg-amber-700 font-medium text-white' : 'text-stone-700 hover:bg-stone-100'}`}>{english ? item.en : item.fr}</button>)}</aside>
         <section className="space-y-4 rounded-xl border border-stone-200 bg-white p-6">
           <h2 className="text-xl font-semibold">{english ? selected.en : selected.fr}</h2>
           <textarea value={input} onChange={(event) => setInput(event.target.value)} rows={7} placeholder={selected.placeholder} className="field w-full" />
           <input value={context} onChange={(event) => setContext(event.target.value)} placeholder={english ? 'Optional context: city, price, delivery, audience...' : 'Contexte facultatif : ville, prix, livraison, public...'} className="field w-full" />
           {error ? <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
           <button type="button" disabled={loading || !input.trim()} onClick={() => void generate()} className="rounded-md bg-amber-700 px-5 py-3 font-medium text-white disabled:opacity-60">{loading ? (english ? 'Generating...' : 'Génération...') : (english ? 'Generate' : 'Générer')}</button>
-          {result ? <div className="rounded-lg border border-amber-200 bg-amber-50 p-5"><div className="flex items-center justify-between gap-3"><p className="text-xs font-semibold uppercase tracking-wide text-amber-800">{provider === 'ai' ? 'IA ArtisanConnect' : (english ? 'Draft' : 'Brouillon')}</p><button type="button" onClick={() => void navigator.clipboard?.writeText(result)} className="text-sm font-medium text-amber-800 underline">{english ? 'Copy' : 'Copier'}</button></div><p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-stone-800">{result}</p></div> : null}
+          {result ? <div className="rounded-lg border border-amber-200 bg-amber-50 p-5"><div className="flex flex-wrap items-center justify-between gap-3"><p className="text-xs font-semibold uppercase tracking-wide text-amber-800">{provider === 'ai' ? 'IA ArtisanConnect' : (english ? 'Draft' : 'Brouillon')}</p><div className="flex flex-wrap items-center gap-3"><button type="button" onClick={() => void copyResult()} className="text-sm font-medium text-amber-800 underline">{copied ? (english ? 'Copied' : 'Copié') : (english ? 'Copy' : 'Copier')}</button><button type="button" onClick={openWhatsApp} className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700">{english ? 'Open WhatsApp' : 'Ouvrir WhatsApp'}</button></div></div>{copied ? <p role="status" className="mt-2 text-sm font-medium text-green-700">{english ? 'Message copied successfully.' : 'Message copié avec succès.'}</p> : null}<p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-stone-800">{result}</p></div> : null}
         </section>
       </div>
     </div>
