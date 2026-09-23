@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { api } from '@/lib/api';
@@ -182,6 +183,7 @@ export default function AdminPage() {
             ['overview', 'Synthèse'],
             ...(user.role !== 'viewer' ? [['shops', 'Boutiques']] : []),
             ...(user.role !== 'viewer' ? [['formalizations', 'Formalisations']] : []),
+            ...(user.role === 'admin' ? [['service-validation', 'Valider services']] : []),
             ...(user.role === 'admin' ? [['users', 'Utilisateurs']] : []),
             ...(user.role !== 'viewer' ? [['listings', 'Annonces']] : []),
             ...(user.role === 'admin' ? [['moderation', 'Modération']] : []),
@@ -189,15 +191,21 @@ export default function AdminPage() {
             ...(user.role === 'admin' ? [['subscriptions', 'Abonnements']] : []),
             ['orders', 'Commandes'],
           ].map(([value, label]) => (
-            <button
-              key={value}
-              onClick={() => setView(value as typeof view)}
-              className={`rounded-md px-3 py-2 ${
-                view === value ? 'bg-stone-900 text-white' : 'text-stone-600 hover:bg-stone-100'
-              }`}
-            >
-              {label}
-            </button>
+            value === 'service-validation' ? (
+              <Link key={value} href="/admin/services" className="rounded-md px-3 py-2 text-stone-600 hover:bg-stone-100">
+                {label}
+              </Link>
+            ) : (
+              <button
+                key={value}
+                onClick={() => setView(value as typeof view)}
+                className={`rounded-md px-3 py-2 ${
+                  view === value ? 'bg-stone-900 text-white' : 'text-stone-600 hover:bg-stone-100'
+                }`}
+              >
+                {label}
+              </button>
+            )
           ))}
         </div>
       </div>
