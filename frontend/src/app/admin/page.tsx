@@ -163,7 +163,7 @@ export default function AdminPage() {
 
   const reviewFormalization = async (record: ArtisanFormalization, status: ArtisanFormalization['status']) => {
     const notes = status === 'rejected' ? prompt('Motif ou correction demandée :') ?? '' : undefined;
-    if (status === 'rejected' && !notes.trim()) return;
+    if (status === 'rejected' && !(notes ?? '').trim()) return;
     await runAdminAction(() => api.adminReviewFormalization(record.id, status, notes));
   };
 
