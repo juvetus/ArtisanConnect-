@@ -21,6 +21,7 @@ interface Service {
   fileUrls?: string[];
   videoUrls?: string[];
   externalUrls?: string[];
+  sponsoredUntil?: string | null;
   status: 'draft' | 'pending_validation' | 'validation_requested' | 'approved' | 'rejected';
   validationFeedback?: string;
   createdAt: string;
@@ -228,6 +229,23 @@ export default function ServicesPage() {
         const message = error instanceof Error ? error.message : 'Erreur lors de la suppression';
         setNotice(message);
       }
+    }
+  };
+
+  const handleServiceSponsor = async (service: Service) => {
+    try {
+      if (service.sponsoredUntil && new Date(service.sponsoredUntil) > new Date()) {
+        await api.stopSponsoringService(service.id);
+        setNotice('Mise en avant retirée.');
+      } else {
+        await api.sponsorService(service.id);
+        setNotice('Service mis en avant selon votre abonnement.');
+      }
+      setNoticeType('success');
+      await mutate();
+    } catch (error) {
+      setNoticeType('error');
+      setNotice(error instanceof Error ? error.message : 'La mise en avant n’a pas pu être modifiée.');
     }
   };
 
@@ -570,12 +588,10 @@ export default function ServicesPage() {
                   )}
 
                   {service.status === 'approved' && (
-                    <button
-                      onClick={() => handleEdit(service)}
-                      className="rounded-md bg-stone-200 px-3 py-2 text-sm font-medium text-stone-700 hover:bg-stone-300"
-                    >
-                      Modifier
-                    </button>
+                    <>
+                      <button onClick={() => handleEdit(service)} className="rounded-md bg-stone-200 px-3 py-2 text-sm font-medium text-stone-700 hover:bg-stone-300">Modifier</button>
+                      <button onClick={() => void handleServiceSponsor(service)} className="rounded-md bg-amber-100 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-200">{service.sponsoredUntil && new Date(service.sponsoredUntil) > new Date() ? 'Retirer la mise en avant' : 'Mettre en avant'}</button>
+                    </>
                   )}
                 </div>
               </div>

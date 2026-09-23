@@ -533,6 +533,9 @@ export const api = {
   publishService: (id: string) =>
     post(`/services/${id}/publish`, {}),
 
+  sponsorService: (id: string) => post(`/services/${id}/sponsor`, {}),
+  stopSponsoringService: (id: string) => post(`/services/${id}/sponsor/stop`, {}),
+
   deleteService: (id: string) =>
     delete_(`/services/${id}`),
 

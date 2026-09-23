@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Service } from '../../entities/service.entity.js';
@@ -8,6 +8,8 @@ import { EmailService } from '../email/email.service.js';
 import { ServiceReview } from '../../entities/service-review.entity.js';
 import { ServiceValidationHistory, type ServiceValidationAction } from '../../entities/service-validation-history.entity.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service.js';
+import { MoreThan } from 'typeorm';
 
 /** Recherche insensible aux accents sans dépendre de l'extension Postgres `unaccent`. */
 function unaccent(column: string): string {
@@ -27,6 +29,7 @@ export class ServicesService {
     @InjectRepository(User) private readonly usersRepository: Repository<User>,
     private readonly emailService: EmailService,
     private readonly notificationsService: NotificationsService,
+    private readonly subscriptionsService: SubscriptionsService,
   ) {}
 
   async createService(artisanId: string, data: {
@@ -186,8 +189,33 @@ export class ServicesService {
       );
     }
 
-    const services = await builder.orderBy('service.createdAt', 'DESC').take(limit).skip(skip).getMany();
+    const services = await builder
+      .addSelect('CASE WHEN service.sponsoredUntil > now() THEN 0 ELSE 1 END', 'sponsor_rank')
+      .orderBy('sponsor_rank', 'ASC')
+      .addOrderBy('service.createdAt', 'DESC')
+      .take(limit)
+      .skip(skip)
+      .getMany();
     return Promise.all(services.map((service) => this.withRating(service)));
+  }
+
+  async sponsorService(artisanId: string, serviceId: string) {
+    const service = await this.servicesRepository.findOne({ where: { id: serviceId, artisan: { id: artisanId } } });
+    if (!service) throw new NotFoundException('Service introuvable');
+    if (service.status !== 'approved') throw new BadRequestException('Seul un service approuvé peut être mis en avant');
+    const policy = await this.subscriptionsService.getSponsoringPolicy(artisanId);
+    if (!policy) throw new ForbiddenException('La mise en avant est réservée aux abonnements payants');
+    const sponsored = await this.servicesRepository.count({ where: { artisan: { id: artisanId }, sponsoredUntil: MoreThan(new Date()) } });
+    if (sponsored >= policy.maxSponsored && !(service.sponsoredUntil && service.sponsoredUntil > new Date())) throw new BadRequestException(`Votre abonnement permet ${policy.maxSponsored} mise(s) en avant à la fois`);
+    service.sponsoredUntil = new Date(Date.now() + policy.durationDays * 24 * 60 * 60 * 1000);
+    return this.servicesRepository.save(service);
+  }
+
+  async stopSponsoringService(artisanId: string, serviceId: string) {
+    const service = await this.servicesRepository.findOne({ where: { id: serviceId, artisan: { id: artisanId } } });
+    if (!service) throw new NotFoundException('Service introuvable');
+    service.sponsoredUntil = null;
+    return this.servicesRepository.save(service);
   }
 
   private async withRating<T extends Service>(service: T) {

@@ -148,6 +148,7 @@ export default function ServicesCatalogPage() {
           const isCoop = service.artisan?.gender === 'cooperative';
           return (
             <article key={service.id} className="relative flex flex-col rounded-lg border border-stone-200 bg-white p-5 shadow-xs">
+              {service.sponsoredUntil && new Date(service.sponsoredUntil) > new Date() ? <span className="mb-2 inline-block self-start rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">★ Mis en avant</span> : null}
               {isWoman && (
                 <span className="mb-2 inline-block self-start rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-800">
                   {t('badge_women_empowerment')}

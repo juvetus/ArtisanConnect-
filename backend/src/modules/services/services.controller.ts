@@ -133,6 +133,18 @@ export class ServicesController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Post(':id/sponsor')
+  async sponsorService(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.servicesService.sponsorService(user.id, id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/sponsor/stop')
+  async stopSponsoringService(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.servicesService.stopSponsoringService(user.id, id);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
   async deleteService(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.servicesService.deleteService(user.id, id);

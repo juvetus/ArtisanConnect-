@@ -65,4 +65,7 @@ export class Service {
 
   @Column({ type: 'timestamp', nullable: true })
   revisionDueAt: Date | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  sponsoredUntil: Date | null;
 }
