@@ -31,7 +31,7 @@ export default function AssistantImagesPage() {
   }, [user]);
 
   const generate = async () => {
-    if (prompt.trim().length < 20) return;
+    if (prompt.trim().length < 20 && !referenceImage) return;
     setLoading(true);
     setError('');
     try {
@@ -65,6 +65,11 @@ export default function AssistantImagesPage() {
           <label className="block text-sm font-medium text-stone-700">
             {english ? 'Describe the product' : 'Décrivez le produit'}
             <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={7} placeholder={english ? 'Example: handwoven raffia basket, natural colours, round shape...' : 'Exemple : panier rond en raphia tressé à la main, couleurs naturelles...'} className="field mt-1 w-full" />
+            <span className={`mt-1 block text-xs ${prompt.trim().length > 0 && prompt.trim().length < 20 && !referenceImage ? 'text-amber-700' : 'text-stone-500'}`}>
+              {prompt.trim().length < 20 && !referenceImage
+                ? (english ? 'Description optional with a reference photo. Otherwise, enter at least 20 characters.' : 'Description facultative avec une photo de référence. Sinon, saisissez au moins 20 caractères.')
+                : (english ? 'Ready for generation.' : 'Prêt pour la génération.')}
+            </span>
           </label>
           <label className="block text-sm font-medium text-stone-700">
             {english ? 'Visual style' : 'Style visuel'}
@@ -79,7 +84,7 @@ export default function AssistantImagesPage() {
           </label>
           {referenceImage ? <img src={URL.createObjectURL(referenceImage)} alt={english ? 'Selected product reference' : 'Référence produit sélectionnée'} className="h-24 w-24 rounded-md border border-stone-200 object-cover" /> : null}
           {error ? <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
-          <button type="button" disabled={loading || prompt.trim().length < 20 || images.length >= 3} onClick={() => void generate()} className="rounded-md bg-amber-700 px-5 py-3 font-medium text-white disabled:opacity-60">
+          <button type="button" disabled={loading || (prompt.trim().length < 20 && !referenceImage) || images.length >= 3} onClick={() => void generate()} className="rounded-md bg-amber-700 px-5 py-3 font-medium text-white disabled:opacity-60">
             {loading ? (english ? 'Generating...' : 'Génération...') : (english ? 'Generate image' : 'Générer une image')}
           </button>
           <p className="text-xs text-stone-500">{english ? 'Up to 3 images per session. A real product photo is required before final publication.' : 'Jusqu’à 3 images par session. Une photo réelle du produit est requise avant publication finale.'}</p>

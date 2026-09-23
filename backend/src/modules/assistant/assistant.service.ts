@@ -35,7 +35,7 @@ export class AssistantService {
     if (!quota.subscriptionId || quota.limit === 0) throw new BadRequestException('La génération d’images IA est réservée aux abonnements payants.');
     if (quota.remaining <= 0) throw new BadRequestException(`Votre quota d’images IA est épuisé (${quota.used}/${quota.limit}). Renouvelez ou changez de plan pour continuer.`);
     const prompt = input.prompt.trim();
-    if (prompt.length < 20) throw new BadRequestException('Décrivez suffisamment le produit à mettre en scène.');
+    if (prompt.length < 20 && !input.referenceImage) throw new BadRequestException('Ajoutez une description d’au moins 20 caractères ou une photo réelle du produit.');
     if (prompt.length > 800) throw new BadRequestException('La description est limitée à 800 caractères.');
     const blocked = /\b(logo|marque|brand|nike|gucci|arme|weapon|pistolet|fusil|personne réelle|real person|deepfake)\b/i;
     if (blocked.test(prompt)) throw new BadRequestException('Cette demande ne peut pas être générée. Décrivez uniquement un produit ou une mise en scène sans marque ni personne identifiable.');
@@ -45,7 +45,8 @@ export class AssistantService {
     const baseUrl = (this.config.get<string>('AI_BASE_URL') || 'https://api.openai.com/v1').replace(/\/$/, '');
     const model = this.config.get<string>('AI_IMAGE_MODEL') || 'gpt-image-1';
     const style = input.style || 'studio';
-    const generatedPrompt = `Create a product staging image, not a proof of a real artisan work. Style: ${style}. Product description: ${prompt}. Preserve the main product shape and materials from the reference image when provided. No people, no logos, no brands, no text in the image. The result must be suitable for a marketplace product listing and clearly represent an inspiration or staging scene.`;
+    const productDescription = prompt || 'the product shown in the reference image';
+    const generatedPrompt = `Create a product staging image, not a proof of a real artisan work. Style: ${style}. Product description: ${productDescription}. Preserve the main product shape and materials from the reference image when provided. No people, no logos, no brands, no text in the image. The result must be suitable for a marketplace product listing and clearly represent an inspiration or staging scene.`;
     const response = input.referenceImage
       ? await this.generateImageEdit(baseUrl, apiKey, model, generatedPrompt, input.referenceImage)
       : await fetch(`${baseUrl}/images/generations`, {
