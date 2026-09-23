@@ -1052,7 +1052,13 @@ function RecentOrders({
   );
 }
 
-type AdminPromotionCode = { id: string; code: string; discountPercent: number; active: boolean; expiresAt: string | null; usedCount: number; maxUses: number | null; createdAt: string };
+type AdminPromotionCode = { id: string; code: string; discountPercent: number; active: boolean; expiresAt: string | null; usedCount: number; maxUses: number | null; allowedPlanSlugs: string[] | null; createdAt: string };
+const PROMOTION_PLAN_OPTIONS = [
+  ['visibilite-7', 'Visibilité 7 jours'],
+  ['local-plus', 'Local Plus'],
+  ['croissance', 'Croissance'],
+  ['premium-growth', 'Premium Growth'],
+] as const;
 
 function AdminSubscriptions({ subscriptions, promotionCodes, onAction }: { subscriptions: AdminSubscription[]; promotionCodes: AdminPromotionCode[]; onAction: (action: () => Promise<unknown>) => Promise<void> }) {
   const [search, setSearch] = useState('');
@@ -1062,6 +1068,7 @@ function AdminSubscriptions({ subscriptions, promotionCodes, onAction }: { subsc
   const [discountPercent, setDiscountPercent] = useState('10');
   const [expiresAt, setExpiresAt] = useState('');
   const [maxUses, setMaxUses] = useState('');
+  const [allowedPlanSlugs, setAllowedPlanSlugs] = useState<string[]>([]);
   const normalizedSearch = search.trim().toLowerCase();
   const filteredSubscriptions = subscriptions.filter((subscription) => {
     const haystack = [
@@ -1086,14 +1093,15 @@ function AdminSubscriptions({ subscriptions, promotionCodes, onAction }: { subsc
       <div className="rounded-md border border-amber-200 bg-amber-50 p-4">
         <h2 className="font-semibold text-stone-900">Codes promotionnels</h2>
         <p className="mt-1 text-sm text-stone-600">Créez des remises de 10 % à 100 % pour les abonnements.</p>
-        <form className="mt-3 grid gap-3 md:grid-cols-[1fr_130px_150px_150px_auto]" onSubmit={(event) => { event.preventDefault(); void onAction(async () => { await api.adminCreatePromotionCode({ code: promotionCode, discountPercent: Number(discountPercent), expiresAt: expiresAt || null, maxUses: maxUses ? Number(maxUses) : null }); setPromotionCode(''); setDiscountPercent('10'); setExpiresAt(''); setMaxUses(''); }); }}>
+        <form className="mt-3 grid gap-3 md:grid-cols-[1fr_130px_150px_150px_auto]" onSubmit={(event) => { event.preventDefault(); void onAction(async () => { await api.adminCreatePromotionCode({ code: promotionCode, discountPercent: Number(discountPercent), expiresAt: expiresAt || null, maxUses: maxUses ? Number(maxUses) : null, allowedPlanSlugs: allowedPlanSlugs.length ? allowedPlanSlugs : null }); setPromotionCode(''); setDiscountPercent('10'); setExpiresAt(''); setMaxUses(''); setAllowedPlanSlugs([]); }); }}>
           <input required value={promotionCode} onChange={(event) => setPromotionCode(event.target.value.toUpperCase())} pattern="[A-Za-z0-9_-]{3,40}" placeholder="Ex : PILOTE2026" className="rounded-md border border-stone-300 px-3 py-2 text-sm uppercase" />
           <input required type="number" min="10" max="100" step="1" value={discountPercent} onChange={(event) => setDiscountPercent(event.target.value)} placeholder="Remise %" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
           <input type="date" value={expiresAt} onChange={(event) => setExpiresAt(event.target.value)} className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
           <input type="number" min="1" value={maxUses} onChange={(event) => setMaxUses(event.target.value)} placeholder="Utilisations max" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
           <button type="submit" className="rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-white hover:bg-amber-800">Créer le code</button>
+          <fieldset className="md:col-span-5 rounded-md border border-amber-200 bg-white p-3"><legend className="px-1 text-xs font-semibold uppercase tracking-wide text-stone-500">Plans autorisés</legend><div className="flex flex-wrap gap-3">{PROMOTION_PLAN_OPTIONS.map(([slug, label]) => <label key={slug} className="flex items-center gap-2 text-sm text-stone-700"><input type="checkbox" checked={allowedPlanSlugs.includes(slug)} onChange={() => setAllowedPlanSlugs((current) => current.includes(slug) ? current.filter((item) => item !== slug) : [...current, slug])} />{label}</label>)}<span className="text-xs text-stone-500">Aucun choix = tous les plans</span></div></fieldset>
         </form>
-        {promotionCodes.length ? <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[700px] text-left text-sm"><thead className="border-b border-amber-200 text-xs uppercase tracking-wide text-stone-500"><tr><th className="px-2 py-2">Code</th><th className="px-2 py-2">Remise</th><th className="px-2 py-2">Expiration</th><th className="px-2 py-2">Utilisations</th><th className="px-2 py-2">État</th><th className="px-2 py-2" /></tr></thead><tbody>{promotionCodes.map((promo) => <tr key={promo.id} className="border-b border-amber-100 last:border-0"><td className="px-2 py-2 font-semibold">{promo.code}</td><td className="px-2 py-2">{promo.discountPercent}%</td><td className="px-2 py-2">{promo.expiresAt ? new Date(promo.expiresAt).toLocaleDateString('fr-FR') : 'Sans expiration'}</td><td className="px-2 py-2">{promo.usedCount}{promo.maxUses ? ` / ${promo.maxUses}` : ''}</td><td className="px-2 py-2">{promo.active ? 'Actif' : 'Désactivé'}</td><td className="px-2 py-2 text-right"><button type="button" onClick={() => void onAction(() => api.adminSetPromotionCodeActive(promo.id, !promo.active))} className="text-xs font-medium text-amber-800 underline">{promo.active ? 'Désactiver' : 'Activer'}</button></td></tr>)}</tbody></table></div> : <p className="mt-3 text-sm text-stone-500">Aucun code créé.</p>}
+        {promotionCodes.length ? <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[800px] text-left text-sm"><thead className="border-b border-amber-200 text-xs uppercase tracking-wide text-stone-500"><tr><th className="px-2 py-2">Code</th><th className="px-2 py-2">Remise</th><th className="px-2 py-2">Plans</th><th className="px-2 py-2">Expiration</th><th className="px-2 py-2">Utilisations</th><th className="px-2 py-2">État</th><th className="px-2 py-2" /></tr></thead><tbody>{promotionCodes.map((promo) => <tr key={promo.id} className="border-b border-amber-100 last:border-0"><td className="px-2 py-2 font-semibold">{promo.code}</td><td className="px-2 py-2">{promo.discountPercent}%</td><td className="px-2 py-2">{promo.allowedPlanSlugs?.length ? promo.allowedPlanSlugs.join(', ') : 'Tous'}</td><td className="px-2 py-2">{promo.expiresAt ? new Date(promo.expiresAt).toLocaleDateString('fr-FR') : 'Sans expiration'}</td><td className="px-2 py-2">{promo.usedCount}{promo.maxUses ? ` / ${promo.maxUses}` : ''}</td><td className="px-2 py-2">{promo.active ? 'Actif' : 'Désactivé'}</td><td className="px-2 py-2 text-right"><button type="button" onClick={() => void onAction(() => api.adminSetPromotionCodeActive(promo.id, !promo.active))} className="text-xs font-medium text-amber-800 underline">{promo.active ? 'Désactiver' : 'Activer'}</button></td></tr>)}</tbody></table></div> : <p className="mt-3 text-sm text-stone-500">Aucun code créé.</p>}
       </div>
       <div>
         <h2 className="font-semibold">Gestion des abonnements ({filteredSubscriptions.length}/{subscriptions.length})</h2>

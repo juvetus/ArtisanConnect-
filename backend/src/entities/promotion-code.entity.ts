@@ -23,6 +23,10 @@ export class PromotionCode {
   @Column({ type: 'int', nullable: true })
   maxUses: number | null;
 
+  /** Empty means the code applies to every subscription plan. */
+  @Column('simple-array', { nullable: true })
+  allowedPlanSlugs: string[] | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

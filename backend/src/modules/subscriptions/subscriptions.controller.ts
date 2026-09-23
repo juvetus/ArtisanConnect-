@@ -57,7 +57,7 @@ export class SubscriptionsController {
 
   @UseGuards(AdminPanelGuard)
   @Post('admin/promotion-codes')
-  createPromotionCode(@CurrentUser() user: AuthUser, @Body() body: { code: string; discountPercent: number; expiresAt?: string | null; maxUses?: number | null }) {
+  createPromotionCode(@CurrentUser() user: AuthUser, @Body() body: { code: string; discountPercent: number; expiresAt?: string | null; maxUses?: number | null; allowedPlanSlugs?: string[] | null }) {
     if (user.role !== 'admin') throw new ForbiddenException('Action réservée aux administrateurs');
     return this.subscriptionsService.createPromotionCode(body);
   }
