@@ -12,7 +12,9 @@ export default function FormalizationPage() {
   const { t } = useLanguage();
   const router = useRouter();
   const { data, mutate } = useSWR(user?.role === 'artisan' ? 'my-formalization' : null, api.myFormalization);
-  const [form, setForm] = useState({ businessName: '', registrationNumber: '', taxId: '', documentsUrl: '' });
+  const [form, setForm] = useState({ businessName: '', registrationNumber: '', taxId: '' });
+  const [documentUrls, setDocumentUrls] = useState<string[]>([]);
+  const [uploadingDocuments, setUploadingDocuments] = useState(false);
   const [message, setMessage] = useState('');
 
   useEffect(() => { if (ready && user?.role !== 'artisan') router.replace('/'); }, [ready, user, router]);
@@ -20,9 +22,26 @@ export default function FormalizationPage() {
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    await api.submitFormalization(form);
+    await api.submitFormalization({ ...form, documentsUrl: JSON.stringify(documentUrls) });
     setMessage(t('formalization_submitted_msg'));
     await mutate();
+  };
+
+  const uploadDocuments = async (files: File[]) => {
+    if (!files.length) return;
+    if (files.length + documentUrls.length > 5) {
+      setMessage(t('formalization_docs_help'));
+      return;
+    }
+    setUploadingDocuments(true);
+    try {
+      const result = await api.uploadFormalizationDocuments(files);
+      setDocumentUrls((current) => [...current, ...result.documentUrls]);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : t('formalization_docs_uploading'));
+    } finally {
+      setUploadingDocuments(false);
+    }
   };
 
   return (
@@ -64,10 +83,14 @@ export default function FormalizationPage() {
           {t('formalization_tax_id')}
           <input value={form.taxId} onChange={(e) => setForm({ ...form, taxId: e.target.value })} className="field mt-1" />
         </label>
-        <label className="block text-sm font-medium">
-          {t('formalization_docs_url')}
-          <input type="url" value={form.documentsUrl} onChange={(e) => setForm({ ...form, documentsUrl: e.target.value })} placeholder="https://..." className="field mt-1" />
-        </label>
+        <div>
+          <label htmlFor="formalization-documents" className="block text-sm font-medium">{t('formalization_docs_upload')}</label>
+          <input id="formalization-documents" type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf" disabled={uploadingDocuments || documentUrls.length >= 5} onChange={(event) => { void uploadDocuments(Array.from(event.target.files ?? [])); event.target.value = ''; }} className="mt-1 block w-full rounded-md border border-amber-300 bg-amber-50 p-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-amber-700 file:px-3 file:py-2 file:font-medium file:text-white" />
+          <p className="mt-1 text-xs text-stone-500">{uploadingDocuments ? t('formalization_docs_uploading') : t('formalization_docs_help')}</p>
+          <div className="mt-2 space-y-1 text-sm text-stone-700">
+            {documentUrls.length ? documentUrls.map((url, index) => <div key={url} className="flex items-center justify-between gap-2 rounded-md bg-stone-50 px-3 py-2"><a href={url} target="_blank" rel="noreferrer" className="truncate text-amber-800 underline">{t('formalization_docs_upload')} {index + 1}</a><button type="button" onClick={() => setDocumentUrls((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="text-xs text-red-700">{t('formalization_docs_remove')}</button></div>) : <p className="text-xs text-stone-500">{t('formalization_docs_empty')}</p>}
+          </div>
+        </div>
         {message && <p className="text-sm text-green-700">{message}</p>}
         <button className="rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-white hover:bg-amber-800">
           {t('formalization_submit_btn')}

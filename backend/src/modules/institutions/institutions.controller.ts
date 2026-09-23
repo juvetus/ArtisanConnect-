@@ -28,6 +28,19 @@ export class InstitutionsController {
   }
 
   @UseGuards(ArtisanGuard)
+  @Post('formalizations/upload-documents')
+  @UseInterceptors(FilesInterceptor('files', 5, { limits: { fileSize: 10 * 1024 * 1024 } }))
+  async uploadFormalizationDocuments(@UploadedFiles() files?: Express.Multer.File[]) {
+    if (!files?.length) throw new BadRequestException('Au moins un justificatif est requis');
+    if (files.some((file) => !['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(file.mimetype))) {
+      throw new BadRequestException('Format non accepté (JPG, PNG, WebP ou PDF)');
+    }
+    if (!this.storage.isEnabled()) throw new BadRequestException('Le stockage Cloudinary doit être configuré.');
+    const uploads = await Promise.all(files.map((file) => this.storage.uploadBuffer(file.buffer, 'artisanconnect/formalizations', file.mimetype === 'application/pdf' ? 'raw' : 'image')));
+    return { documentUrls: uploads.map((upload) => upload.url) };
+  }
+
+  @UseGuards(ArtisanGuard)
   @Get('resources')
   resources() { return this.service.listResources(); }
 

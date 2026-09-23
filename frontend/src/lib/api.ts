@@ -340,6 +340,12 @@ export const api = {
   institutionReviewFormalization: (id: string, status: ArtisanFormalization['status'], notes?: string) =>
     patch<ArtisanFormalization>(`/institutions/formalizations/${id}/status`, { status, notes }),
 
+  uploadFormalizationDocuments: async (files: File[]) => {
+    const form = new FormData();
+    files.forEach((file) => form.append('files', file));
+    return request<{ documentUrls: string[] }>('/institutions/formalizations/upload-documents', { method: 'POST', body: form });
+  },
+
   myFormalization: () => request<ArtisanFormalization | null>('/institutions/formalizations/me'),
 
   submitFormalization: (data: { businessName: string; registrationNumber?: string; taxId?: string; documentsUrl?: string }) =>
