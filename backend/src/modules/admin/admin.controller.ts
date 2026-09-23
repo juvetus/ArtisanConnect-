@@ -5,6 +5,7 @@ import { EmailService } from '../email/email.service.js';
 import { CurrentUser, type AuthUser } from '../auth/current-user.decorator.js';
 import { PdfService } from '../reports/pdf.service.js';
 import type { Response } from 'express';
+import { InstitutionsService } from '../institutions/institutions.service.js';
 
 @Controller('admin')
 @UseGuards(AdminPanelGuard)
@@ -13,6 +14,7 @@ export class AdminController {
     private readonly adminService: AdminService,
     private readonly emailService: EmailService,
     private readonly pdfService: PdfService,
+    private readonly institutionsService: InstitutionsService,
   ) {}
 
   private assertAdmin(user: AuthUser) {
@@ -26,6 +28,22 @@ export class AdminController {
   @Get('overview')
   getOverview() {
     return this.adminService.overview();
+  }
+
+  @Get('formalizations')
+  listFormalizations(@CurrentUser() user: AuthUser) {
+    this.assertEditor(user);
+    return this.institutionsService.listFormalizations();
+  }
+
+  @Patch('formalizations/:id/status')
+  reviewFormalization(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() body: { status: 'submitted' | 'in_review' | 'approved' | 'rejected'; notes?: string },
+  ) {
+    this.assertEditor(user);
+    return this.institutionsService.reviewFormalization(user.id, id, body.status, body.notes);
   }
 
   @Get('report.pdf')

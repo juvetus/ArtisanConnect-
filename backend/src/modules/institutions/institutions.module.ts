@@ -8,5 +8,6 @@ import { InstitutionsService } from './institutions.service.js';
   imports: [TypeOrmModule.forFeature([User, Listing, Order, InstitutionalResource, InstitutionalProgram, ArtisanFormalization, ProgramApplication])],
   controllers: [InstitutionsController],
   providers: [InstitutionsService],
+  exports: [InstitutionsService],
 })
 export class InstitutionsModule {}

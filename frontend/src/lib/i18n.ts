@@ -268,7 +268,7 @@ export const TRANSLATIONS = {
     // Formalisation & Accompagnement
     formalization_badge: 'Accompagnement administratif',
     formalization_title: 'Formaliser mon activité',
-    formalization_subtitle: 'Renseignez les informations disponibles. Une institution pourra examiner votre dossier et vous indiquer les prochaines étapes.',
+    formalization_subtitle: 'Renseignez les informations disponibles. L’équipe ArtisanConnect examinera votre dossier et vous indiquera les prochaines étapes.',
     formalization_business_name: 'Nom de l’activité',
     formalization_reg_number: 'Numéro d’enregistrement',
     formalization_tax_id: 'Identifiant fiscal',
@@ -276,7 +276,7 @@ export const TRANSLATIONS = {
     formalization_progress: 'Progression du dossier',
     formalization_status: 'Statut :',
     formalization_feedback: 'Retour :',
-    formalization_submitted_msg: 'Votre dossier a été transmis à une institution pour examen.',
+    formalization_submitted_msg: 'Votre dossier a été transmis à l’équipe ArtisanConnect pour examen.',
     formalization_submit_btn: 'Transmettre mon dossier',
 
     // Artisan Services
@@ -824,7 +824,7 @@ export const TRANSLATIONS = {
     // Formalisation & Accompagnement
     formalization_badge: 'Administrative Support',
     formalization_title: 'Formalize My Business',
-    formalization_subtitle: 'Provide the available information. An institutional partner will review your file and guide you through the next steps.',
+    formalization_subtitle: 'Provide the available information. The ArtisanConnect team will review your file and guide you through the next steps.',
     formalization_business_name: 'Business Name',
     formalization_reg_number: 'Registration Number',
     formalization_tax_id: 'Tax ID',
@@ -832,7 +832,7 @@ export const TRANSLATIONS = {
     formalization_progress: 'Application Progress',
     formalization_status: 'Status:',
     formalization_feedback: 'Feedback:',
-    formalization_submitted_msg: 'Your application has been submitted to an institution for review.',
+    formalization_submitted_msg: 'Your application has been submitted to the ArtisanConnect team for review.',
     formalization_submit_btn: 'Submit My Application',
 
     // Artisan Services

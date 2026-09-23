@@ -266,6 +266,9 @@ export const api = {
   institutionDashboard: () => request<InstitutionDashboard>('/institutions/dashboard'),
 
   institutionFormalizations: () => request<ArtisanFormalization[]>('/institutions/formalizations'),
+  adminFormalizations: () => request<ArtisanFormalization[]>('/admin/formalizations'),
+  adminReviewFormalization: (id: string, status: ArtisanFormalization['status'], notes?: string) =>
+    patch<ArtisanFormalization>(`/admin/formalizations/${id}/status`, { status, notes }),
 
   institutionCreateResource: (data: { title: string; description: string; type: ResourceType; theme: string; contentUrl?: string; imageUrls?: string[]; videoUrls?: string[]; pdfUrls?: string[] }) =>
     post<InstitutionalResource>('/institutions/resources', data),
