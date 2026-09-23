@@ -175,6 +175,11 @@ export function Header() {
                 </Link>
               )}
               {user.role === 'artisan' && (
+                <Link href="/assistant/images" className={navLinkClass('/assistant/images')}>
+                  {language === 'en' ? 'AI Image Studio' : 'Studio images IA'}
+                </Link>
+              )}
+              {user.role === 'artisan' && (
                 <Link href="/formalization" className={navLinkClass('/formalization')}>
                   {t('nav_formalization')}
                 </Link>
