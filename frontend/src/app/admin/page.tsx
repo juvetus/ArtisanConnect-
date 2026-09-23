@@ -10,7 +10,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { Pagination } from '@/components/Pagination';
 import { ModerationAdmin } from '@/components/ModerationAdmin';
 import { AnalyticsFunnel } from '@/components/AnalyticsFunnel';
-import type { AdminStats, AdminSubscription, Listing, Order, Role, Shop, User } from '@/lib/types';
+import type { AdminStats, AdminSubscription, ArtisanFormalization, Listing, Order, Role, Shop, User } from '@/lib/types';
 
 interface ServiceDashboardStats {
   stats: {
@@ -57,7 +57,7 @@ function roleLabel(role: Role) {
 export default function AdminPage() {
   const { user, ready } = useAuth();
   const router = useRouter();
-  const [view, setView] = useState<'overview' | 'users' | 'listings' | 'shops' | 'orders' | 'subscriptions' | 'moderation' | 'analytics'>('overview');
+  const [view, setView] = useState<'overview' | 'users' | 'listings' | 'shops' | 'formalizations' | 'orders' | 'subscriptions' | 'moderation' | 'analytics'>('overview');
   const [actionError, setActionError] = useState('');
   const [usersPage, setUsersPage] = useState(0);
   const [listingsPage, setListingsPage] = useState(0);
@@ -80,16 +80,17 @@ export default function AdminPage() {
   const { data, isLoading, mutate } = useSWR(
     user && ['admin', 'editor', 'viewer'].includes(user.role) ? ['admin-console', user.id] : null,
     async () => {
-      const [overview, users, listings, shops, adminOrders, adminSubscriptions, serviceDashboard] = await Promise.all([
+      const [overview, users, listings, shops, formalizations, adminOrders, adminSubscriptions, serviceDashboard] = await Promise.all([
         api.adminOverview(),
         user?.role === 'admin' ? api.adminUsers() : Promise.resolve([] as User[]),
         api.adminListings(),
         api.adminShops(),
+        user?.role !== 'viewer' ? api.adminFormalizations() : Promise.resolve([] as ArtisanFormalization[]),
         api.adminOrders(),
         api.adminSubscriptions(),
         api.getServiceDashboardStats(),
       ]);
-      return { overview, users, listings, shops, adminOrders, adminSubscriptions, serviceDashboard: serviceDashboard as ServiceDashboardStats };
+      return { overview, users, listings, shops, formalizations, adminOrders, adminSubscriptions, serviceDashboard: serviceDashboard as ServiceDashboardStats };
     },
   );
 
@@ -160,6 +161,12 @@ export default function AdminPage() {
     }
   };
 
+  const reviewFormalization = async (record: ArtisanFormalization, status: ArtisanFormalization['status']) => {
+    const notes = status === 'rejected' ? prompt('Motif ou correction demandée :') ?? '' : undefined;
+    if (status === 'rejected' && !notes.trim()) return;
+    await runAdminAction(() => api.adminReviewFormalization(record.id, status, notes));
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -173,6 +180,7 @@ export default function AdminPage() {
           {[
             ['overview', 'Synthèse'],
             ...(user.role !== 'viewer' ? [['shops', 'Boutiques']] : []),
+            ...(user.role !== 'viewer' ? [['formalizations', 'Formalisations']] : []),
             ...(user.role === 'admin' ? [['users', 'Utilisateurs']] : []),
             ...(user.role !== 'viewer' ? [['listings', 'Annonces']] : []),
             ...(user.role === 'admin' ? [['moderation', 'Modération']] : []),
@@ -265,6 +273,47 @@ export default function AdminPage() {
           onReview={async (id, approve) => { await api.adminReviewShop(id, approve); await mutate(); }}
           onAction={runAdminAction}
         />
+      )}
+
+      {view === 'formalizations' && (
+        <section className="space-y-4 rounded-lg border border-stone-200 bg-white p-5">
+          <div>
+            <h2 className="text-xl font-semibold text-stone-900">Dossiers de formalisation ({data.formalizations.length})</h2>
+            <p className="mt-1 text-sm text-stone-600">Vérifiez les informations et justificatifs transmis par les artisans du pilote.</p>
+          </div>
+          {!data.formalizations.length ? <p className="rounded-md bg-stone-50 p-4 text-sm text-stone-600">Aucun dossier reçu pour le moment.</p> : (
+            <div className="space-y-4">
+              {data.formalizations.map((record) => {
+                let documentUrls: string[] = [];
+                try {
+                  const parsed = record.documentsUrl ? JSON.parse(record.documentsUrl) : [];
+                  documentUrls = Array.isArray(parsed) ? parsed.filter((url): url is string => typeof url === 'string') : record.documentsUrl ? [record.documentsUrl] : [];
+                } catch {
+                  documentUrls = record.documentsUrl ? [record.documentsUrl] : [];
+                }
+                return (
+                  <article key={record.id} className="rounded-md border border-stone-200 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <h3 className="font-semibold text-stone-900">{record.businessName}</h3>
+                        <p className="mt-1 text-sm text-stone-600">Artisan : {record.artisan?.name ?? 'Artisan'} · {record.artisan?.email}</p>
+                        <p className="mt-1 text-sm text-stone-600">Enregistrement : {record.registrationNumber || 'Non renseigné'} · Identifiant fiscal : {record.taxId || 'Non renseigné'}</p>
+                        <span className="mt-2 inline-block rounded-full bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-700">{record.status}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {record.status !== 'approved' && <button type="button" onClick={() => void reviewFormalization(record, 'approved')} className="rounded-md bg-green-700 px-3 py-2 text-sm font-medium text-white hover:bg-green-800">Approuver</button>}
+                        {record.status !== 'in_review' && record.status !== 'approved' && <button type="button" onClick={() => void reviewFormalization(record, 'in_review')} className="rounded-md border border-amber-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50">En examen</button>}
+                        {record.status !== 'rejected' && record.status !== 'approved' && <button type="button" onClick={() => void reviewFormalization(record, 'rejected')} className="rounded-md border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50">Rejeter / correction</button>}
+                      </div>
+                    </div>
+                    {documentUrls.length ? <div className="mt-3 flex flex-wrap gap-2">{documentUrls.map((url, index) => <a key={url} href={url} target="_blank" rel="noreferrer" className="rounded-md border border-stone-300 px-3 py-1.5 text-sm text-amber-800 underline">Justificatif {index + 1}</a>)}</div> : <p className="mt-3 text-sm text-stone-500">Aucun justificatif joint.</p>}
+                    {record.institutionNotes ? <p className="mt-3 rounded-md bg-amber-50 p-3 text-sm text-amber-900">Retour : {record.institutionNotes}</p> : null}
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
       )}
 
       {view === 'moderation' && <ModerationAdmin />}
