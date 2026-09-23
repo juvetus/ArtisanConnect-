@@ -15,6 +15,7 @@ import { useLanguage } from '@/lib/language-context';
 import { CITIES, NEIGHBORHOODS, slugify } from '@/lib/locations';
 import { trackEvent } from '@/lib/analytics';
 import { resolveMediaUrl } from '@/lib/media';
+import { formatXAF } from '@/lib/format';
 import type { PublicArtisan, Service } from '@/lib/types';
 
 /** Métiers les plus recherchés par les clients de Yaoundé. */
@@ -537,16 +538,22 @@ export default function HomePage() {
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {visibleServices.slice(0, 6).map((service) => {
               const isDemoService = service.id.startsWith('demo-');
+              const imageUrl = service.fileUrls?.[0];
+              const priceLabel = service.price ? formatXAF(service.price) : service.priceMin && service.priceMax ? `${formatXAF(service.priceMin)} - ${formatXAF(service.priceMax)}` : 'Sur devis';
               return (
                 <article
                   key={service.id}
-                  className={`relative flex flex-col rounded-lg border bg-white p-5 ${isDemoService ? 'border-dashed border-stone-300' : 'border-stone-200'}`}
+                  className={`relative flex flex-col overflow-hidden rounded-lg border bg-white ${isDemoService ? 'border-dashed border-stone-300' : 'border-stone-200'}`}
                 >
                   {isDemoService ? <DemoBadge className="absolute right-3 top-3" /> : null}
-                  <div className="flex-1">
+                  <div className="relative aspect-[4/3] bg-stone-100">
+                    {imageUrl ? <img src={resolveMediaUrl(imageUrl)} alt={service.title} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-sm font-medium text-stone-500">{categoryLabel(service.category)}</div>}
+                  </div>
+                  <div className="flex flex-1 flex-col p-5">
                     <p className="text-xs font-medium uppercase tracking-wide text-amber-700">{categoryLabel(service.category)}</p>
                     <h3 className="mt-2 text-lg font-semibold text-stone-900">{service.title}</h3>
                     <p className="mt-2 line-clamp-3 text-sm text-stone-600">{service.description}</p>
+                    <p className="mt-3 text-lg font-bold text-stone-950">{priceLabel}</p>
                     <p className="mt-3 text-sm text-stone-600">{t('service_estimated_days', { days: service.estimatedDays })}</p>
                     <p className="mt-2 text-sm text-stone-600">{service.averageRating ? `★ ${service.averageRating}/5` : t('service_no_rating')} <span className="text-stone-400">{t('service_reviews_count', { count: service.reviewCount ?? 0 })}</span></p>
                   </div>
