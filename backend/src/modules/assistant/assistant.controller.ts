@@ -12,4 +12,10 @@ export class AssistantController {
     if (!body.input?.trim()) throw new BadRequestException('Décrivez votre besoin pour commencer');
     return this.assistant.generate(body);
   }
+
+  @Post('generate-image')
+  generateImage(@CurrentUser() user: AuthUser, @Body() body: { prompt: string; style?: string; language?: 'fr' | 'en' }) {
+    if (user.role !== 'artisan') throw new BadRequestException('Assistant réservé aux artisans');
+    return this.assistant.generateImage(body);
+  }
 }

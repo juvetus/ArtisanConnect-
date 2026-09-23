@@ -50,6 +50,10 @@ export default function DashboardPage() {
   const [deliveryMethods, setDeliveryMethods] = useState<('workshop' | 'home' | 'carrier')[]>(['workshop', 'home', 'carrier']);
   const [imageUrl, setImageUrl] = useState('');
   const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [aiImageUrls, setAiImageUrls] = useState<string[]>([]);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiStyle, setAiStyle] = useState('studio');
+  const [generatingAiImage, setGeneratingAiImage] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -91,6 +95,7 @@ export default function DashboardPage() {
         deliveryMethods,
         imageUrl: imageUrls[0] ?? null,
         imageUrls,
+        aiImageUrls,
         shopId: shopId || undefined,
       });
       setTitle('');
@@ -99,6 +104,8 @@ export default function DashboardPage() {
       setStock('1');
       setImageUrl('');
       setImageUrls([]);
+      setAiImageUrls([]);
+      setAiPrompt('');
       setShopId('');
       await mutate();
     } catch (err) {
@@ -120,6 +127,7 @@ export default function DashboardPage() {
     setDeliveryMethods(listing.deliveryMethods?.length ? listing.deliveryMethods : ['workshop', 'home', 'carrier']);
     setImageUrl(listing.imageUrl ?? '');
     setImageUrls(listing.imageUrls?.length ? listing.imageUrls : listing.imageUrl ? [listing.imageUrl] : []);
+    setAiImageUrls(listing.aiImageUrls ?? []);
     setShopId(listing.shopId || '');
     setFormError('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -137,7 +145,23 @@ export default function DashboardPage() {
     setDeliveryMethods(['workshop', 'home', 'carrier']);
     setImageUrl('');
     setImageUrls([]);
+    setAiImageUrls([]);
+    setAiPrompt('');
     setFormError('');
+  };
+
+  const generateAiImage = async () => {
+    if (!aiPrompt.trim()) return;
+    setGeneratingAiImage(true);
+    setFormError('');
+    try {
+      const result = await api.assistantGenerateImage({ prompt: aiPrompt, style: aiStyle, language: 'fr' });
+      setAiImageUrls((current) => [...current, result.imageUrl].slice(-3));
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'La génération de l’image IA a échoué.');
+    } finally {
+      setGeneratingAiImage(false);
+    }
   };
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -179,6 +203,7 @@ export default function DashboardPage() {
         deliveryMethods,
         imageUrl: imageUrls[0] ?? null,
         imageUrls,
+        aiImageUrls,
         shopId: shopId || undefined,
       });
       cancelEditing();
@@ -759,6 +784,25 @@ export default function DashboardPage() {
                   ))}
                 </div>
               )}
+            </div>
+
+            <div className="rounded-md border border-amber-200 bg-amber-50 p-4">
+              <p className="text-sm font-semibold text-amber-900">Image IA — mise en scène / inspiration</p>
+              <p className="mt-1 text-xs text-amber-800">Cette image ne constitue pas une preuve de réalisation. Ajoutez une photo réelle du produit avant la publication finale.</p>
+              <textarea value={aiPrompt} onChange={(event) => setAiPrompt(event.target.value)} rows={3} placeholder="Décrivez le produit que vous pouvez réellement fabriquer..." className="field mt-3 w-full bg-white" />
+              <div className="mt-2 flex flex-wrap gap-2">
+                <select value={aiStyle} onChange={(event) => setAiStyle(event.target.value)} className="field bg-white">
+                  <option value="studio">Studio</option>
+                  <option value="catalogue">Catalogue</option>
+                  <option value="lifestyle">Mise en scène lifestyle</option>
+                  <option value="marketing">Marketing</option>
+                  <option value="detail">Détail / texture</option>
+                </select>
+                <button type="button" disabled={generatingAiImage || aiImageUrls.length >= 3 || aiPrompt.trim().length < 20} onClick={() => void generateAiImage()} className="rounded-md bg-amber-700 px-3 py-2 text-sm font-medium text-white disabled:opacity-60">
+                  {generatingAiImage ? 'Génération...' : 'Générer une image IA'}
+                </button>
+              </div>
+              {aiImageUrls.length > 0 && <div className="mt-3 grid grid-cols-3 gap-2">{aiImageUrls.map((url, index) => <div key={`${url}-${index}`} className="relative"><img src={resolveMediaUrl(url)} alt={`Image IA ${index + 1}`} className="aspect-square w-full rounded border border-amber-300 object-cover" /><button type="button" onClick={() => setAiImageUrls((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="absolute right-1 top-1 rounded bg-stone-900/80 px-2 py-1 text-xs text-white" aria-label={`Supprimer l’image IA ${index + 1}`}>×</button></div>)}</div>}
             </div>
 
             {formError && <p className="text-sm text-red-600">{formError}</p>}

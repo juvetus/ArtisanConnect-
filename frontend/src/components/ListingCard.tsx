@@ -56,6 +56,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
           />
         ) : <span className="text-sm font-medium text-stone-500">{categoryLabel(listing.category)}</span>}
       </div>
+      {listing.aiImageUrls?.length ? <p className="px-4 pt-2 text-xs font-medium text-amber-800">Image IA — mise en scène / inspiration</p> : null}
 
       <div className="flex flex-1 flex-col gap-2 p-4">
         <div className="flex items-center justify-between gap-2">

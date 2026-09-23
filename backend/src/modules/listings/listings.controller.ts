@@ -98,6 +98,9 @@ export class ListingsController {
     }
     // Le vendeur doit avoir une boutique active pour publier.
     await this.shopsService.assertShopActiveForSeller(user.id, listing.shopId, user.role);
+    if (listing.aiImageUrls?.length && !listing.imageUrls?.length && !listing.imageUrl) {
+      throw new BadRequestException('Ajoutez au moins une photo réelle avant de publier une image IA.');
+    }
 
     // L'offre gratuite plafonne le nombre d'annonces publiées simultanément.
     if (!(await this.subscriptionsService.isPremium(user.id))) {
@@ -161,6 +164,9 @@ export class ListingsController {
   ) {
     await this.assertOwner(id, user);
     const { sellerId: _ignored, ...safeData } = updateData;
+    if (safeData.aiImageUrls?.length && !safeData.imageUrls?.length && !safeData.imageUrl) {
+      throw new BadRequestException('Ajoutez au moins une photo réelle avant de publier une image IA.');
+    }
     return this.listingsService.update(id, safeData);
   }
 

@@ -193,6 +193,7 @@ export interface Listing {
   price: string;
   imageUrl?: string | null;
   imageUrls?: string[] | null;
+  aiImageUrls?: string[] | null;
   status: 'active' | 'inactive';
   stock: number;
   acceptedPaymentMethods?: ('cash' | 'momo' | 'orange_money')[] | null;

@@ -30,6 +30,9 @@ export class Listing {
   @Column('simple-array', { nullable: true })
   imageUrls: string[];
 
+  @Column('simple-array', { nullable: true })
+  aiImageUrls: string[];
+
   /** Boutique à laquelle rattacher l'annonce (optionnel en phase de migration). */
   @Column({ nullable: true })
   shopId: string;

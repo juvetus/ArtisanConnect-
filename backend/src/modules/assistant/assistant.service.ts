@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { StorageService } from '../storage/storage.service.js';
 
 export type AssistantTask = 'atelier' | 'presentation' | 'produit' | 'reponse' | 'devis' | 'whatsapp' | 'bio' | 'siarc' | 'correction' | 'traduction';
 
@@ -18,7 +19,37 @@ const TASK_INSTRUCTIONS: Record<AssistantTask, string> = {
 
 @Injectable()
 export class AssistantService {
-  constructor(private readonly config: ConfigService) {}
+  constructor(private readonly config: ConfigService, private readonly storage: StorageService) {}
+
+  async generateImage(input: { prompt: string; style?: string; language?: 'fr' | 'en' }) {
+    const prompt = input.prompt.trim();
+    if (prompt.length < 20) throw new BadRequestException('Décrivez suffisamment le produit à mettre en scène.');
+    if (prompt.length > 800) throw new BadRequestException('La description est limitée à 800 caractères.');
+    const blocked = /\b(logo|marque|brand|nike|gucci|arme|weapon|pistolet|fusil|personne réelle|real person|deepfake)\b/i;
+    if (blocked.test(prompt)) throw new BadRequestException('Cette demande ne peut pas être générée. Décrivez uniquement un produit ou une mise en scène sans marque ni personne identifiable.');
+    if (!this.storage.isEnabled()) throw new BadRequestException('Le stockage Cloudinary doit être configuré pour générer une image.');
+    const apiKey = this.config.get<string>('AI_API_KEY');
+    if (!apiKey) throw new BadRequestException('La génération d’images IA n’est pas encore configurée.');
+    const baseUrl = (this.config.get<string>('AI_BASE_URL') || 'https://api.openai.com/v1').replace(/\/$/, '');
+    const model = this.config.get<string>('AI_IMAGE_MODEL') || 'gpt-image-1';
+    const style = input.style || 'studio';
+    const response = await fetch(`${baseUrl}/images/generations`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        prompt: `Create a product staging image, not a proof of a real artisan work. Style: ${style}. Product description: ${prompt}. No people, no logos, no brands, no text in the image. The result must be suitable for a marketplace product listing and clearly represent an inspiration or staging scene.`,
+        size: '1024x1024',
+      }),
+    });
+    if (!response.ok) throw new BadRequestException('Le service de génération d’images est momentanément indisponible.');
+    const data = await response.json() as { data?: Array<{ url?: string; b64_json?: string }> };
+    const generated = data.data?.[0];
+    if (!generated?.url && !generated?.b64_json) throw new BadRequestException('Le service IA n’a produit aucune image.');
+    const buffer = generated.b64_json ? Buffer.from(generated.b64_json, 'base64') : Buffer.from(await (await fetch(generated.url!)).arrayBuffer());
+    const upload = await this.storage.uploadBuffer(buffer, 'artisanconnect/listings/ai', 'image');
+    return { imageUrl: upload.url, label: 'Image IA — mise en scène / inspiration' };
+  }
 
   async generate(input: { task: AssistantTask; input: string; language?: 'fr' | 'en'; context?: string }) {
     if (!TASK_INSTRUCTIONS[input.task]) throw new BadRequestException('Type de contenu inconnu');

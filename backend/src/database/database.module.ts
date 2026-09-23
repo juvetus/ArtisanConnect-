@@ -39,6 +39,7 @@ import { InstitutionMedia1759000000000 } from './migrations/1759000000000-instit
 import { InstitutionPdfs1759100000000 } from './migrations/1759100000000-institution-pdfs.js';
 import { QuoteDetails1759200000000 } from './migrations/1759200000000-quote-details.js';
 import { ServiceExternalUrls1759300000000 } from './migrations/1759300000000-service-external-urls.js';
+import { ListingAiImages1759400000000 } from './migrations/1759400000000-listing-ai-images.js';
 
 @Module({
   imports: [
@@ -53,7 +54,7 @@ import { ServiceExternalUrls1759300000000 } from './migrations/1759300000000-ser
         database: configService.get('DB_DATABASE', 'artisan_connect'),
         entities: [User, Listing, Order, Payment, Review, Message, InstitutionalResource, InstitutionalProgram, ArtisanFormalization, Shop, Notification, Service, ServiceOrder, ServiceQuote, ServicePayment, ServiceReview, ServiceValidationHistory, ProgramApplication, Subscription, SubscriptionPlan, Payout, CustomerRequest, Report, AnalyticsEvent],
         synchronize: configService.get('DB_SYNCHRONIZE', configService.get('NODE_ENV') === 'development' ? 'true' : 'false') === 'true',
-        migrations: [PilotTrustFeatures1758200000000, CustomerRequestStatuses1758300000000, AnalyticsEvents1758400000000, ShopAvailability1758500000000, CustomerRequestAttachments1758600000000, ListingSponsoring1758700000000, UserAvatar1758800000000, ServiceVideos1758900000000, InstitutionMedia1759000000000, InstitutionPdfs1759100000000, QuoteDetails1759200000000, ServiceExternalUrls1759300000000],
+        migrations: [PilotTrustFeatures1758200000000, CustomerRequestStatuses1758300000000, AnalyticsEvents1758400000000, ShopAvailability1758500000000, CustomerRequestAttachments1758600000000, ListingSponsoring1758700000000, UserAvatar1758800000000, ServiceVideos1758900000000, InstitutionMedia1759000000000, InstitutionPdfs1759100000000, QuoteDetails1759200000000, ServiceExternalUrls1759300000000, ListingAiImages1759400000000],
         // En production `synchronize` est désactivé : le schéma évolue uniquement par migrations.
         migrationsRun: configService.get('DB_SYNCHRONIZE', configService.get('NODE_ENV') === 'development' ? 'true' : 'false') !== 'true',
         logging: configService.get('NODE_ENV') === 'development',
