@@ -50,6 +50,7 @@ export default function DashboardPage() {
   const [deliveryMethods, setDeliveryMethods] = useState<('workshop' | 'home' | 'carrier')[]>(['workshop', 'home', 'carrier']);
   const [imageUrl, setImageUrl] = useState('');
   const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
   const [aiImageUrls, setAiImageUrls] = useState<string[]>([]);
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiStyle, setAiStyle] = useState('studio');
@@ -184,6 +185,18 @@ export default function DashboardPage() {
       setUploadingImage(false);
       e.target.value = '';
     }
+  };
+
+  const reorderImages = (targetIndex: number) => {
+    if (draggedImageIndex === null || draggedImageIndex === targetIndex) return;
+    setImageUrls((current) => {
+      const next = [...current];
+      const [moved] = next.splice(draggedImageIndex, 1);
+      next.splice(targetIndex, 0, moved);
+      setImageUrl(next[0] ?? '');
+      return next;
+    });
+    setDraggedImageIndex(null);
   };
 
   const handleSaveListing = async (e: React.FormEvent) => {
@@ -778,9 +791,12 @@ export default function DashboardPage() {
                 <p className="mt-1 text-xs text-stone-500">{t('action_loading')}</p>
               )}
               {imageUrls.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-2">
+                <div className="mt-2 flex flex-wrap gap-2" aria-label="Réorganiser les photos du produit">
                   {imageUrls.map((url, i) => (
-                    <img key={i} src={resolveMediaUrl(url)} alt={`Aperçu ${i + 1}`} className="h-16 w-16 object-cover rounded border border-stone-200" />
+                    <div key={url} draggable onDragStart={() => setDraggedImageIndex(i)} onDragOver={(event) => event.preventDefault()} onDrop={() => reorderImages(i)} className={`relative cursor-grab rounded border ${i === 0 ? 'border-amber-600 ring-2 ring-amber-100' : 'border-stone-200'}`} title={i === 0 ? 'Image principale' : 'Glissez pour réorganiser'}>
+                      <img src={resolveMediaUrl(url)} alt={`Aperçu ${i + 1}`} className="h-16 w-16 rounded object-cover" />
+                      {i === 0 ? <span className="absolute bottom-0 left-0 right-0 bg-amber-700/90 px-1 py-0.5 text-center text-[10px] font-medium text-white">Principale</span> : null}
+                    </div>
                   ))}
                 </div>
               )}
