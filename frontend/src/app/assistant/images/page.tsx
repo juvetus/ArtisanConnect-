@@ -20,6 +20,7 @@ export default function AssistantImagesPage() {
   const english = language === 'en';
   const [prompt, setPrompt] = useState('');
   const [style, setStyle] = useState('studio');
+  const [referenceImage, setReferenceImage] = useState<File | undefined>();
   const [images, setImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -29,7 +30,7 @@ export default function AssistantImagesPage() {
     setLoading(true);
     setError('');
     try {
-      const result = await api.assistantGenerateImage({ prompt, style, language });
+      const result = await api.assistantGenerateImage({ prompt, style, language, referenceImage });
       setImages((current) => [...current, result.imageUrl].slice(-3));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : (english ? 'Image generation failed.' : 'La génération de l’image a échoué.'));
@@ -65,6 +66,12 @@ export default function AssistantImagesPage() {
               {STYLES.map((item) => <option key={item.value} value={item.value}>{english ? item.en : item.fr}</option>)}
             </select>
           </label>
+          <label className="block text-sm font-medium text-stone-700">
+            {english ? 'Reference product photo (optional)' : 'Photo réelle du produit (facultatif)'}
+            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => setReferenceImage(event.target.files?.[0])} className="mt-1 block w-full rounded-md border border-amber-300 bg-amber-50 p-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-amber-700 file:px-3 file:py-2 file:font-medium file:text-white" />
+            <span className="mt-1 block text-xs font-normal text-stone-500">{english ? 'The AI will use this photo as a product reference. JPG, PNG or WebP, 5 MB maximum.' : 'L’IA utilisera cette photo comme référence du produit. JPG, PNG ou WebP, 5 Mo maximum.'}</span>
+          </label>
+          {referenceImage ? <img src={URL.createObjectURL(referenceImage)} alt={english ? 'Selected product reference' : 'Référence produit sélectionnée'} className="h-24 w-24 rounded-md border border-stone-200 object-cover" /> : null}
           {error ? <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
           <button type="button" disabled={loading || prompt.trim().length < 20 || images.length >= 3} onClick={() => void generate()} className="rounded-md bg-amber-700 px-5 py-3 font-medium text-white disabled:opacity-60">
             {loading ? (english ? 'Generating...' : 'Génération...') : (english ? 'Generate image' : 'Générer une image')}

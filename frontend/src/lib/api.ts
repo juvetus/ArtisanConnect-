@@ -88,8 +88,14 @@ export const api = {
   assistantGenerate: (data: { task: string; input: string; language?: 'fr' | 'en'; context?: string }) =>
     post<{ content: string; provider: 'ai' | 'local' }>('/assistant/generate', data),
 
-  assistantGenerateImage: (data: { prompt: string; style: string; language?: 'fr' | 'en' }) =>
-    post<{ imageUrl: string; label: string }>('/assistant/generate-image', data),
+  assistantGenerateImage: async (data: { prompt: string; style: string; language?: 'fr' | 'en'; referenceImage?: File }) => {
+    const form = new FormData();
+    form.append('prompt', data.prompt);
+    form.append('style', data.style);
+    if (data.language) form.append('language', data.language);
+    if (data.referenceImage) form.append('referenceImage', data.referenceImage);
+    return request<{ imageUrl: string; label: string }>('/assistant/generate-image', { method: 'POST', body: form });
+  },
 
     updateProfile: (id: string, data: { name?: string; phone?: string; whatsappPhone?: string; location?: string; bio?: string; avatarUrl?: string }) => patch<User>(`/users/${id}`, data),
 

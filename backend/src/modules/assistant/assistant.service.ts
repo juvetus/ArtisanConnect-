@@ -21,7 +21,7 @@ const TASK_INSTRUCTIONS: Record<AssistantTask, string> = {
 export class AssistantService {
   constructor(private readonly config: ConfigService, private readonly storage: StorageService) {}
 
-  async generateImage(input: { prompt: string; style?: string; language?: 'fr' | 'en' }) {
+  async generateImage(input: { prompt: string; style?: string; language?: 'fr' | 'en'; referenceImage?: Express.Multer.File }) {
     const prompt = input.prompt.trim();
     if (prompt.length < 20) throw new BadRequestException('Décrivez suffisamment le produit à mettre en scène.');
     if (prompt.length > 800) throw new BadRequestException('La description est limitée à 800 caractères.');
@@ -33,15 +33,14 @@ export class AssistantService {
     const baseUrl = (this.config.get<string>('AI_BASE_URL') || 'https://api.openai.com/v1').replace(/\/$/, '');
     const model = this.config.get<string>('AI_IMAGE_MODEL') || 'gpt-image-1';
     const style = input.style || 'studio';
-    const response = await fetch(`${baseUrl}/images/generations`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model,
-        prompt: `Create a product staging image, not a proof of a real artisan work. Style: ${style}. Product description: ${prompt}. No people, no logos, no brands, no text in the image. The result must be suitable for a marketplace product listing and clearly represent an inspiration or staging scene.`,
-        size: '1024x1024',
-      }),
-    });
+    const generatedPrompt = `Create a product staging image, not a proof of a real artisan work. Style: ${style}. Product description: ${prompt}. Preserve the main product shape and materials from the reference image when provided. No people, no logos, no brands, no text in the image. The result must be suitable for a marketplace product listing and clearly represent an inspiration or staging scene.`;
+    const response = input.referenceImage
+      ? await this.generateImageEdit(baseUrl, apiKey, model, generatedPrompt, input.referenceImage)
+      : await fetch(`${baseUrl}/images/generations`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model, prompt: generatedPrompt, size: '1024x1024' }),
+      });
     if (!response.ok) throw new BadRequestException('Le service de génération d’images est momentanément indisponible.');
     const data = await response.json() as { data?: Array<{ url?: string; b64_json?: string }> };
     const generated = data.data?.[0];
@@ -49,6 +48,16 @@ export class AssistantService {
     const buffer = generated.b64_json ? Buffer.from(generated.b64_json, 'base64') : Buffer.from(await (await fetch(generated.url!)).arrayBuffer());
     const upload = await this.storage.uploadBuffer(buffer, 'artisanconnect/listings/ai', 'image');
     return { imageUrl: upload.url, label: 'Image IA — mise en scène / inspiration' };
+  }
+
+  private async generateImageEdit(baseUrl: string, apiKey: string, model: string, prompt: string, referenceImage: Express.Multer.File) {
+    const form = new FormData();
+    form.append('model', model);
+    form.append('prompt', prompt);
+    form.append('size', '1024x1024');
+    const imageBytes = new Uint8Array(referenceImage.buffer);
+    form.append('image', new Blob([imageBytes], { type: referenceImage.mimetype }), referenceImage.originalname || 'reference.png');
+    return fetch(`${baseUrl}/images/edits`, { method: 'POST', headers: { Authorization: `Bearer ${apiKey}` }, body: form });
   }
 
   async generate(input: { task: AssistantTask; input: string; language?: 'fr' | 'en'; context?: string }) {
