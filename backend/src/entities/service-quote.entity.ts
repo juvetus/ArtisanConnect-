@@ -19,7 +19,8 @@ export class ServiceQuote {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })
+  // Existing development databases may contain quotes created before quote numbers were added.
+  @Column({ unique: true, nullable: true })
   quoteNumber: string;
 
   @Column()

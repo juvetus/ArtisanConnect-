@@ -9,6 +9,7 @@ export class QuoteDetails1759200000000 implements MigrationInterface {
     await queryRunner.query('ALTER TABLE "service_quotes" ADD COLUMN IF NOT EXISTS "items" jsonb NOT NULL DEFAULT \'[]\'');
     await queryRunner.query('ALTER TABLE "service_quotes" ADD COLUMN IF NOT EXISTS "terms" text');
     await queryRunner.query('UPDATE "service_quotes" SET "quoteNumber" = \'DEV-\' || to_char("createdAt", \'YYYYMMDD\') || \'-\' || upper(substr(replace("id"::text, \'-\', \'\'), 1, 6)) WHERE "quoteNumber" IS NULL');
+    await queryRunner.query('ALTER TABLE "service_quotes" ALTER COLUMN "quoteNumber" SET NOT NULL');
     await queryRunner.query('CREATE UNIQUE INDEX IF NOT EXISTS "IDX_service_quotes_quoteNumber" ON "service_quotes" ("quoteNumber")');
   }
 
