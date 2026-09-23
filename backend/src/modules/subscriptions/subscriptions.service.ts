@@ -1,7 +1,7 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, MoreThan, IsNull, Repository } from 'typeorm';
-import { Subscription, SubscriptionPlan } from '../../entities/index.js';
+import { PromotionCode, Subscription, SubscriptionPlan } from '../../entities/index.js';
 import { MomoService } from '../momo/momo.service.js';
 
 /** Limites de l'offre gratuite, à ajuster après le pilote. */
@@ -28,6 +28,9 @@ export class SubscriptionsService {
     private planRepository: Repository<SubscriptionPlan>,
     private dataSource: DataSource,
     private momoService: MomoService,
+    @Optional()
+    @InjectRepository(PromotionCode)
+    private promotionRepository?: Repository<PromotionCode>,
   ) {}
 
   private readonly defaultPlans: Array<{
@@ -148,19 +151,23 @@ export class SubscriptionsService {
     return plans.find((plan) => plan.slug === 'premium-growth') ?? plans[0];
   }
 
-  async createSubscription(userId: string, planId: string, payerPhone?: string): Promise<Subscription & { redirectUrl?: string | null }> {
-    const normalizedPhone = this.normalizeMomoPhone(payerPhone);
-
+  async createSubscription(userId: string, planId: string, payerPhone?: string, promotionCode?: string): Promise<Subscription & { redirectUrl?: string | null; discountPercent?: number; originalAmount?: number }> {
     return this.dataSource.transaction(async (manager) => {
       const plan = await manager.findOne(SubscriptionPlan, { where: { id: planId } });
       if (!plan) throw new NotFoundException('Plan introuvable');
+      const promo = promotionCode ? await manager.findOne(PromotionCode, { where: { code: promotionCode.trim().toUpperCase(), active: true } }) : null;
+      if (promotionCode && !promo) throw new BadRequestException('Code promotionnel invalide ou désactivé');
+      if (promo?.expiresAt && promo.expiresAt.getTime() <= Date.now()) throw new BadRequestException('Ce code promotionnel a expiré');
+      const originalAmount = Number(plan.price);
+      const discountPercent = promo?.discountPercent ?? 0;
+      const amount = Math.max(0, Math.round(originalAmount * (100 - discountPercent) / 100));
 
       const subscription = await manager.save(
         manager.create(Subscription, {
           userId,
           planId: plan.id,
           status: 'pending',
-          amount: Number(plan.price),
+          amount,
           currency: plan.currency,
           startDate: new Date(),
           endDate: new Date(Date.now() + plan.durationDays * 24 * 60 * 60 * 1000),
@@ -168,6 +175,19 @@ export class SubscriptionsService {
           provider: 'momo',
         }),
       );
+
+      if (amount === 0) {
+        if (promo) {
+          promo.usedCount += 1;
+          await manager.save(promo);
+        }
+        subscription.status = 'active';
+        subscription.lastPaymentAt = new Date();
+        const savedFreeSubscription = await manager.save(subscription);
+        return Object.assign(savedFreeSubscription, { redirectUrl: null, discountPercent, originalAmount });
+      }
+
+      const normalizedPhone = this.normalizeMomoPhone(payerPhone);
 
       const result = await this.momoService.initiateCollectionPayment({
         orderId: `SUB-${subscription.id}`,
@@ -184,12 +204,16 @@ export class SubscriptionsService {
       if (result.status === 'SUCCESS') {
         subscription.status = 'active';
         subscription.lastPaymentAt = new Date();
+        if (promo) {
+          promo.usedCount += 1;
+          await manager.save(promo);
+        }
       } else if (result.status === 'FAILED') {
         subscription.status = 'failed';
       }
 
       const savedSubscription = await manager.save(subscription);
-      return Object.assign(savedSubscription, { redirectUrl: result.redirectUrl || null });
+      return Object.assign(savedSubscription, { redirectUrl: result.redirectUrl || null, discountPercent, originalAmount });
     });
   }
 
@@ -222,6 +246,29 @@ export class SubscriptionsService {
 
   async findByUser(userId: string): Promise<Subscription[]> {
     return this.subscriptionRepository.find({ where: { userId }, relations: { plan: true } });
+  }
+
+  async listPromotionCodes() {
+    return this.promotionRepository?.find({ order: { createdAt: 'DESC' } }) ?? [];
+  }
+
+  async createPromotionCode(data: { code: string; discountPercent: number; expiresAt?: string | null }) {
+    const code = data.code.trim().toUpperCase();
+    const discountPercent = Number(data.discountPercent);
+    if (!/^[A-Z0-9_-]{3,40}$/.test(code)) throw new BadRequestException('Le code doit contenir 3 à 40 caractères : lettres, chiffres, tiret ou underscore.');
+    if (!Number.isInteger(discountPercent) || discountPercent < 10 || discountPercent > 100) throw new BadRequestException('La remise doit être comprise entre 10 % et 100 %.');
+    if (!this.promotionRepository) throw new BadRequestException('Les codes promotionnels ne sont pas configurés.');
+    const existing = await this.promotionRepository.findOne({ where: { code } });
+    if (existing) throw new BadRequestException('Ce code promotionnel existe déjà.');
+    return this.promotionRepository.save(this.promotionRepository.create({ code, discountPercent, expiresAt: data.expiresAt ? new Date(data.expiresAt) : null }));
+  }
+
+  async setPromotionCodeActive(id: string, active: boolean) {
+    if (!this.promotionRepository) throw new BadRequestException('Les codes promotionnels ne sont pas configurés.');
+    const promo = await this.promotionRepository.findOne({ where: { id } });
+    if (!promo) throw new NotFoundException('Code promotionnel introuvable');
+    promo.active = active;
+    return this.promotionRepository.save(promo);
   }
 
   /** Un abonnement compte comme Premium tant qu'il est actif et non expiré. */

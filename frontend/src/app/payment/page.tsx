@@ -23,6 +23,7 @@ function PaymentPageContent() {
   const [plans, setPlans] = useState<Array<{ id: string; name: string; price: number; currency: string; durationDays: number; description?: string | null }>>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<string>('');
   const [payerPhone, setPayerPhone] = useState('');
+  const [promotionCode, setPromotionCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -52,17 +53,12 @@ function PaymentPageContent() {
       setError('Veuillez choisir un plan.');
       return;
     }
-    if (!payerPhone.trim()) {
-      setError('Veuillez saisir votre numéro MoMo.');
-      return;
-    }
-
     setLoading(true);
     setError('');
     setMessage('');
 
     try {
-      const result = await api.createSubscription(selectedPlanId, payerPhone);
+      const result = await api.createSubscription(selectedPlanId, payerPhone, promotionCode.trim() || undefined);
       if (result.redirectUrl) {
         window.location.assign(result.redirectUrl);
         return;
@@ -142,6 +138,19 @@ function PaymentPageContent() {
             placeholder="Ex: 237699000000"
             className="mt-2 w-full rounded-md border border-stone-200 px-3 py-2 text-sm outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-100"
           />
+
+          <label htmlFor="promotionCode" className="mt-5 block text-sm font-medium text-stone-800">
+            Code promotionnel (facultatif)
+          </label>
+          <input
+            id="promotionCode"
+            type="text"
+            value={promotionCode}
+            onChange={(event) => setPromotionCode(event.target.value.toUpperCase())}
+            placeholder="Ex: PILOTE2026"
+            className="mt-2 w-full rounded-md border border-stone-200 px-3 py-2 text-sm uppercase outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-100"
+          />
+          <p className="mt-1 text-xs text-stone-500">Laissez vide si vous ne disposez pas d’un code.</p>
 
           {error && <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
           {message && <p className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{message}</p>}

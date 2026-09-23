@@ -199,7 +199,7 @@ export const api = {
   getPlanStatus: () =>
     request<{ premium: boolean; planName: string; planSlug: string | null; endDate: string | null; listingLimit: number | null }>('/subscriptions/status'),
 
-  createSubscription: (planId: string, payerPhone: string) => post<{ id: string; status: string; paymentReference?: string | null; redirectUrl?: string | null; amount: number; currency: string; planId: string }>('/subscriptions/create/' + planId, { payerPhone }),
+  createSubscription: (planId: string, payerPhone: string, promotionCode?: string) => post<{ id: string; status: string; paymentReference?: string | null; redirectUrl?: string | null; amount: number; currency: string; planId: string; discountPercent?: number; originalAmount?: number }>('/subscriptions/create/' + planId, { payerPhone, promotionCode }),
 
   confirmSubscriptionPayment: (referenceId: string) =>
     post<{ id: string; status: string; paymentReference?: string | null; amount: number; currency: string; planId: string }>(`/subscriptions/confirm/${encodeURIComponent(referenceId)}`),
@@ -248,6 +248,9 @@ export const api = {
   adminOrders: () => request<Order[]>('/admin/orders'),
 
   adminSubscriptions: () => request<AdminSubscription[]>('/admin/subscriptions'),
+  adminPromotionCodes: () => request<Array<{ id: string; code: string; discountPercent: number; active: boolean; expiresAt: string | null; usedCount: number; createdAt: string }>>('/subscriptions/admin/promotion-codes'),
+  adminCreatePromotionCode: (data: { code: string; discountPercent: number; expiresAt?: string | null }) => post('/subscriptions/admin/promotion-codes', data),
+  adminSetPromotionCodeActive: (id: string, active: boolean) => patch(`/subscriptions/admin/promotion-codes/${id}/status`, { active }),
 
   adminCancelOrder: (id: string) => patch<Order>(`/admin/orders/${id}/cancel`, {}),
 

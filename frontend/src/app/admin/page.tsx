@@ -80,7 +80,7 @@ export default function AdminPage() {
   const { data, isLoading, mutate } = useSWR(
     user && ['admin', 'editor', 'viewer'].includes(user.role) ? ['admin-console', user.id] : null,
     async () => {
-      const [overview, users, listings, shops, formalizations, adminOrders, adminSubscriptions, serviceDashboard] = await Promise.all([
+      const [overview, users, listings, shops, formalizations, adminOrders, adminSubscriptions, adminPromotionCodes, serviceDashboard] = await Promise.all([
         api.adminOverview(),
         user?.role === 'admin' ? api.adminUsers() : Promise.resolve([] as User[]),
         api.adminListings(),
@@ -88,9 +88,10 @@ export default function AdminPage() {
         user?.role !== 'viewer' ? api.adminFormalizations() : Promise.resolve([] as ArtisanFormalization[]),
         api.adminOrders(),
         api.adminSubscriptions(),
+        user?.role === 'admin' ? api.adminPromotionCodes() : Promise.resolve([]),
         api.getServiceDashboardStats(),
       ]);
-      return { overview, users, listings, shops, formalizations, adminOrders, adminSubscriptions, serviceDashboard: serviceDashboard as ServiceDashboardStats };
+      return { overview, users, listings, shops, formalizations, adminOrders, adminSubscriptions, adminPromotionCodes, serviceDashboard: serviceDashboard as ServiceDashboardStats };
     },
   );
 
@@ -320,7 +321,7 @@ export default function AdminPage() {
 
       {view === 'analytics' && <AnalyticsFunnel />}
 
-      {view === 'subscriptions' && <AdminSubscriptions subscriptions={data.adminSubscriptions} />}
+      {view === 'subscriptions' && <AdminSubscriptions subscriptions={data.adminSubscriptions} promotionCodes={data.adminPromotionCodes} onAction={runAdminAction} />}
 
       {view === 'orders' && (
         <AdminOrders
@@ -1051,10 +1052,15 @@ function RecentOrders({
   );
 }
 
-function AdminSubscriptions({ subscriptions }: { subscriptions: AdminSubscription[] }) {
+type AdminPromotionCode = { id: string; code: string; discountPercent: number; active: boolean; expiresAt: string | null; usedCount: number; createdAt: string };
+
+function AdminSubscriptions({ subscriptions, promotionCodes, onAction }: { subscriptions: AdminSubscription[]; promotionCodes: AdminPromotionCode[]; onAction: (action: () => Promise<unknown>) => Promise<void> }) {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<AdminSubscription['status'] | 'all'>('all');
   const [page, setPage] = useState(0);
+  const [promotionCode, setPromotionCode] = useState('');
+  const [discountPercent, setDiscountPercent] = useState('10');
+  const [expiresAt, setExpiresAt] = useState('');
   const normalizedSearch = search.trim().toLowerCase();
   const filteredSubscriptions = subscriptions.filter((subscription) => {
     const haystack = [
@@ -1075,7 +1081,18 @@ function AdminSubscriptions({ subscriptions }: { subscriptions: AdminSubscriptio
   };
 
   return (
-    <section className="space-y-4 rounded-lg border border-stone-200 bg-white p-5">
+    <section className="space-y-6 rounded-lg border border-stone-200 bg-white p-5">
+      <div className="rounded-md border border-amber-200 bg-amber-50 p-4">
+        <h2 className="font-semibold text-stone-900">Codes promotionnels</h2>
+        <p className="mt-1 text-sm text-stone-600">Créez des remises de 10 % à 100 % pour les abonnements.</p>
+        <form className="mt-3 grid gap-3 md:grid-cols-[1fr_150px_180px_auto]" onSubmit={(event) => { event.preventDefault(); void onAction(async () => { await api.adminCreatePromotionCode({ code: promotionCode, discountPercent: Number(discountPercent), expiresAt: expiresAt || null }); setPromotionCode(''); setDiscountPercent('10'); setExpiresAt(''); }); }}>
+          <input required value={promotionCode} onChange={(event) => setPromotionCode(event.target.value.toUpperCase())} pattern="[A-Za-z0-9_-]{3,40}" placeholder="Ex : PILOTE2026" className="rounded-md border border-stone-300 px-3 py-2 text-sm uppercase" />
+          <input required type="number" min="10" max="100" step="1" value={discountPercent} onChange={(event) => setDiscountPercent(event.target.value)} placeholder="Remise %" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
+          <input type="date" value={expiresAt} onChange={(event) => setExpiresAt(event.target.value)} className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
+          <button type="submit" className="rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-white hover:bg-amber-800">Créer le code</button>
+        </form>
+        {promotionCodes.length ? <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[620px] text-left text-sm"><thead className="border-b border-amber-200 text-xs uppercase tracking-wide text-stone-500"><tr><th className="px-2 py-2">Code</th><th className="px-2 py-2">Remise</th><th className="px-2 py-2">Expiration</th><th className="px-2 py-2">Utilisations</th><th className="px-2 py-2">État</th><th className="px-2 py-2" /></tr></thead><tbody>{promotionCodes.map((promo) => <tr key={promo.id} className="border-b border-amber-100 last:border-0"><td className="px-2 py-2 font-semibold">{promo.code}</td><td className="px-2 py-2">{promo.discountPercent}%</td><td className="px-2 py-2">{promo.expiresAt ? new Date(promo.expiresAt).toLocaleDateString('fr-FR') : 'Sans expiration'}</td><td className="px-2 py-2">{promo.usedCount}</td><td className="px-2 py-2">{promo.active ? 'Actif' : 'Désactivé'}</td><td className="px-2 py-2 text-right"><button type="button" onClick={() => void onAction(() => api.adminSetPromotionCodeActive(promo.id, !promo.active))} className="text-xs font-medium text-amber-800 underline">{promo.active ? 'Désactiver' : 'Activer'}</button></td></tr>)}</tbody></table></div> : <p className="mt-3 text-sm text-stone-500">Aucun code créé.</p>}
+      </div>
       <div>
         <h2 className="font-semibold">Gestion des abonnements ({filteredSubscriptions.length}/{subscriptions.length})</h2>
         <p className="mt-1 text-sm text-stone-600">Suivez les plans souscrits, les paiements et les dates d’expiration.</p>
