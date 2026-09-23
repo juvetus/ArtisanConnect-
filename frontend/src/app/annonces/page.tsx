@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { ListingCard } from '@/components/ListingCard';
 import { Pagination } from '@/components/Pagination';
@@ -14,6 +15,7 @@ type Filters = { q?: string; category?: string; type?: 'product' | 'service'; ci
 
 export default function ListingsPage() {
   const { language } = useLanguage();
+  const router = useRouter();
   const [filters, setFilters] = useState<Filters>({});
   const [draftQuery, setDraftQuery] = useState('');
   const [page, setPage] = useState(0);
@@ -51,7 +53,7 @@ export default function ListingsPage() {
           <button type="submit" className="rounded-md bg-stone-900 px-5 py-3 text-sm font-medium text-white hover:bg-stone-800">{french ? 'Rechercher' : 'Search'}</button>
         </form>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <label className="text-sm font-medium text-stone-700">{french ? 'Type' : 'Type'}<select value={filters.type ?? ''} onChange={(event) => updateFilters({ type: (event.target.value || undefined) as Filters['type'] })} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2"><option value="">{french ? 'Produits et services' : 'Products and services'}</option><option value="product">{french ? 'Produits' : 'Products'}</option><option value="service">{french ? 'Services' : 'Services'}</option></select></label>
+          <label className="text-sm font-medium text-stone-700">{french ? 'Type' : 'Type'}<select value={filters.type ?? ''} onChange={(event) => { const value = event.target.value; if (value === 'service') { router.push('/services'); return; } updateFilters({ type: (value || undefined) as Filters['type'] }); }} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2"><option value="">{french ? 'Produits' : 'Products'}</option><option value="product">{french ? 'Produits' : 'Products'}</option><option value="service">{french ? 'Voir les services artisanaux' : 'View artisan services'}</option></select></label>
           <label className="text-sm font-medium text-stone-700">{french ? 'Ville' : 'City'}<select value={filters.city ?? ''} onChange={(event) => updateFilters({ city: event.target.value || undefined })} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2"><option value="">{french ? 'Toutes les villes' : 'All cities'}</option>{CITIES.map((city) => <option key={city} value={city}>{city}</option>)}</select></label>
           <label className="text-sm font-medium text-stone-700">{french ? 'Quartier' : 'Neighborhood'}<select value={filters.neighborhood ?? ''} disabled={!cityNeighborhoods.length} onChange={(event) => updateFilters({ neighborhood: event.target.value || undefined })} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 disabled:bg-stone-100"><option value="">{french ? 'Tous les quartiers' : 'All neighborhoods'}</option>{cityNeighborhoods.map((neighborhood) => <option key={neighborhood} value={neighborhood}>{neighborhood}</option>)}</select></label>
           <label className="text-sm font-medium text-stone-700">{french ? 'Budget min. (FCFA)' : 'Min. budget (XAF)'}<input type="number" min={0} step={500} value={filters.minPrice ?? ''} onChange={(event) => updateFilters({ minPrice: event.target.value ? Number(event.target.value) : undefined })} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2" /></label>
