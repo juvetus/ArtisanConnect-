@@ -20,6 +20,9 @@ export class PromotionCode {
   @Column({ type: 'int', default: 0 })
   usedCount: number;
 
+  @Column({ type: 'int', nullable: true })
+  maxUses: number | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

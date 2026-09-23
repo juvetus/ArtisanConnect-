@@ -248,8 +248,8 @@ export const api = {
   adminOrders: () => request<Order[]>('/admin/orders'),
 
   adminSubscriptions: () => request<AdminSubscription[]>('/admin/subscriptions'),
-  adminPromotionCodes: () => request<Array<{ id: string; code: string; discountPercent: number; active: boolean; expiresAt: string | null; usedCount: number; createdAt: string }>>('/subscriptions/admin/promotion-codes'),
-  adminCreatePromotionCode: (data: { code: string; discountPercent: number; expiresAt?: string | null }) => post('/subscriptions/admin/promotion-codes', data),
+  adminPromotionCodes: () => request<Array<{ id: string; code: string; discountPercent: number; active: boolean; expiresAt: string | null; usedCount: number; maxUses: number | null; createdAt: string }>>('/subscriptions/admin/promotion-codes'),
+  adminCreatePromotionCode: (data: { code: string; discountPercent: number; expiresAt?: string | null; maxUses?: number | null }) => post('/subscriptions/admin/promotion-codes', data),
   adminSetPromotionCodeActive: (id: string, active: boolean) => patch(`/subscriptions/admin/promotion-codes/${id}/status`, { active }),
 
   adminCancelOrder: (id: string) => patch<Order>(`/admin/orders/${id}/cancel`, {}),

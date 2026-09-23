@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, MoreThan, IsNull, Repository } from 'typeorm';
-import { PromotionCode, Subscription, SubscriptionPlan } from '../../entities/index.js';
+import { PromotionCode, PromotionRedemption, Subscription, SubscriptionPlan } from '../../entities/index.js';
 import { MomoService } from '../momo/momo.service.js';
 
 /** Limites de l'offre gratuite, à ajuster après le pilote. */
@@ -155,9 +155,18 @@ export class SubscriptionsService {
     return this.dataSource.transaction(async (manager) => {
       const plan = await manager.findOne(SubscriptionPlan, { where: { id: planId } });
       if (!plan) throw new NotFoundException('Plan introuvable');
+      const activeSubscription = await manager.findOne(Subscription, { where: { userId, status: 'active' } });
+      if (activeSubscription && (!activeSubscription.endDate || activeSubscription.endDate.getTime() > Date.now())) {
+        throw new BadRequestException('Vous avez déjà un abonnement actif. Attendez son expiration avant de souscrire à un nouveau plan.');
+      }
       const promo = promotionCode ? await manager.findOne(PromotionCode, { where: { code: promotionCode.trim().toUpperCase(), active: true } }) : null;
       if (promotionCode && !promo) throw new BadRequestException('Code promotionnel invalide ou désactivé');
       if (promo?.expiresAt && promo.expiresAt.getTime() <= Date.now()) throw new BadRequestException('Ce code promotionnel a expiré');
+      if (promo?.maxUses !== null && promo && promo.usedCount >= promo.maxUses) throw new BadRequestException('Ce code promotionnel a atteint sa limite d’utilisation.');
+      if (promo) {
+        const previousRedemption = await manager.findOne(PromotionRedemption, { where: { promotionCodeId: promo.id, userId } });
+        if (previousRedemption) throw new BadRequestException('Ce code promotionnel a déjà été utilisé sur votre compte.');
+      }
       const originalAmount = Number(plan.price);
       const discountPercent = promo?.discountPercent ?? 0;
       const amount = Math.max(0, Math.round(originalAmount * (100 - discountPercent) / 100));
@@ -178,6 +187,7 @@ export class SubscriptionsService {
 
       if (amount === 0) {
         if (promo) {
+          await manager.save(manager.create(PromotionRedemption, { promotionCodeId: promo.id, userId }));
           promo.usedCount += 1;
           await manager.save(promo);
         }
@@ -205,6 +215,7 @@ export class SubscriptionsService {
         subscription.status = 'active';
         subscription.lastPaymentAt = new Date();
         if (promo) {
+          await manager.save(manager.create(PromotionRedemption, { promotionCodeId: promo.id, userId }));
           promo.usedCount += 1;
           await manager.save(promo);
         }
@@ -252,15 +263,17 @@ export class SubscriptionsService {
     return this.promotionRepository?.find({ order: { createdAt: 'DESC' } }) ?? [];
   }
 
-  async createPromotionCode(data: { code: string; discountPercent: number; expiresAt?: string | null }) {
+  async createPromotionCode(data: { code: string; discountPercent: number; expiresAt?: string | null; maxUses?: number | null }) {
     const code = data.code.trim().toUpperCase();
     const discountPercent = Number(data.discountPercent);
     if (!/^[A-Z0-9_-]{3,40}$/.test(code)) throw new BadRequestException('Le code doit contenir 3 à 40 caractères : lettres, chiffres, tiret ou underscore.');
     if (!Number.isInteger(discountPercent) || discountPercent < 10 || discountPercent > 100) throw new BadRequestException('La remise doit être comprise entre 10 % et 100 %.');
+    const maxUses = data.maxUses === null || data.maxUses === undefined || data.maxUses === 0 ? null : Number(data.maxUses);
+    if (maxUses !== null && (!Number.isInteger(maxUses) || maxUses < 1)) throw new BadRequestException('La limite d’utilisation doit être un entier positif.');
     if (!this.promotionRepository) throw new BadRequestException('Les codes promotionnels ne sont pas configurés.');
     const existing = await this.promotionRepository.findOne({ where: { code } });
     if (existing) throw new BadRequestException('Ce code promotionnel existe déjà.');
-    return this.promotionRepository.save(this.promotionRepository.create({ code, discountPercent, expiresAt: data.expiresAt ? new Date(data.expiresAt) : null }));
+    return this.promotionRepository.save(this.promotionRepository.create({ code, discountPercent, expiresAt: data.expiresAt ? new Date(data.expiresAt) : null, maxUses }));
   }
 
   async setPromotionCodeActive(id: string, active: boolean) {

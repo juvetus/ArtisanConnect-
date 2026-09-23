@@ -65,7 +65,9 @@ function PaymentPageContent() {
       }
 
       setSuccess(true);
-      setMessage(`Paiement initié. Référence: ${result.paymentReference || 'non fournie'}.`);
+      setMessage(result.status === 'active'
+        ? `Votre abonnement est actif${result.discountPercent ? ` avec une remise de ${result.discountPercent} %` : ''}.`
+        : `Paiement initié${result.discountPercent ? ` avec une remise de ${result.discountPercent} %` : ''}. Référence : ${result.paymentReference || 'en attente de confirmation MoMo'}.`);
       if (result.paymentReference) {
         router.push(`/payment/callback?type=subscription&referenceId=${encodeURIComponent(result.paymentReference)}`);
       }

@@ -23,6 +23,7 @@ import {
   Subscription,
   SubscriptionPlan,
   PromotionCode,
+  PromotionRedemption,
   Payout,
   CustomerRequest,
   Report,
@@ -42,6 +43,8 @@ import { QuoteDetails1759200000000 } from './migrations/1759200000000-quote-deta
 import { ServiceExternalUrls1759300000000 } from './migrations/1759300000000-service-external-urls.js';
 import { ListingAiImages1759400000000 } from './migrations/1759400000000-listing-ai-images.js';
 import { PromotionCodes1759500000000 } from './migrations/1759500000000-promotion-codes.js';
+import { PromotionRedemptions1759600000000 } from './migrations/1759600000000-promotion-redemptions.js';
+import { PromotionMaxUses1759700000000 } from './migrations/1759700000000-promotion-max-uses.js';
 
 @Module({
   imports: [
@@ -54,9 +57,9 @@ import { PromotionCodes1759500000000 } from './migrations/1759500000000-promotio
         username: configService.get('DB_USERNAME', 'artisan'),
         password: configService.get('DB_PASSWORD', 'artisan_password_dev'),
         database: configService.get('DB_DATABASE', 'artisan_connect'),
-        entities: [User, Listing, Order, Payment, Review, Message, InstitutionalResource, InstitutionalProgram, ArtisanFormalization, Shop, Notification, Service, ServiceOrder, ServiceQuote, ServicePayment, ServiceReview, ServiceValidationHistory, ProgramApplication, Subscription, SubscriptionPlan, PromotionCode, Payout, CustomerRequest, Report, AnalyticsEvent],
+        entities: [User, Listing, Order, Payment, Review, Message, InstitutionalResource, InstitutionalProgram, ArtisanFormalization, Shop, Notification, Service, ServiceOrder, ServiceQuote, ServicePayment, ServiceReview, ServiceValidationHistory, ProgramApplication, Subscription, SubscriptionPlan, PromotionCode, PromotionRedemption, Payout, CustomerRequest, Report, AnalyticsEvent],
         synchronize: configService.get('DB_SYNCHRONIZE', configService.get('NODE_ENV') === 'development' ? 'true' : 'false') === 'true',
-        migrations: [PilotTrustFeatures1758200000000, CustomerRequestStatuses1758300000000, AnalyticsEvents1758400000000, ShopAvailability1758500000000, CustomerRequestAttachments1758600000000, ListingSponsoring1758700000000, UserAvatar1758800000000, ServiceVideos1758900000000, InstitutionMedia1759000000000, InstitutionPdfs1759100000000, QuoteDetails1759200000000, ServiceExternalUrls1759300000000, ListingAiImages1759400000000, PromotionCodes1759500000000],
+        migrations: [PilotTrustFeatures1758200000000, CustomerRequestStatuses1758300000000, AnalyticsEvents1758400000000, ShopAvailability1758500000000, CustomerRequestAttachments1758600000000, ListingSponsoring1758700000000, UserAvatar1758800000000, ServiceVideos1758900000000, InstitutionMedia1759000000000, InstitutionPdfs1759100000000, QuoteDetails1759200000000, ServiceExternalUrls1759300000000, ListingAiImages1759400000000, PromotionCodes1759500000000, PromotionRedemptions1759600000000, PromotionMaxUses1759700000000],
         // En production `synchronize` est désactivé : le schéma évolue uniquement par migrations.
         migrationsRun: configService.get('DB_SYNCHRONIZE', configService.get('NODE_ENV') === 'development' ? 'true' : 'false') !== 'true',
         logging: configService.get('NODE_ENV') === 'development',
@@ -64,7 +67,7 @@ import { PromotionCodes1759500000000 } from './migrations/1759500000000-promotio
         retryDelay: Number(configService.get('DB_RETRY_DELAY', 3000)),
       }),
     }),
-    TypeOrmModule.forFeature([User, Listing, Order, Payment, Review, Message, InstitutionalResource, InstitutionalProgram, ArtisanFormalization, Shop, Notification, Service, ServiceOrder, ServiceQuote, ServicePayment, ServiceReview, ServiceValidationHistory, ProgramApplication, Subscription, SubscriptionPlan, PromotionCode, Payout, CustomerRequest, Report, AnalyticsEvent]),
+    TypeOrmModule.forFeature([User, Listing, Order, Payment, Review, Message, InstitutionalResource, InstitutionalProgram, ArtisanFormalization, Shop, Notification, Service, ServiceOrder, ServiceQuote, ServicePayment, ServiceReview, ServiceValidationHistory, ProgramApplication, Subscription, SubscriptionPlan, PromotionCode, PromotionRedemption, Payout, CustomerRequest, Report, AnalyticsEvent]),
   ],
   exports: [TypeOrmModule],
 })
