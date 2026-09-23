@@ -94,8 +94,9 @@ export const api = {
     form.append('style', data.style);
     if (data.language) form.append('language', data.language);
     if (data.referenceImage) form.append('referenceImage', data.referenceImage);
-    return request<{ imageUrl: string; label: string }>('/assistant/generate-image', { method: 'POST', body: form });
+    return request<{ imageUrl: string; label: string; quota: { used: number; limit: number; remaining: number } }>('/assistant/generate-image', { method: 'POST', body: form });
   },
+  assistantImageQuota: () => request<{ planSlug: string | null; limit: number; used: number; remaining: number; subscriptionId: string | null }>('/assistant/image-quota'),
 
     updateProfile: (id: string, data: { name?: string; phone?: string; whatsappPhone?: string; location?: string; bio?: string; avatarUrl?: string }) => patch<User>(`/users/${id}`, data),
 

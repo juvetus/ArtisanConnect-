@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, MoreThan, IsNull, Repository } from 'typeorm';
-import { PromotionCode, PromotionRedemption, Subscription, SubscriptionPlan } from '../../entities/index.js';
+import { AiImageGeneration, PromotionCode, PromotionRedemption, Subscription, SubscriptionPlan } from '../../entities/index.js';
 import { MomoService } from '../momo/momo.service.js';
 
 /** Limites de l'offre gratuite, à ajuster après le pilote. */
@@ -19,6 +19,13 @@ export const SPONSORING_POLICIES: Record<string, SponsoringPolicy> = {
   'premium-growth': { maxSponsored: 5, durationDays: 30 },
 };
 
+export const AI_IMAGE_QUOTAS: Record<string, number> = {
+  'visibilite-7': 2,
+  'local-plus': 10,
+  croissance: 20,
+  'premium-growth': 50,
+};
+
 @Injectable()
 export class SubscriptionsService {
   constructor(
@@ -31,6 +38,9 @@ export class SubscriptionsService {
     @Optional()
     @InjectRepository(PromotionCode)
     private promotionRepository?: Repository<PromotionCode>,
+    @Optional()
+    @InjectRepository(AiImageGeneration)
+    private aiImageGenerationRepository?: Repository<AiImageGeneration>,
   ) {}
 
   private readonly defaultPlans: Array<{
@@ -293,6 +303,20 @@ export class SubscriptionsService {
   async hasActivePlan(userId: string, slug: string): Promise<boolean> {
     const plan = await this.getActivePlan(userId);
     return plan?.slug === slug;
+  }
+
+  async getAiImageQuota(userId: string) {
+    const subscription = await this.subscriptionRepository.findOne({
+      where: { userId, status: 'active' },
+      relations: { plan: true },
+      order: { createdAt: 'DESC' },
+    });
+    const planSlug = subscription?.plan?.slug ?? null;
+    const limit = planSlug ? AI_IMAGE_QUOTAS[planSlug] ?? 0 : 0;
+    const used = subscription && this.aiImageGenerationRepository
+      ? await this.aiImageGenerationRepository.count({ where: { userId, subscriptionId: subscription.id } })
+      : 0;
+    return { planSlug, limit, used, remaining: Math.max(0, limit - used), subscriptionId: subscription?.id ?? null };
   }
 
   async getSponsoringPolicy(userId: string): Promise<SponsoringPolicy | null> {

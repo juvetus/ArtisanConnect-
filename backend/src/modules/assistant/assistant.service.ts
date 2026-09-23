@@ -1,6 +1,10 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { StorageService } from '../storage/storage.service.js';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { AiImageGeneration } from '../../entities/index.js';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service.js';
 
 export type AssistantTask = 'atelier' | 'presentation' | 'produit' | 'reponse' | 'devis' | 'whatsapp' | 'bio' | 'siarc' | 'correction' | 'traduction';
 
@@ -19,9 +23,17 @@ const TASK_INSTRUCTIONS: Record<AssistantTask, string> = {
 
 @Injectable()
 export class AssistantService {
-  constructor(private readonly config: ConfigService, private readonly storage: StorageService) {}
+  constructor(
+    private readonly config: ConfigService,
+    private readonly storage: StorageService,
+    private readonly subscriptionsService: SubscriptionsService,
+    @InjectRepository(AiImageGeneration) private readonly aiImageGenerationRepository: Repository<AiImageGeneration>,
+  ) {}
 
-  async generateImage(input: { prompt: string; style?: string; language?: 'fr' | 'en'; referenceImage?: Express.Multer.File }) {
+  async generateImage(input: { userId: string; prompt: string; style?: string; language?: 'fr' | 'en'; referenceImage?: Express.Multer.File }) {
+    const quota = await this.subscriptionsService.getAiImageQuota(input.userId);
+    if (!quota.subscriptionId || quota.limit === 0) throw new BadRequestException('La génération d’images IA est réservée aux abonnements payants.');
+    if (quota.remaining <= 0) throw new BadRequestException(`Votre quota d’images IA est épuisé (${quota.used}/${quota.limit}). Renouvelez ou changez de plan pour continuer.`);
     const prompt = input.prompt.trim();
     if (prompt.length < 20) throw new BadRequestException('Décrivez suffisamment le produit à mettre en scène.');
     if (prompt.length > 800) throw new BadRequestException('La description est limitée à 800 caractères.');
@@ -47,7 +59,12 @@ export class AssistantService {
     if (!generated?.url && !generated?.b64_json) throw new BadRequestException('Le service IA n’a produit aucune image.');
     const buffer = generated.b64_json ? Buffer.from(generated.b64_json, 'base64') : Buffer.from(await (await fetch(generated.url!)).arrayBuffer());
     const upload = await this.storage.uploadBuffer(buffer, 'artisanconnect/listings/ai', 'image');
-    return { imageUrl: upload.url, label: 'Image IA — mise en scène / inspiration' };
+    await this.aiImageGenerationRepository.save(this.aiImageGenerationRepository.create({ userId: input.userId, subscriptionId: quota.subscriptionId, }));
+    return { imageUrl: upload.url, label: 'Image IA — mise en scène / inspiration', quota: { used: quota.used + 1, limit: quota.limit, remaining: quota.remaining - 1 } };
+  }
+
+  getImageQuota(userId: string) {
+    return this.subscriptionsService.getAiImageQuota(userId);
   }
 
   private async generateImageEdit(baseUrl: string, apiKey: string, model: string, prompt: string, referenceImage: Express.Multer.File) {

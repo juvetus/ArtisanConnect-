@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
 import { api, ApiError } from '@/lib/api';
@@ -24,6 +24,11 @@ export default function AssistantImagesPage() {
   const [images, setImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [quota, setQuota] = useState<{ planSlug: string | null; limit: number; used: number; remaining: number } | null>(null);
+
+  useEffect(() => {
+    if (user?.role === 'artisan') void api.assistantImageQuota().then(setQuota).catch(() => undefined);
+  }, [user]);
 
   const generate = async () => {
     if (prompt.trim().length < 20) return;
@@ -32,6 +37,7 @@ export default function AssistantImagesPage() {
     try {
       const result = await api.assistantGenerateImage({ prompt, style, language, referenceImage });
       setImages((current) => [...current, result.imageUrl].slice(-3));
+      setQuota((current) => current ? { ...current, used: result.quota.used, remaining: result.quota.remaining } : current);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : (english ? 'Image generation failed.' : 'La génération de l’image a échoué.'));
     } finally {
@@ -77,6 +83,7 @@ export default function AssistantImagesPage() {
             {loading ? (english ? 'Generating...' : 'Génération...') : (english ? 'Generate image' : 'Générer une image')}
           </button>
           <p className="text-xs text-stone-500">{english ? 'Up to 3 images per session. A real product photo is required before final publication.' : 'Jusqu’à 3 images par session. Une photo réelle du produit est requise avant publication finale.'}</p>
+          <p className="rounded-md bg-stone-50 px-3 py-2 text-sm text-stone-700">{quota?.limit ? (english ? `${quota.remaining} of ${quota.limit} AI images remaining on your plan.` : `${quota.remaining} image(s) IA restante(s) sur ${quota.limit} pour votre abonnement.`) : (english ? 'AI image generation is available with a paid plan.' : 'La génération d’images IA est disponible avec un abonnement payant.')}</p>
         </section>
 
         <section className="rounded-xl border border-stone-200 bg-white p-6">
