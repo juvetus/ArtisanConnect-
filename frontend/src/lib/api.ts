@@ -1,4 +1,4 @@
-import type { AdminOverview, AdminSubscription, AnalyticsFunnel, ArtisanFormalization, AuthSession, CustomerRequestStatus, InstitutionDashboard, InstitutionalProgram, InstitutionalResource, Listing, Message, NotificationItem, NotificationsResponse, Order, Paginated, Payment, ProgramApplication, ProgramApplicationStatus, ProgramType, PublicArtisan, Report, ReportReason, ReportStatus, ReportTargetType, ResourceType, Review, Role, Shop, ShopType, Thread, User } from './types';
+import type { AdminOverview, AdminSubscription, AnalyticsFunnel, ArtisanFormalization, AuthSession, CustomerRequestStatus, InstitutionDashboard, InstitutionalProgram, InstitutionalResource, Listing, Message, NotificationItem, NotificationsResponse, Order, Paginated, Payment, ProgramApplication, ProgramApplicationStatus, ProgramType, PublicArtisan, Report, ReportReason, ReportStatus, ReportTargetType, ResourceType, Review, Role, Service, Shop, ShopType, Thread, User } from './types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
@@ -530,7 +530,7 @@ export const api = {
     post(`/services`, data),
 
   getMyServices: () =>
-    request(`/services/me/list`),
+    request<Service[]>(`/services/me/list`),
 
   uploadServiceImages: async (files: File[]) => {
     const form = new FormData();

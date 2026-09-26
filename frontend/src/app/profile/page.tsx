@@ -6,7 +6,7 @@ import useSWR from 'swr';
 import { ApiError, api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
-import type { Shop, User } from '@/lib/types';
+import type { Service, Shop, User } from '@/lib/types';
 
 function ShopPaymentForm({ shop }: { shop: Shop }) {
   const [momoNumber, setMomoNumber] = useState(shop.momoNumber ?? shop.mobileMoneyNumber ?? '');
@@ -86,19 +86,52 @@ function ShopPaymentForm({ shop }: { shop: Shop }) {
 
 function ProfileForm({ user }: { user: User }) {
   const { updateUser } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const router = useRouter();
   const [name, setName] = useState(user.name ?? '');
   const [phone, setPhone] = useState(user.phone ?? '');
   const [whatsappPhone, setWhatsappPhone] = useState(user.whatsappPhone ?? user.phone ?? '');
   const [location, setLocation] = useState(user.location ?? '');
   const [bio, setBio] = useState(user.bio ?? '');
+  const [bioSuggestion, setBioSuggestion] = useState('');
+  const [suggestingBio, setSuggestingBio] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl ?? '');
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const { data: shops, isLoading: shopsLoading } = useSWR<Shop[]>(user.role === 'artisan' ? ['profile-shops', user.id] : null, api.myShops);
+  const { data: services } = useSWR<Service[]>(user.role === 'artisan' ? ['profile-services', user.id] : null, () => api.getMyServices());
+
+  const suggestBio = async () => {
+    setSuggestingBio(true);
+    setError('');
+    setNotice('');
+    try {
+      const categories = [...new Set([...(shops ?? []).map((shop) => shop.category), ...(services ?? []).map((service) => service.category)].filter((value): value is string => Boolean(value)))];
+      const serviceNames = (services ?? []).map((service) => service.title).filter(Boolean);
+      const context = [
+        `Nom : ${name || 'non précisé'}`,
+        `${language === 'en' ? 'Location' : 'Ville'}: ${location || shops?.find((shop) => shop.city)?.city || (language === 'en' ? 'not specified' : 'non précisée')}`,
+        `${language === 'en' ? 'Trades' : 'Métiers'}: ${categories.join(', ') || (language === 'en' ? 'to specify' : 'à préciser')}`,
+        `${language === 'en' ? 'Services' : 'Services'}: ${serviceNames.join(', ') || (language === 'en' ? 'to specify' : 'à préciser')}`,
+        `${language === 'en' ? 'Current description' : 'Description actuelle'}: ${bio || (language === 'en' ? 'none' : 'aucune')}`,
+      ].join('\n');
+      const result = await api.assistantGenerate({
+        task: 'presentation',
+        input: language === 'en'
+          ? `Write a public profile description for this artisan, under 150 words. Mention only skills and services confirmed below. Do not invent experience, certifications, or years in business. ${bio ? 'Improve the existing description without adding facts.' : 'If details are missing, stay general and mark what should be completed.'}`
+          : `Rédige une description pour le profil public de cet artisan. Limite-la à 150 mots. Mets en avant uniquement les savoir-faire et services confirmés par les informations ci-dessous. N’invente ni expérience, ni certification, ni ancienneté. ${bio ? 'Améliore la description existante sans ajouter de faits.' : 'Si les informations sont insuffisantes, reste général et indique les éléments à compléter.'}`,
+        context,
+        language,
+      });
+      setBioSuggestion(result.content);
+    } catch (suggestionError) {
+      setError(suggestionError instanceof ApiError ? suggestionError.message : 'Impossible de préparer une suggestion de description.');
+    } finally {
+      setSuggestingBio(false);
+    }
+  };
 
   const save = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -170,8 +203,13 @@ function ProfileForm({ user }: { user: User }) {
           <input id="profile-location" value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Douala, Cameroun" className="field mt-1" />
         </div>
         <div>
-          <label htmlFor="profile-bio" className="block text-sm font-medium text-stone-700">{t('profile_bio')}</label>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <label htmlFor="profile-bio" className="block text-sm font-medium text-stone-700">{t('profile_bio')}</label>
+            {user.role === 'artisan' ? <button type="button" disabled={suggestingBio} onClick={() => void suggestBio()} className="rounded-md border border-amber-700 px-3 py-1.5 text-sm font-medium text-amber-800 disabled:opacity-50">{suggestingBio ? 'Préparation…' : 'Suggérer une description avec l’IA'}</button> : null}
+          </div>
           <textarea id="profile-bio" rows={5} value={bio} onChange={(event) => setBio(event.target.value)} placeholder={t('profile_bio_placeholder')} className="field mt-1" />
+          {user.role === 'artisan' ? <p className="mt-1 text-xs text-stone-500">La suggestion est un brouillon : vérifiez-la et appliquez-la vous-même.</p> : null}
+          {bioSuggestion ? <div className="mt-3 space-y-3 rounded-md border border-amber-200 bg-amber-50 p-4"><p className="whitespace-pre-wrap text-sm text-stone-800">{bioSuggestion}</p><div className="flex flex-wrap gap-2"><button type="button" onClick={() => { setBio(bioSuggestion); setBioSuggestion(''); }} className="rounded-md bg-amber-700 px-3 py-2 text-sm font-medium text-white hover:bg-amber-800">Utiliser cette suggestion</button><button type="button" onClick={() => setBioSuggestion('')} className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm text-stone-700">Ignorer</button></div></div> : null}
         </div>
         {notice ? <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">{notice}</p> : null}
         {error ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
