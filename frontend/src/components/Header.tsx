@@ -110,6 +110,11 @@ export function Header() {
               {t('nav_how_it_works')}
             </Link>
           ) : null}
+          {user?.role !== 'artisan' ? (
+            <Link href="/blog" className={navLinkClass('/blog')}>
+              Blog
+            </Link>
+          ) : null}
           {!user || (user.role !== 'client' && user.role !== 'artisan' && user.role !== 'institution') ? (
             <Link href="/institutions" className={navLinkClass('/institutions')}>
               {t('nav_institutions')}

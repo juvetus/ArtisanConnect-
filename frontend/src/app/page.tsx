@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import useSWR from 'swr';
 import { api } from '@/lib/api';
 import { ListingCard } from '@/components/ListingCard';
@@ -167,6 +168,18 @@ export default function HomePage() {
         <Link href="/register" className="inline-block text-sm font-medium text-amber-800 underline underline-offset-4 hover:text-amber-950">
           {t('home_hero_secondary')}
         </Link>
+      </section>
+
+      <section className="grid items-center gap-5 border-y border-stone-200 py-5 sm:grid-cols-[180px_1fr_auto]">
+        <Link href="/blog/acheter-artisanat-local-cameroun-guide" className="relative block aspect-[16/10] overflow-hidden bg-stone-100">
+          <Image src="/images/blog-acheter-artisanat-local.png" alt="Guide pour acheter de l’artisanat local au Cameroun" fill sizes="180px" className="object-cover" />
+        </Link>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">{t('blog_home_badge')}</p>
+          <h2 className="mt-1 text-lg font-semibold text-stone-900">{t('blog_home_title')}</h2>
+          <p className="mt-1 text-sm text-stone-600">{t('blog_home_description')}</p>
+        </div>
+        <Link href="/blog" className="inline-flex w-fit items-center rounded-md border border-amber-700 px-4 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-50">{t('blog_home_link')}</Link>
       </section>
 
       <details className="rounded-lg border border-stone-200 bg-white p-4">
