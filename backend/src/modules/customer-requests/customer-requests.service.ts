@@ -7,6 +7,7 @@ import { NotificationsService } from '../notifications/notifications.service.js'
 import { EmailService } from '../email/email.service.js';
 import { StorageService } from '../storage/storage.service.js';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service.js';
+import { MomoService } from '../momo/momo.service.js';
 
 /** Une demande est adressée à quelques artisans pertinents, pas à toute la place de marché. */
 const MAX_TARGETED_ARTISANS = 5;
@@ -62,6 +63,7 @@ export class CustomerRequestsService {
     private readonly emails: EmailService,
     private readonly storage: StorageService,
     private readonly subscriptions: SubscriptionsService,
+    private readonly momo: MomoService,
   ) {}
 
   async create(clientId: string, data: { category: string; city: string; neighborhood?: string; description: string; budgetMin?: number; budgetMax?: number; requestedDate?: string; contactPreference?: ContactPreference; contactPhone?: string }) {
@@ -308,6 +310,7 @@ export class CustomerRequestsService {
     const current = (request.responses ?? []).find((response) => response.artisanId === artisanId);
     if (!current) throw new NotFoundException('Vous n’avez pas encore répondu à cette demande');
     if (request.status === 'completed') throw new BadRequestException('Cette demande est clôturée');
+    if (request.paymentStatus && request.paymentStatus !== 'unpaid') throw new BadRequestException('Le paiement est déjà engagé : le prix ne peut plus être modifié');
     if (request.status === 'in_progress' && current.status !== 'accepted') throw new BadRequestException('Offre déjà pourvue : le client a retenu un autre artisan');
     if (data.price !== undefined && (!Number.isFinite(data.price) || data.price < 0)) throw new BadRequestException('Prix invalide');
     if (data.days !== undefined && (!Number.isFinite(data.days) || data.days < 1)) throw new BadRequestException('Délai invalide');
@@ -377,6 +380,106 @@ export class CustomerRequestsService {
     const request = await this.requests.findOne({ where: { id } });
     if (!request) throw new NotFoundException('Demande introuvable');
     if (request.clientId !== userId) throw new ForbiddenException('Cette demande ne vous concerne pas');
+    return request;
+  }
+
+  private async findAwarded(id: string) {
+    const request = await this.requests.findOne({ where: { id } });
+    if (!request) throw new NotFoundException('Demande introuvable');
+    const accepted = (request.responses ?? []).find((response) => response.status === 'accepted');
+    if (request.status !== 'in_progress' || !accepted) throw new BadRequestException('Aucun artisan n’a encore été retenu pour cette demande');
+    return { request, accepted };
+  }
+
+  /** L'artisan retenu signale que le travail est terminé : le client peut alors payer. */
+  async markDelivered(artisanId: string, id: string) {
+    const { request, accepted } = await this.findAwarded(id);
+    if (accepted.artisanId !== artisanId) throw new ForbiddenException('Seul l’artisan retenu peut déclarer la livraison');
+    if (!accepted.price || accepted.price <= 0) throw new BadRequestException('Fixez d’abord le prix convenu avant de déclarer la livraison');
+    request.deliveredAt = new Date();
+    await this.requests.save(request);
+    await this.notifications.notify({
+      recipientId: request.clientId,
+      type: 'order_status',
+      title: 'Travail livré : paiement attendu',
+      content: `L’artisan a terminé le travail (${request.category}). Montant convenu : ${accepted.price} FCFA.`,
+      link: '/customer-requests',
+      relatedId: request.id,
+    });
+    return request;
+  }
+
+  async pay(clientId: string, id: string, data: { method: 'momo' | 'cash'; payerPhone?: string }) {
+    const { request, accepted } = await this.findAwarded(id);
+    if (request.clientId !== clientId) throw new ForbiddenException('Cette demande ne vous concerne pas');
+    if (!request.deliveredAt) throw new BadRequestException('L’artisan n’a pas encore déclaré la livraison');
+    if (request.paymentStatus === 'paid') throw new BadRequestException('Cette demande est déjà payée');
+    if (data.method !== 'momo' && data.method !== 'cash') throw new BadRequestException('Moyen de paiement invalide');
+    const amount = Number(accepted.price);
+    if (!Number.isFinite(amount) || amount <= 0) throw new BadRequestException('Le prix convenu est manquant');
+
+    request.paymentMethod = data.method;
+    request.paymentAmount = amount;
+    request.paymentStatus = 'pending';
+    if (data.method === 'momo') {
+      const phone = String(data.payerPhone ?? '').replace(/[\s().-]/g, '');
+      if (!/^\+?\d{8,15}$/.test(phone)) throw new BadRequestException('Numéro MoMo invalide');
+      const result = await this.momo.initiateCollectionPayment({
+        amount,
+        currency: 'XAF',
+        externalId: `REQ-${request.id}`,
+        payerPhone: phone,
+        payerMessage: 'Paiement ArtisanConnect',
+        payeeNote: `Demande ${request.category}`,
+      });
+      if (result.status === 'FAILED') throw new BadRequestException(result.message || 'Le paiement MoMo a échoué');
+      request.paymentReference = result.referenceId ?? null;
+    }
+    await this.requests.save(request);
+    if (data.method === 'cash') {
+      await this.notifications.notify({
+        recipientId: accepted.artisanId,
+        type: 'payment',
+        title: 'Paiement en espèces à confirmer',
+        content: `Le client indique vous régler ${amount} FCFA en espèces. Confirmez la réception dans vos opportunités.`,
+        link: '/artisan/customer-requests',
+        relatedId: request.id,
+      });
+    }
+    return request;
+  }
+
+  async confirmMomo(clientId: string, id: string) {
+    const { request, accepted } = await this.findAwarded(id);
+    if (request.clientId !== clientId) throw new ForbiddenException('Cette demande ne vous concerne pas');
+    if (request.paymentMethod !== 'momo' || request.paymentStatus !== 'pending' || !request.paymentReference) throw new BadRequestException('Aucun paiement MoMo en attente');
+    const result = await this.momo.getPaymentStatus(request.paymentReference);
+    if (result.status === 'SUCCESS') return this.markPaid(request, accepted.artisanId);
+    if (result.status === 'FAILED' || result.status === 'EXPIRED') {
+      request.paymentStatus = 'unpaid';
+      await this.requests.save(request);
+      throw new BadRequestException('Le paiement MoMo a échoué ou expiré. Vous pouvez réessayer.');
+    }
+    return request;
+  }
+
+  async confirmCash(artisanId: string, id: string) {
+    const { request, accepted } = await this.findAwarded(id);
+    if (accepted.artisanId !== artisanId) throw new ForbiddenException('Seul l’artisan retenu peut confirmer l’encaissement');
+    if (request.paymentMethod !== 'cash' || request.paymentStatus !== 'pending') throw new BadRequestException('Aucun paiement en espèces en attente');
+    return this.markPaid(request, artisanId);
+  }
+
+  private async markPaid(request: CustomerRequest, artisanId: string) {
+    request.paymentStatus = 'paid';
+    request.paidAt = new Date();
+    request.status = 'completed';
+    await this.requests.save(request);
+    const content = `Paiement de ${request.paymentAmount} FCFA confirmé pour la demande ${request.category} à ${request.city}.`;
+    await Promise.all([
+      this.notifications.notify({ recipientId: artisanId, type: 'payment', title: 'Paiement reçu', content, link: '/artisan/customer-requests', relatedId: request.id }),
+      this.notifications.notify({ recipientId: request.clientId, type: 'payment', title: 'Paiement confirmé', content, link: '/customer-requests', relatedId: request.id }),
+    ]);
     return request;
   }
 

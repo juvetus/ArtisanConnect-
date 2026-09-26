@@ -2,6 +2,7 @@ import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateCol
 
 export type CustomerRequestStatus = 'new' | 'contacted' | 'in_progress' | 'completed';
 export type ContactPreference = 'platform' | 'whatsapp' | 'both';
+export type CustomerRequestPaymentStatus = 'unpaid' | 'pending' | 'paid';
 
 @Entity('customer_requests')
 export class CustomerRequest {
@@ -50,6 +51,24 @@ export class CustomerRequest {
 
   @Column({ type: 'jsonb', default: [] })
   responses: { artisanId: string; price?: number; days?: number; message: string; status?: 'accepted' | 'rejected'; createdAt: string; updatedAt?: string }[];
+
+  @Column({ type: 'timestamp', nullable: true })
+  deliveredAt: Date | null;
+
+  @Column({ type: 'varchar', default: 'unpaid' })
+  paymentStatus: CustomerRequestPaymentStatus;
+
+  @Column({ type: 'varchar', nullable: true })
+  paymentMethod: 'momo' | 'cash' | null;
+
+  @Column({ type: 'decimal', precision: 12, scale: 0, nullable: true })
+  paymentAmount: number | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  paymentReference: string | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  paidAt: Date | null;
 
   @CreateDateColumn()
   createdAt: Date;

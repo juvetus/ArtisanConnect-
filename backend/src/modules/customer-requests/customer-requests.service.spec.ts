@@ -19,6 +19,7 @@ describe('CustomerRequestsService', () => {
   const emails = { send: vi.fn().mockResolvedValue(true) };
   const storage = { isEnabled: vi.fn().mockReturnValue(true), uploadBuffer: vi.fn() };
   const subscriptions = { findPremiumUserIds: vi.fn().mockResolvedValue(new Set<string>()) };
+  const momo = { initiateCollectionPayment: vi.fn(), getPaymentStatus: vi.fn() };
 
   let service: CustomerRequestsService;
 
@@ -34,7 +35,32 @@ describe('CustomerRequestsService', () => {
       emails as never,
       storage as never,
       subscriptions as never,
+      momo as never,
     );
+  });
+
+  it('encaisse le prix convenu après livraison, puis clôture la demande', async () => {
+    const request = {
+      id: 'request-1',
+      clientId: 'client-1',
+      category: 'menuiserie',
+      city: 'Douala',
+      status: 'in_progress',
+      paymentStatus: 'unpaid',
+      deliveredAt: null as Date | null,
+      responses: [{ artisanId: 'artisan-1', price: 50000, message: 'offre', status: 'accepted', createdAt: new Date().toISOString() }],
+    };
+    requests.findOne.mockResolvedValue(request);
+    requests.save.mockImplementation(async (value) => value);
+
+    await expect(service.pay('client-1', 'request-1', { method: 'cash' })).rejects.toBeInstanceOf(BadRequestException);
+    await service.markDelivered('artisan-1', 'request-1');
+    await service.pay('client-1', 'request-1', { method: 'cash' });
+    expect(request).toEqual(expect.objectContaining({ paymentStatus: 'pending', paymentMethod: 'cash', paymentAmount: 50000 }));
+    await expect(service.confirmCash('artisan-2', 'request-1')).rejects.toBeInstanceOf(ForbiddenException);
+
+    await service.confirmCash('artisan-1', 'request-1');
+    expect(request).toEqual(expect.objectContaining({ paymentStatus: 'paid', status: 'completed' }));
   });
 
   it('cible les artisans du métier et notifie uniquement ceux-là', async () => {

@@ -62,6 +62,26 @@ export class CustomerRequestsController {
     return this.service.complete(user.id, id);
   }
 
+  @Post(':id/delivered')
+  markDelivered(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.service.markDelivered(user.id, id);
+  }
+
+  @Post(':id/pay')
+  pay(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() body: { method: 'momo' | 'cash'; payerPhone?: string }) {
+    return this.service.pay(user.id, id, body);
+  }
+
+  @Post(':id/pay/momo/confirm')
+  confirmMomo(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.service.confirmMomo(user.id, id);
+  }
+
+  @Post(':id/pay/cash/confirm')
+  confirmCash(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.service.confirmCash(user.id, id);
+  }
+
   @Get(':id')
   getOne(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.service.findOneForUser(user.id, id);
