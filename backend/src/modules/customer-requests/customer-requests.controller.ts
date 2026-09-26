@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Param, Patch, Post, Query, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { CurrentUser, type AuthUser } from '../auth/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
@@ -13,6 +13,9 @@ export class CustomerRequestsController {
 
   @Post()
   create(@CurrentUser() user: AuthUser, @Body() body: { category: string; city: string; neighborhood?: string; description: string; budgetMin?: number; budgetMax?: number; requestedDate?: string; contactPreference?: 'platform' | 'whatsapp' | 'both'; contactPhone?: string }) {
+    if (user.role !== 'client') {
+      throw new ForbiddenException('La publication d’une demande est réservée aux clients. Les artisans peuvent répondre aux demandes depuis la page Opportunités.');
+    }
     return this.service.create(user.id, body);
   }
 

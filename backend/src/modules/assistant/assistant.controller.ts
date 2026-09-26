@@ -16,7 +16,7 @@ export class AssistantController {
 
   @Post('suggest-client-request')
   suggestClientRequest(@CurrentUser() user: AuthUser, @Body() body: { description: string; category?: string; city?: string; neighborhood?: string; budgetMin?: number; budgetMax?: number; language?: 'fr' | 'en' }) {
-    if (user.role !== 'client') throw new BadRequestException('Cette suggestion est réservée aux clients');
+    if (user.role !== 'client') throw new BadRequestException('La suggestion pour décrire un besoin est réservée aux clients. Les artisans peuvent préparer une réponse depuis Opportunités.');
     if (!body.description?.trim()) throw new BadRequestException('Saisissez une première description pour obtenir une suggestion');
     const context = [
       body.category ? `Métier : ${body.category}` : '',

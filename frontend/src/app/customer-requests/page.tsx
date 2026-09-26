@@ -93,6 +93,19 @@ function CustomerRequestsContent() {
   };
 
   if (!ready || !user) return <p className="text-stone-600">Connectez-vous pour publier une demande.</p>;
+  if (user.role === 'artisan') {
+    return (
+      <div className="mx-auto max-w-3xl space-y-5">
+        <h1 className="text-2xl font-semibold text-stone-900">Les demandes sont réservées aux clients</h1>
+        <p role="status" className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+          En tant qu’artisan, vous ne pouvez pas publier une demande pour chercher un autre artisan. Consultez plutôt les opportunités clients et répondez aux demandes qui correspondent à votre métier.
+        </p>
+        <Link href="/artisan/customer-requests" className="inline-flex rounded-md bg-amber-700 px-4 py-2 font-medium text-white hover:bg-amber-800">
+          Voir les opportunités
+        </Link>
+      </div>
+    );
+  }
 
   type MyRequest = NonNullable<typeof requests>[number];
   const renderPayment = (request: MyRequest) => {
