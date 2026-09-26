@@ -20,13 +20,15 @@ export function ListingCard({ listing }: { listing: Listing }) {
     listing.seller?.gender === 'cooperative',
   );
   const isService = listing.type === 'service';
+  const isOutOfStock = !isService && listing.stock <= 0;
   const french = language === 'fr';
   const location = [listing.shop?.neighborhood, listing.shop?.city].filter(Boolean).join(', ');
 
   return (
     <Link
       href={href}
-      className="group relative flex h-full flex-col overflow-hidden rounded-lg border border-stone-200 bg-white transition hover:border-amber-600 hover:shadow-md"
+      aria-label={isOutOfStock ? `${listing.title} — ${french ? 'Rupture de stock' : 'Out of stock'}` : undefined}
+      className={`group relative flex h-full flex-col overflow-hidden rounded-lg border border-stone-200 bg-white transition hover:border-amber-600 hover:shadow-md ${isOutOfStock ? 'grayscale opacity-65' : ''}`}
     >
       {isDemo && <DemoBadge className="absolute right-2 top-2 z-10 shadow" />}
       {!isDemo && isSponsored && (
@@ -61,7 +63,10 @@ export function ListingCard({ listing }: { listing: Listing }) {
       <div className="flex flex-1 flex-col gap-2 p-4">
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs font-semibold uppercase tracking-wide text-amber-700">{categoryLabel(listing.category)}</span>
-          <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-[11px] font-semibold text-stone-600">{isService ? (french ? 'Service' : 'Service') : (french ? 'Produit' : 'Product')}</span>
+          <div className="flex flex-wrap items-center justify-end gap-1.5">
+            {isOutOfStock ? <span className="rounded-full bg-stone-800 px-2.5 py-0.5 text-[11px] font-semibold text-white">{french ? 'Rupture de stock' : 'Out of stock'}</span> : null}
+            <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-[11px] font-semibold text-stone-600">{isService ? (french ? 'Service' : 'Service') : (french ? 'Produit' : 'Product')}</span>
+          </div>
         </div>
         <h3 className="line-clamp-2 min-h-12 text-lg font-semibold leading-tight text-stone-900 group-hover:text-amber-800">{listing.title}</h3>
         <p className="line-clamp-2 text-sm leading-5 text-stone-600">{listing.description}</p>

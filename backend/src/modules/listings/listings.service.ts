@@ -167,9 +167,11 @@ export class ListingsService {
     if (Number.isFinite(filters.maxPrice)) builder.andWhere('listing.price <= :maxPrice', { maxPrice: filters.maxPrice });
 
     return builder
+      .addSelect("CASE WHEN listing.type = 'product' AND listing.stock <= 0 THEN 1 ELSE 0 END", 'stock_rank')
       // Les annonces sponsorisées passent devant, mais restent signalées comme telles côté client.
       .addSelect('CASE WHEN listing.sponsoredUntil > now() THEN 0 ELSE 1 END', 'sponsor_rank')
-      .orderBy('sponsor_rank', 'ASC')
+      .orderBy('stock_rank', 'ASC')
+      .addOrderBy('sponsor_rank', 'ASC')
       .addOrderBy('listing.createdAt', 'DESC')
       .skip(skip)
       .take(take)
