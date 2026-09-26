@@ -107,6 +107,10 @@ export class CustomerRequestsService {
         link: '/admin',
         relatedId: request.id,
       }).catch(() => undefined);
+      await this.whatsApp.sendAdminNoMatch(
+        `${summary} Aucun artisan actif ne correspond au métier demandé.`,
+        `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/admin`,
+      );
     }
     for (const artisan of targets) {
       await this.notifications.notify({
@@ -199,6 +203,9 @@ export class CustomerRequestsService {
 
     const normalizedCategory = normalize(category);
     const normalizedCity = normalize(city);
+    const clientIds = [...new Set(requests.map((request) => request.clientId))];
+    const clients = clientIds.length ? await this.users.find({ where: { id: In(clientIds) } }) : [];
+    const clientsById = new Map(clients.map((client) => [client.id, client]));
 
     return requests
       .filter((request) => {
@@ -211,8 +218,16 @@ export class CustomerRequestsService {
       .map(({ responses, ...request }) => {
         const myResponse = (responses ?? []).find((response) => response.artisanId === artisanId) ?? null;
         const awarded = request.status === 'in_progress';
+        const client = clientsById.get(request.clientId);
         return {
           ...request,
+          client: {
+            name: client?.name ?? null,
+            contactPreference: request.contactPreference,
+            contactPhone: request.contactPreference === 'whatsapp' || request.contactPreference === 'both'
+              ? request.contactPhone
+              : null,
+          },
           // « Adressée » = l'artisan fait partie des destinataires retenus lors de la création.
           targeted: (request.contactedArtisanIds ?? []).includes(artisanId),
           alreadyAnswered: Boolean(myResponse),

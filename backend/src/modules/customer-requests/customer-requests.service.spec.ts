@@ -23,12 +23,16 @@ describe('CustomerRequestsService', () => {
   const storage = { isEnabled: vi.fn().mockReturnValue(true), uploadBuffer: vi.fn() };
   const subscriptions = { findPremiumUserIds: vi.fn().mockResolvedValue(new Set<string>()) };
   const momo = { initiateCollectionPayment: vi.fn(), getPaymentStatus: vi.fn() };
-  const whatsApp = { sendServiceRequest: vi.fn().mockResolvedValue(false) };
+  const whatsApp = {
+    sendServiceRequest: vi.fn().mockResolvedValue(false),
+    sendAdminNoMatch: vi.fn().mockResolvedValue(false),
+  };
 
   let service: CustomerRequestsService;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    users.find.mockResolvedValue([]);
     service = new CustomerRequestsService(
       requests as never,
       users as never,
@@ -123,6 +127,7 @@ describe('CustomerRequestsService', () => {
       link: '/admin',
       relatedId: 'request-no-match',
     }));
+    expect(whatsApp.sendAdminNoMatch).toHaveBeenCalledWith(expect.stringContaining('Aucun artisan actif'), expect.stringContaining('/admin'));
     expect(notifications.notify).not.toHaveBeenCalled();
   });
 
@@ -145,6 +150,46 @@ describe('CustomerRequestsService', () => {
     const result = await service.findOpenForArtisan('artisan-1', 'menuiserie', 'Douala');
 
     expect(result.map((request) => request.id)).toEqual(['match']);
+  });
+
+  it('affiche le nom et uniquement le numéro de contact autorisé par le client', async () => {
+    requests.find.mockResolvedValue([
+      { id: 'request-whatsapp', clientId: 'client-wa', status: 'new', category: 'menuiserie', city: 'Douala', contactPreference: 'whatsapp', contactPhone: '+237699000001', createdAt: '2025-01-02T09:00:00.000Z' },
+      { id: 'request-platform', clientId: 'client-platform', status: 'new', category: 'menuiserie', city: 'Douala', contactPreference: 'platform', contactPhone: null, createdAt: '2025-01-02T08:00:00.000Z' },
+    ]);
+    users.findOne.mockResolvedValue({ id: 'artisan-1', location: 'Douala' });
+    users.find.mockResolvedValue([
+      { id: 'client-wa', name: 'Nadia', phone: '+237699000001' },
+      { id: 'client-platform', name: 'Paul', phone: '+237699000002' },
+    ]);
+    shops.find.mockResolvedValue([]);
+    listings.find.mockResolvedValue([{ category: 'menuiserie' }]);
+    services.find.mockResolvedValue([]);
+
+    const result = await service.findOpenForArtisan('artisan-1');
+
+    expect(result[0]).toEqual(expect.objectContaining({ client: { name: 'Nadia', contactPreference: 'whatsapp', contactPhone: '+237699000001' } }));
+    expect(result[1]).toEqual(expect.objectContaining({ client: { name: 'Paul', contactPreference: 'platform', contactPhone: null } }));
+  });
+
+  it('affiche le nom du client et masque son téléphone sans accord WhatsApp', async () => {
+    requests.find.mockResolvedValue([
+      { id: 'request-whatsapp', clientId: 'client-wa', status: 'new', category: 'menuiserie', city: 'Douala', contactPreference: 'whatsapp', contactPhone: '+237699000001', createdAt: '2025-01-02T09:00:00.000Z' },
+      { id: 'request-platform', clientId: 'client-platform', status: 'new', category: 'menuiserie', city: 'Douala', contactPreference: 'platform', contactPhone: null, createdAt: '2025-01-02T08:00:00.000Z' },
+    ]);
+    users.findOne.mockResolvedValue({ id: 'artisan-1', location: 'Douala' });
+    users.find.mockResolvedValue([
+      { id: 'client-wa', name: 'Nadia', phone: '+237699000001' },
+      { id: 'client-platform', name: 'Paul', phone: '+237699000002' },
+    ]);
+    shops.find.mockResolvedValue([]);
+    listings.find.mockResolvedValue([{ category: 'menuiserie' }]);
+    services.find.mockResolvedValue([]);
+
+    const result = await service.findOpenForArtisan('artisan-1');
+
+    expect(result[0]).toEqual(expect.objectContaining({ client: { name: 'Nadia', contactPreference: 'whatsapp', contactPhone: '+237699000001' } }));
+    expect(result[1]).toEqual(expect.objectContaining({ client: { name: 'Paul', contactPreference: 'platform', contactPhone: null } }));
   });
 
   it('refuse une seconde réponse du même artisan', async () => {

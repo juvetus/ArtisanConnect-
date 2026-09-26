@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
 import type { ServiceOrder } from '@/lib/types';
+import { whatsappHref } from '@/lib/whatsapp';
 
 export default function ArtisanServiceOrdersPage() {
   const { user, ready } = useAuth();
@@ -60,6 +61,10 @@ export default function ArtisanServiceOrdersPage() {
   const isFinished = (order: ServiceOrder) => ['completed', 'cancelled', 'rejected'].includes(order.status);
   const activeOrders = orders.filter((order) => !isFinished(order));
   const finishedOrders = orders.filter(isFinished);
+  const clientWhatsApp = (order: ServiceOrder) => whatsappHref(
+    order.client?.whatsappPhone ?? order.client?.phone,
+    `Bonjour ${order.client?.name ?? ''}, je vous contacte au sujet de votre demande « ${order.service?.title ?? 'service'} » sur ArtisanConnect.`,
+  );
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
@@ -82,6 +87,8 @@ export default function ArtisanServiceOrdersPage() {
                 <p className="text-xs font-medium uppercase tracking-wide text-amber-700">{order.service?.category}</p>
                 <h2 className="mt-1 text-xl font-semibold text-stone-900">{order.service?.title}</h2>
                 <p className="mt-1 text-sm text-stone-600">{t('artisan_orders_client')} {order.client?.name}</p>
+                <p className="mt-1 text-sm text-stone-600">{[order.client?.phone, order.client?.email, order.client?.location].filter(Boolean).join(' · ') || 'Aucune coordonnée renseignée'}</p>
+                {clientWhatsApp(order) ? <a href={clientWhatsApp(order) ?? undefined} target="_blank" rel="noreferrer" className="mt-1 inline-block text-sm font-medium text-green-700 underline">Contacter le client sur WhatsApp</a> : null}
               </div>
               <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700">{statusLabels[order.status]}</span>
             </div>

@@ -7,6 +7,11 @@ export class WhatsAppService {
 
   constructor(private readonly config: ConfigService) {}
 
+  async sendAdminNoMatch(summary: string, requestUrl: string): Promise<boolean> {
+    const adminPhone = this.config.get<string>('ADMIN_WHATSAPP_PHONE', '+33782510546');
+    return this.sendServiceRequest(adminPhone, ['Administration', summary, requestUrl]);
+  }
+
   async sendServiceRequest(phone: string | null | undefined, parameters: string[]): Promise<boolean> {
     const accessToken = this.config.get<string>('WHATSAPP_ACCESS_TOKEN');
     const phoneNumberId = this.config.get<string>('WHATSAPP_PHONE_NUMBER_ID');
@@ -48,12 +53,17 @@ export class WhatsAppService {
 
   private normalizePhone(phone: string): string | null {
     const trimmed = phone.trim();
+    const hasInternationalPrefix = trimmed.startsWith('+') || trimmed.startsWith('00');
     const digits = trimmed.startsWith('+')
       ? trimmed.slice(1).replace(/\D/g, '')
       : trimmed.startsWith('00')
         ? trimmed.slice(2).replace(/\D/g, '')
         : trimmed.replace(/\D/g, '');
-    const international = digits.startsWith('237') ? digits : digits.startsWith('0') ? `237${digits.slice(1)}` : `237${digits}`;
+    const international = hasInternationalPrefix || digits.startsWith('237')
+      ? digits
+      : digits.startsWith('0')
+        ? `237${digits.slice(1)}`
+        : `237${digits}`;
     return international.length >= 9 ? international : null;
   }
 }

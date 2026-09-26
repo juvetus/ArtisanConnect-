@@ -13,6 +13,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import type { Listing, ListingType, Order, ServiceOrder } from '@/lib/types';
 import { resolveMediaUrl } from '@/lib/media';
 import type { Shop } from '@/lib/types';
+import { whatsappHref } from '@/lib/whatsapp';
 
 export default function DashboardPage() {
   const { user, ready } = useAuth();
@@ -252,6 +253,16 @@ export default function DashboardPage() {
   const isSponsored = (listing: Listing) =>
     Boolean(listing.sponsoredUntil && new Date(listing.sponsoredUntil) > new Date());
 
+  const buyerWhatsApp = (order: Order) => whatsappHref(
+    order.buyer?.whatsappPhone ?? order.buyer?.phone,
+    `Bonjour ${order.buyer?.name ?? ''}, je vous contacte au sujet de votre commande « ${order.listing?.title ?? 'produit'} » sur ArtisanConnect.`,
+  );
+
+  const serviceClientWhatsApp = (order: ServiceOrder) => whatsappHref(
+    order.client?.whatsappPhone ?? order.client?.phone,
+    `Bonjour ${order.client?.name ?? ''}, je vous contacte au sujet de votre demande « ${order.service?.title ?? 'service'} » sur ArtisanConnect.`,
+  );
+
   const handleSponsor = async (listing: Listing) => {
     setFormError('');
     try {
@@ -452,6 +463,8 @@ export default function DashboardPage() {
                 </div>
                 <p className="mt-2 text-lg font-semibold text-stone-950">{order.listing?.title ?? 'Annonce supprimée'}</p>
                 <p className="text-sm text-stone-700">{order.quantity} × · {order.buyer?.name ?? 'Client'} · <strong>{formatXAF(order.totalPrice)}</strong></p>
+                <p className="mt-1 text-sm text-stone-600">{[order.buyer?.phone, order.buyer?.email, order.buyer?.location].filter(Boolean).join(' · ') || 'Aucune coordonnée renseignée'}</p>
+                {buyerWhatsApp(order) ? <a href={buyerWhatsApp(order) ?? undefined} target="_blank" rel="noreferrer" className="mt-1 inline-block text-sm font-medium text-green-700 underline">Contacter l’acheteur sur WhatsApp</a> : null}
                 <p className="mt-1 text-base font-medium text-red-800">{formatDateTime(order.createdAt)} · {elapsed(order.createdAt)}</p>
                 <a href={`#order-${order.id}`} className="mt-3 inline-block rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">Traiter la commande</a>
               </li>
@@ -464,6 +477,8 @@ export default function DashboardPage() {
                 </div>
                 <p className="mt-2 text-lg font-semibold text-stone-950">{order.service?.title ?? 'Service'}</p>
                 <p className="text-sm text-stone-700">{order.client?.name ?? 'Client'}{order.budgetMax ? ` · Budget : ${formatXAF(order.budgetMax)}` : ''}</p>
+                <p className="mt-1 text-sm text-stone-600">{[order.client?.phone, order.client?.email, order.client?.location].filter(Boolean).join(' · ') || 'Aucune coordonnée renseignée'}</p>
+                {serviceClientWhatsApp(order) ? <a href={serviceClientWhatsApp(order) ?? undefined} target="_blank" rel="noreferrer" className="mt-1 inline-block text-sm font-medium text-green-700 underline">Contacter le client sur WhatsApp</a> : null}
                 <p className="mt-1 text-base font-medium text-red-800">{formatDateTime(order.createdAt)} · {elapsed(order.createdAt)}</p>
                 <Link href={`/service-orders/${order.id}`} className="mt-3 inline-block rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">Traiter la demande</Link>
               </li>
@@ -535,6 +550,8 @@ export default function DashboardPage() {
                     {order.quantity} × · Acheteur : {order.buyer?.name ?? '—'} ·{' '}
                     {formatDateTime(order.createdAt)}
                   </p>
+                  <p className="mt-1 text-sm text-stone-600">{[order.buyer?.phone, order.buyer?.email, order.buyer?.location].filter(Boolean).join(' · ') || 'Aucune coordonnée renseignée'}</p>
+                  {buyerWhatsApp(order) ? <a href={buyerWhatsApp(order) ?? undefined} target="_blank" rel="noreferrer" className="mt-1 inline-block text-sm font-medium text-green-700 underline">Contacter sur WhatsApp</a> : null}
                   <Link
                     href={`/messages?to=${order.buyerId}`}
                     className="mt-1 inline-block text-sm text-amber-700 underline"
