@@ -112,7 +112,7 @@ export function Header() {
           <Link href="/blog" className={navLinkClass('/blog')}>
             Blog
           </Link>
-          {user?.role !== 'client' ? (
+          {!user || (user.role !== 'client' && user.role !== 'artisan') ? (
             <Link href="/institutions" className={navLinkClass('/institutions')}>
               {t('nav_institutions')}
             </Link>
