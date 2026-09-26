@@ -57,6 +57,10 @@ export default function ArtisanServiceOrdersPage() {
 
   if (!ready || user?.role !== 'artisan') return null;
 
+  const isFinished = (order: ServiceOrder) => ['completed', 'cancelled', 'rejected'].includes(order.status);
+  const activeOrders = orders.filter((order) => !isFinished(order));
+  const finishedOrders = orders.filter(isFinished);
+
   return (
     <div className="mx-auto max-w-6xl space-y-8">
       <header>
@@ -67,8 +71,11 @@ export default function ArtisanServiceOrdersPage() {
       {notice ? <p className="rounded-md bg-stone-100 px-4 py-3 text-sm text-stone-700">{notice}</p> : null}
       {loading ? <p className="text-stone-600">{t('action_loading')}</p> : null}
       {!loading && !orders.length ? <p className="rounded-lg border border-stone-200 bg-stone-50 p-6 text-stone-600">{t('artisan_orders_empty')}</p> : null}
+      {[{ key: 'active', items: activeOrders }, { key: 'finished', items: finishedOrders }].map(({ key, items }) => {
+        if (!items.length) return null;
+        const list = (
       <div className="space-y-5">
-        {orders.map((order) => (
+        {items.map((order) => (
           <article key={order.id} className="rounded-lg border border-stone-200 bg-white p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
@@ -96,6 +103,14 @@ export default function ArtisanServiceOrdersPage() {
           </article>
         ))}
       </div>
+        );
+        return key === 'active' ? <div key={key}>{list}</div> : (
+          <details key={key} className="rounded-lg border border-stone-200 bg-stone-50 p-4">
+            <summary className="cursor-pointer text-sm font-semibold text-stone-700">{language === 'en' ? 'Completed, cancelled or rejected requests' : 'Demandes terminées, annulées ou refusées'} ({items.length})</summary>
+            <div className="mt-4">{list}</div>
+          </details>
+        );
+      })}
     </div>
   );
 }

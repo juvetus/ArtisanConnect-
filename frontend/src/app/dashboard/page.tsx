@@ -353,6 +353,7 @@ export default function DashboardPage() {
     .filter((order) => !['completed', 'cancelled', 'rejected'].includes(order.status))
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const activeOrders = sortedOrders.filter(isActiveOrder);
+  const finishedOrders = sortedOrders.filter((order) => !isActiveOrder(order));
   const formatDateTime = (value: string) => new Date(value).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
   const elapsed = (value: string) => {
     const minutes = Math.max(0, Math.round((now - new Date(value).getTime()) / 60000));
@@ -517,8 +518,12 @@ export default function DashboardPage() {
             {t('dashboard_no_orders')}
           </p>
         ) : (
+          <>
+          {[{ key: 'active', items: activeOrders }, { key: 'finished', items: finishedOrders }].map(({ key, items }) => {
+            if (!items.length) return null;
+            const list = (
           <ul className="mt-3 space-y-3">
-            {sortedOrders.map((order) => (
+            {items.map((order) => (
               <li
                 key={order.id}
                 id={`order-${order.id}`}
@@ -591,6 +596,15 @@ export default function DashboardPage() {
               </li>
             ))}
           </ul>
+            );
+            return key === 'active' ? <div key={key}>{list}</div> : (
+              <details key={key} className="mt-4 rounded-lg border border-stone-200 bg-stone-50 p-3">
+                <summary className="cursor-pointer text-sm font-semibold text-stone-700">Commandes terminées ou annulées ({items.length})</summary>
+                {list}
+              </details>
+            );
+          })}
+          </>
         )}
       </section>
 
