@@ -32,14 +32,14 @@ function sellerWhatsappHref(order: Order) {
 }
 
 /** Journal du workflow escrow côté acheteur. */
-function EscrowSteps({ order }: { order: Order }) {
+function EscrowSteps({ order, english }: { order: Order; english: boolean }) {
   if (order.paymentMethod !== 'orange_money' && order.paymentMethod !== 'momo') return null;
   const steps = [
-    { label: 'Paiement bloqué (escrow)', done: Boolean(order.payment && order.payment.status !== 'pending') },
-    { label: 'Vendeur : produit disponible', done: order.sellerConfirmedAvailability },
-    ...(order.deliveryMethod === 'carrier' ? [{ label: 'Transporteur : produit récupéré et conforme', done: order.carrierVerified }] : []),
-    { label: 'Réception confirmée', done: order.buyerConfirmedReception },
-    { label: 'Paiement libéré au vendeur', done: order.payment?.status === 'captured' },
+    { label: english ? 'Payment held securely (escrow)' : 'Paiement bloqué (escrow)', done: Boolean(order.payment && order.payment.status !== 'pending') },
+    { label: english ? 'Seller confirmed product availability' : 'Vendeur : produit disponible', done: order.sellerConfirmedAvailability },
+    ...(order.deliveryMethod === 'carrier' ? [{ label: english ? 'Carrier collected and verified the product' : 'Transporteur : produit récupéré et conforme', done: order.carrierVerified }] : []),
+    { label: english ? 'Receipt confirmed' : 'Réception confirmée', done: order.buyerConfirmedReception },
+    { label: english ? 'Payment released to seller' : 'Paiement libéré au vendeur', done: order.payment?.status === 'captured' },
   ];
   return (
     <ol className="mt-2 space-y-1 text-sm">
@@ -49,7 +49,7 @@ function EscrowSteps({ order }: { order: Order }) {
         </li>
       ))}
       {order.cancellationReason && (
-        <li className="text-red-600">✗ {order.cancellationReason} — remboursement effectué</li>
+        <li className="text-red-600">✗ {order.cancellationReason} — {english ? 'refund issued' : 'remboursement effectué'}</li>
       )}
     </ol>
   );
@@ -57,7 +57,8 @@ function EscrowSteps({ order }: { order: Order }) {
 
 export default function OrdersPage() {
   const { user, ready } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const english = language === 'en';
   const router = useRouter();
 
   const { data, isLoading, mutate } = useSWR(user ? ['buyer-orders', user.id] : null, ([, id]) =>
@@ -80,7 +81,7 @@ export default function OrdersPage() {
   const payWithMomo = async (order: Order) => {
     const payerPhone = (momoPhones[order.id] || user?.phone || '').trim();
     if (!payerPhone) {
-      setMomoError((current) => ({ ...current, [order.id]: 'Veuillez saisir votre numéro MoMo.' }));
+      setMomoError((current) => ({ ...current, [order.id]: t('orders_momo_phone_error') }));
       return;
     }
 
@@ -103,7 +104,7 @@ export default function OrdersPage() {
     } catch (error) {
       setMomoError((current) => ({
         ...current,
-        [order.id]: error instanceof Error ? error.message : 'Impossible de lancer le paiement MoMo.',
+        [order.id]: error instanceof Error ? error.message : t('orders_momo_start_error'),
       }));
     } finally {
       setBusyId(null);
@@ -155,24 +156,24 @@ export default function OrdersPage() {
               <details open={!isFinishedOrder(order)} className="rounded-lg border border-stone-200 bg-white">
                 <summary className={`flex flex-wrap items-center justify-between gap-4 p-4 ${isFinishedOrder(order) ? 'cursor-pointer' : 'list-none [&::-webkit-details-marker]:hidden'}`}>
                   <span className="min-w-0">
-                    <span className="block font-medium">{order.listing?.title ?? 'Annonce supprimée'}</span>
-                    <span className="mt-1 block text-sm text-stone-600">{order.quantity} × · Vendu par {order.seller?.name ?? '—'} · {new Date(order.createdAt).toLocaleDateString('fr-FR')}</span>
+                    <span className="block font-medium">{order.listing?.title ?? t('orders_listing_removed')}</span>
+                    <span className="mt-1 block text-sm text-stone-600">{order.quantity} × · {t('orders_sold_by')} {order.seller?.name ?? '—'} · {new Date(order.createdAt).toLocaleDateString(english ? 'en-US' : 'fr-FR')}</span>
                   </span>
                   <span className="flex items-center gap-4"><span className="text-lg font-semibold">{formatXAF(order.totalPrice)}</span><StatusBadge status={order.status} /></span>
                 </summary>
                 <div className="flex flex-wrap items-center justify-between gap-4 border-t border-stone-100 p-4">
               <div>
-                <p className="font-medium">{order.listing?.title ?? 'Annonce supprimée'}</p>
+                <p className="font-medium">{order.listing?.title ?? t('orders_listing_removed')}</p>
                 <p className="text-sm text-stone-600">
-                  {order.quantity} × · Vendu par {order.seller?.name ?? '—'} ·{' '}
-                  {new Date(order.createdAt).toLocaleDateString('fr-FR')}
+                  {order.quantity} × · {t('orders_sold_by')} {order.seller?.name ?? '—'} ·{' '}
+                  {new Date(order.createdAt).toLocaleDateString(english ? 'en-US' : 'fr-FR')}
                 </p>
                 <p className="mt-1 text-sm text-stone-500">
                   {order.paymentMethod === 'momo'
-                    ? 'Paiement MoMo'
+                    ? 'MoMo'
                     : order.paymentMethod === 'orange_money'
-                      ? 'Paiement Orange Money'
-                      : 'Règlement en espèces à la remise'}
+                      ? 'Orange Money'
+                      : t('orders_cash_handover')}
                   {order.payment && (
                     <>
                       {' — '}
@@ -181,20 +182,20 @@ export default function OrdersPage() {
                   )}
                 </p>
                 <p className="mt-1 text-sm text-stone-500">
-                  Livraison : {order.deliveryMethod === 'home'
-                    ? `À domicile${order.deliveryAddress ? ` - ${order.deliveryAddress}` : ''}`
+                  {t('orders_delivery')} : {order.deliveryMethod === 'home'
+                    ? `${t('orders_home_delivery')}${order.deliveryAddress ? ` - ${order.deliveryAddress}` : ''}`
                     : order.deliveryMethod === 'carrier'
-                      ? `Transporteur${order.deliveryAddress ? ` - ${order.deliveryAddress}` : ''}`
-                      : "Retrait à l'atelier"}
+                      ? `${t('orders_carrier')}${order.deliveryAddress ? ` - ${order.deliveryAddress}` : ''}`
+                      : t('orders_workshop_pickup')}
                 </p>
                 {order.deliveryMethod === 'carrier' && (
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-stone-600">
                     {order.deliveryTrackingId ? (
                       <>
-                        <span>Suivi {order.deliveryCarrier || 'Gozem'} : {order.deliveryStatus}</span>
+                        <span>{t('orders_tracking')} {order.deliveryCarrier || 'Gozem'} : {order.deliveryStatus}</span>
                         {order.deliveryTrackingUrl && (
                           <a href={order.deliveryTrackingUrl} target="_blank" rel="noreferrer" className="text-amber-700 underline">
-                            Ouvrir le suivi
+                            {t('orders_open_tracking')}
                           </a>
                         )}
                         <button
@@ -202,7 +203,7 @@ export default function OrdersPage() {
                           disabled={busyId === order.id}
                           className="rounded-md border border-stone-200 px-3 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-60"
                         >
-                          Actualiser
+                          {t('orders_refresh')}
                         </button>
                       </>
                     ) : (
@@ -211,7 +212,7 @@ export default function OrdersPage() {
                         disabled={busyId === order.id}
                         className="rounded-md bg-stone-900 px-3 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-60"
                       >
-                        Demander un transporteur
+                        {t('orders_request_carrier')}
                       </button>
                     )}
                   </div>
@@ -223,7 +224,7 @@ export default function OrdersPage() {
                       href={`/messages?to=${order.sellerId}`}
                       className="text-sm text-amber-700 underline"
                     >
-                      Contacter l&apos;artisan par message
+                      {t('orders_message_artisan')}
                     </Link>
                     {sellerWhatsappHref(order) ? (
                       <a
@@ -240,14 +241,14 @@ export default function OrdersPage() {
 
                 {order.status === 'completed' && <ReviewSection orderId={order.id} />}
 
-                <EscrowSteps order={order} />
+                <EscrowSteps order={order} english={english} />
 
                 {(order.paymentMethod === 'momo' || order.paymentMethod === 'orange_money') && order.status !== 'cancelled' && (
                   <div className="mt-3 flex flex-wrap gap-2">
                     {order.paymentMethod === 'momo' && order.payment?.status === 'pending' && order.status === 'pending' && (
                       <div className="flex w-full flex-wrap items-start gap-2">
                         <div>
-                          <label htmlFor={`momo-${order.id}`} className="sr-only">Numéro MoMo</label>
+                          <label htmlFor={`momo-${order.id}`} className="sr-only">{t('orders_momo_number')}</label>
                           <input
                             id={`momo-${order.id}`}
                             type="tel"
@@ -263,7 +264,7 @@ export default function OrdersPage() {
                           disabled={busyId === order.id}
                           className="rounded-md bg-orange-600 px-3 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-60"
                         >
-                          Payer avec MoMo
+                          {t('orders_pay_momo')}
                         </button>
                       </div>
                     )}
@@ -273,7 +274,7 @@ export default function OrdersPage() {
                         disabled={busyId === order.id}
                         className="rounded-md bg-orange-600 px-3 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-60"
                       >
-                        Payer avec Orange Money
+                        {t('orders_pay_orange')}
                       </button>
                     )}
                     {(order.deliveryMethod === 'carrier' ? order.carrierVerified : order.sellerConfirmedAvailability) && !order.buyerConfirmedReception && (
@@ -282,7 +283,7 @@ export default function OrdersPage() {
                         disabled={busyId === order.id}
                         className="rounded-md bg-green-700 px-3 py-2 text-sm font-medium text-white hover:bg-green-800 disabled:opacity-60"
                       >
-                        Confirmer la réception
+                        {t('orders_confirm_receipt')}
                       </button>
                     )}
                     {order.buyerConfirmedReception && order.payment?.status !== 'captured' && (
@@ -291,7 +292,7 @@ export default function OrdersPage() {
                         disabled={busyId === order.id}
                         className="rounded-md bg-green-700 px-3 py-2 text-sm font-medium text-white hover:bg-green-800 disabled:opacity-60"
                       >
-                        Libérer le paiement
+                        {t('orders_release_payment')}
                       </button>
                     )}
                     {order.status === 'pending' && order.payment?.status === 'pending' && (
@@ -300,7 +301,7 @@ export default function OrdersPage() {
                         disabled={busyId === order.id}
                         className="rounded-md border border-red-200 px-3 py-2 text-sm text-red-700 hover:bg-red-50 disabled:opacity-60"
                       >
-                        Annuler et être remboursé
+                        {t('orders_cancel_refund')}
                       </button>
                     )}
                   </div>

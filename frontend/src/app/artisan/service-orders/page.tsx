@@ -11,6 +11,7 @@ import { whatsappHref } from '@/lib/whatsapp';
 export default function ArtisanServiceOrdersPage() {
   const { user, ready } = useAuth();
   const { t, language } = useLanguage();
+  const english = language === 'en';
   const [orders, setOrders] = useState<ServiceOrder[]>([]);
   const [feedback, setFeedback] = useState<Record<string, string>>({});
   const [deliveryLinks, setDeliveryLinks] = useState<Record<string, string>>({});
@@ -35,7 +36,7 @@ export default function ArtisanServiceOrdersPage() {
     try {
       setOrders((await api.getArtisanServiceOrders()) as ServiceOrder[]);
     } catch {
-      setNotice('Impossible de charger vos demandes.');
+      setNotice(english ? 'Could not load your requests.' : 'Impossible de charger vos demandes.');
     } finally {
       setLoading(false);
     }
@@ -49,10 +50,10 @@ export default function ArtisanServiceOrdersPage() {
     try {
       setNotice('');
       await action();
-      setNotice('Commande mise à jour.');
+      setNotice(english ? 'Order updated.' : 'Commande mise à jour.');
       await loadOrders();
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'Action impossible.');
+      setNotice(error instanceof Error ? error.message : (english ? 'Action failed.' : 'Action impossible.'));
     }
   };
 
@@ -87,8 +88,8 @@ export default function ArtisanServiceOrdersPage() {
                 <p className="text-xs font-medium uppercase tracking-wide text-amber-700">{order.service?.category}</p>
                 <h2 className="mt-1 text-xl font-semibold text-stone-900">{order.service?.title}</h2>
                 <p className="mt-1 text-sm text-stone-600">{t('artisan_orders_client')} {order.client?.name}</p>
-                <p className="mt-1 text-sm text-stone-600">{[order.client?.phone, order.client?.email, order.client?.location].filter(Boolean).join(' · ') || 'Aucune coordonnée renseignée'}</p>
-                {clientWhatsApp(order) ? <a href={clientWhatsApp(order) ?? undefined} target="_blank" rel="noreferrer" className="mt-1 inline-block text-sm font-medium text-green-700 underline">Contacter le client sur WhatsApp</a> : null}
+                <p className="mt-1 text-sm text-stone-600">{[order.client?.phone, order.client?.email, order.client?.location].filter(Boolean).join(' · ') || (english ? 'No contact details provided' : 'Aucune coordonnée renseignée')}</p>
+                {clientWhatsApp(order) ? <a href={clientWhatsApp(order) ?? undefined} target="_blank" rel="noreferrer" className="mt-1 inline-block text-sm font-medium text-green-700 underline">{english ? 'Contact client on WhatsApp' : 'Contacter le client sur WhatsApp'}</a> : null}
               </div>
               <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700">{statusLabels[order.status]}</span>
             </div>
@@ -97,15 +98,15 @@ export default function ArtisanServiceOrdersPage() {
 
             {order.status === 'sent_to_artisan' ? (
               <div className="mt-5 space-y-3 border-t border-stone-200 pt-5">
-                <textarea value={feedback[order.id] || ''} onChange={(event) => setFeedback({ ...feedback, [order.id]: event.target.value })} rows={2} placeholder="Raison obligatoire en cas de refus" className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm" />
-                <div className="flex flex-wrap gap-3"><button onClick={() => void run(() => api.artisanRespondToServiceOrder(order.id, true))} className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700">Accepter la demande</button><button onClick={() => void run(() => api.artisanRespondToServiceOrder(order.id, false, feedback[order.id]))} className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">Refuser la demande</button></div>
+                <textarea value={feedback[order.id] || ''} onChange={(event) => setFeedback({ ...feedback, [order.id]: event.target.value })} rows={2} placeholder={english ? 'Reason required when declining' : 'Raison obligatoire en cas de refus'} className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm" />
+                <div className="flex flex-wrap gap-3"><button onClick={() => void run(() => api.artisanRespondToServiceOrder(order.id, true))} className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700">{english ? 'Accept request' : 'Accepter la demande'}</button><button onClick={() => void run(() => api.artisanRespondToServiceOrder(order.id, false, feedback[order.id]))} className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">{english ? 'Decline request' : 'Refuser la demande'}</button></div>
               </div>
             ) : null}
 
-            {order.status === 'accepted' ? <button onClick={() => void run(() => api.startServiceOrder(order.id))} className="mt-5 rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-white hover:bg-amber-800">Démarrer la commande</button> : null}
+            {order.status === 'accepted' ? <button onClick={() => void run(() => api.startServiceOrder(order.id))} className="mt-5 rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-white hover:bg-amber-800">{english ? 'Start order' : 'Démarrer la commande'}</button> : null}
 
             {order.status === 'in_progress' ? (
-              <div className="mt-5 space-y-3 border-t border-stone-200 pt-5"><label className="block text-sm font-medium text-stone-700">Lien vers les livrables *</label><input value={deliveryLinks[order.id] || ''} onChange={(event) => setDeliveryLinks({ ...deliveryLinks, [order.id]: event.target.value })} placeholder="https://..." className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm" /><button disabled={!deliveryLinks[order.id]?.trim()} onClick={() => void run(() => api.deliverServiceOrder(order.id, [deliveryLinks[order.id]]))} className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:bg-stone-400">Livrer le travail</button></div>
+              <div className="mt-5 space-y-3 border-t border-stone-200 pt-5"><label className="block text-sm font-medium text-stone-700">{english ? 'Link to deliverables *' : 'Lien vers les livrables *'}</label><input value={deliveryLinks[order.id] || ''} onChange={(event) => setDeliveryLinks({ ...deliveryLinks, [order.id]: event.target.value })} placeholder="https://..." className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm" /><button disabled={!deliveryLinks[order.id]?.trim()} onClick={() => void run(() => api.deliverServiceOrder(order.id, [deliveryLinks[order.id]]))} className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:bg-stone-400">{english ? 'Deliver work' : 'Livrer le travail'}</button></div>
             ) : null}
           </article>
         ))}

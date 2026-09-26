@@ -5,11 +5,14 @@ import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { useLanguage } from '@/lib/language-context';
 
 type UnmatchedRequest = NonNullable<Awaited<ReturnType<typeof api.getAdminUnmatchedCustomerRequests>>>[number];
 
 export default function AdminCustomerRequestsPage() {
   const { user, ready } = useAuth();
+  const { language } = useLanguage();
+  const english = language === 'en';
   const router = useRouter();
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState('');
@@ -31,10 +34,10 @@ export default function AdminCustomerRequestsPage() {
     try {
       await api.replyToUnmatchedCustomerRequest(request.id, message);
       setDrafts((current) => ({ ...current, [request.id]: '' }));
-      setNotice(`Réponse envoyée à ${request.client?.name ?? 'la cliente ou au client'}.`);
+      setNotice(english ? `Reply sent to ${request.client?.name ?? 'the client'}.` : `Réponse envoyée à ${request.client?.name ?? 'la cliente ou au client'}.`);
       await mutate();
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'La réponse n’a pas pu être envoyée.');
+      setNotice(error instanceof Error ? error.message : (english ? 'The reply could not be sent.' : 'La réponse n’a pas pu être envoyée.'));
     } finally {
       setSendingId(null);
     }
@@ -45,13 +48,13 @@ export default function AdminCustomerRequestsPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <header>
-        <p className="text-sm font-medium uppercase tracking-wide text-amber-700">Administration</p>
-        <h1 className="mt-1 text-2xl font-semibold text-stone-900">Demandes sans artisan correspondant</h1>
-        <p className="mt-2 text-sm text-stone-600">Répondez directement aux clients lorsqu’aucun artisan compatible n’a été trouvé.</p>
+        <p className="text-sm font-medium uppercase tracking-wide text-amber-700">{english ? 'Administration' : 'Administration'}</p>
+        <h1 className="mt-1 text-2xl font-semibold text-stone-900">{english ? 'Requests without a matching artisan' : 'Demandes sans artisan correspondant'}</h1>
+        <p className="mt-2 text-sm text-stone-600">{english ? 'Reply directly to clients when no compatible artisan is found.' : 'Répondez directement aux clients lorsqu’aucun artisan compatible n’a été trouvé.'}</p>
       </header>
       {notice ? <p role="status" className="rounded-md border border-stone-200 bg-white px-4 py-3 text-sm text-stone-700">{notice}</p> : null}
-      {isLoading ? <p className="text-sm text-stone-600">Chargement des demandes…</p> : null}
-      {!isLoading && !requests?.length ? <p className="rounded-md border border-stone-200 bg-white p-5 text-sm text-stone-600">Aucune demande sans artisan à traiter.</p> : null}
+      {isLoading ? <p className="text-sm text-stone-600">{english ? 'Loading requests…' : 'Chargement des demandes…'}</p> : null}
+      {!isLoading && !requests?.length ? <p className="rounded-md border border-stone-200 bg-white p-5 text-sm text-stone-600">{english ? 'No unmatched requests to handle.' : 'Aucune demande sans artisan à traiter.'}</p> : null}
       <div className="space-y-4">
         {requests?.map((request) => (
           <article key={request.id} className="space-y-4 border-b border-stone-200 bg-white py-5">
@@ -59,21 +62,21 @@ export default function AdminCustomerRequestsPage() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">{request.category} · {request.city}{request.neighborhood ? ` · ${request.neighborhood}` : ''}</p>
                 <h2 className="mt-1 text-lg font-semibold text-stone-900">{request.client?.name ?? 'Client'}{request.client?.email ? <span className="ml-2 text-sm font-normal text-stone-500">{request.client.email}</span> : null}</h2>
-                <p className="mt-1 text-xs text-stone-500">Reçue le {new Date(request.createdAt).toLocaleString('fr-FR')}</p>
+                <p className="mt-1 text-xs text-stone-500">{english ? 'Received' : 'Reçue le'} {new Date(request.createdAt).toLocaleString(english ? 'en-US' : 'fr-FR')}</p>
               </div>
-              {request.budgetMax ? <p className="text-sm text-stone-600">Budget : {request.budgetMin ?? 0}–{request.budgetMax} FCFA</p> : null}
+              {request.budgetMax ? <p className="text-sm text-stone-600">{english ? 'Budget' : 'Budget'} : {request.budgetMin ?? 0}–{request.budgetMax} FCFA</p> : null}
             </div>
             <p className="whitespace-pre-wrap text-sm text-stone-700">{request.description}</p>
             {request.adminReply ? (
               <div className="rounded-md border border-green-200 bg-green-50 p-3 text-sm">
-                <p className="font-semibold text-green-900">Réponse envoyée le {request.adminRepliedAt ? new Date(request.adminRepliedAt).toLocaleString('fr-FR') : ''}</p>
+                <p className="font-semibold text-green-900">{english ? 'Reply sent' : 'Réponse envoyée le'} {request.adminRepliedAt ? new Date(request.adminRepliedAt).toLocaleString(english ? 'en-US' : 'fr-FR') : ''}</p>
                 <p className="mt-1 whitespace-pre-wrap text-green-900">{request.adminReply}</p>
               </div>
             ) : (
               <div className="space-y-2">
-                <label htmlFor={`reply-${request.id}`} className="block text-sm font-medium text-stone-700">Votre réponse au client</label>
-                <textarea id={`reply-${request.id}`} rows={3} value={drafts[request.id] ?? ''} onChange={(event) => setDrafts((current) => ({ ...current, [request.id]: event.target.value }))} placeholder="Expliquez les prochaines étapes ou demandez des précisions…" className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm" />
-                <button type="button" disabled={!drafts[request.id]?.trim() || sendingId === request.id} onClick={() => void sendReply(request)} className="rounded-md bg-amber-700 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-800 disabled:cursor-not-allowed disabled:opacity-50">{sendingId === request.id ? 'Envoi…' : 'Envoyer la réponse'}</button>
+                <label htmlFor={`reply-${request.id}`} className="block text-sm font-medium text-stone-700">{english ? 'Your reply to the client' : 'Votre réponse au client'}</label>
+                <textarea id={`reply-${request.id}`} rows={3} value={drafts[request.id] ?? ''} onChange={(event) => setDrafts((current) => ({ ...current, [request.id]: event.target.value }))} placeholder={english ? 'Explain next steps or ask for more details…' : 'Expliquez les prochaines étapes ou demandez des précisions…'} className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm" />
+                <button type="button" disabled={!drafts[request.id]?.trim() || sendingId === request.id} onClick={() => void sendReply(request)} className="rounded-md bg-amber-700 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-800 disabled:cursor-not-allowed disabled:opacity-50">{sendingId === request.id ? (english ? 'Sending…' : 'Envoi…') : (english ? 'Send reply' : 'Envoyer la réponse')}</button>
               </div>
             )}
           </article>

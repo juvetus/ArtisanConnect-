@@ -8,7 +8,8 @@ import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
 import type { Service, Shop, User } from '@/lib/types';
 
-function ShopPaymentForm({ shop }: { shop: Shop }) {
+function ShopPaymentForm({ shop, language }: { shop: Shop; language: 'fr' | 'en' }) {
+  const english = language === 'en';
   const [momoNumber, setMomoNumber] = useState(shop.momoNumber ?? shop.mobileMoneyNumber ?? '');
   const [orangeMoneyNumber, setOrangeMoneyNumber] = useState(shop.orangeMoneyNumber ?? shop.mobileMoneyNumber ?? '');
   const [provider, setProvider] = useState<'momo' | 'orange_money' | 'both'>(shop.mobileMoneyProvider ?? 'both');
@@ -24,12 +25,12 @@ function ShopPaymentForm({ shop }: { shop: Shop }) {
     setNotice('');
     setError('');
     try {
-      if ((provider === 'momo' || provider === 'both') && !momoNumber.trim()) throw new Error('Le numéro MoMo est requis.');
-      if ((provider === 'orange_money' || provider === 'both') && !orangeMoneyNumber.trim()) throw new Error('Le numéro Orange Money est requis.');
+      if ((provider === 'momo' || provider === 'both') && !momoNumber.trim()) throw new Error(english ? 'A MoMo number is required.' : 'Le numéro MoMo est requis.');
+      if ((provider === 'orange_money' || provider === 'both') && !orangeMoneyNumber.trim()) throw new Error(english ? 'An Orange Money number is required.' : 'Le numéro Orange Money est requis.');
       await api.updateShop(shop.id, { mobileMoneyNumber: momoNumber.trim() || orangeMoneyNumber.trim(), momoNumber: momoNumber.trim(), orangeMoneyNumber: orangeMoneyNumber.trim(), mobileMoneyProvider: provider, deliveryMethods, availability });
-      setNotice('Paramètres de la boutique mis à jour.');
+      setNotice(english ? 'Shop settings updated.' : 'Paramètres de la boutique mis à jour.');
     } catch (saveError) {
-      setError(saveError instanceof ApiError ? saveError.message : 'Impossible de mettre à jour les paiements.');
+      setError(saveError instanceof ApiError ? saveError.message : (english ? 'Could not update payment settings.' : 'Impossible de mettre à jour les paiements.'));
     } finally {
       setSaving(false);
     }
@@ -38,16 +39,16 @@ function ShopPaymentForm({ shop }: { shop: Shop }) {
   return (
     <form onSubmit={save} className="space-y-4 rounded-lg border border-stone-200 bg-white p-5">
       <div>
-        <h2 className="font-semibold text-stone-900">Paiements de la boutique : {shop.name}</h2>
-        <p className="mt-1 text-sm text-stone-600">Choisissez les moyens de paiement acceptés par cette boutique.</p>
+        <h2 className="font-semibold text-stone-900">{english ? `Shop payments: ${shop.name}` : `Paiements de la boutique : ${shop.name}`}</h2>
+        <p className="mt-1 text-sm text-stone-600">{english ? 'Choose the payment methods accepted by this shop.' : 'Choisissez les moyens de paiement acceptés par cette boutique.'}</p>
       </div>
       <div>
-        <p className="block text-sm font-medium text-stone-700">Modes de livraison acceptés</p>
+        <p className="block text-sm font-medium text-stone-700">{english ? 'Accepted delivery methods' : 'Modes de livraison acceptés'}</p>
         <div className="mt-2 grid gap-2 sm:grid-cols-3">
           {([
-            ['workshop', "Retrait à l'atelier"],
-            ['home', 'Livraison à domicile'],
-            ['carrier', 'Transporteur'],
+            ['workshop', english ? 'Workshop pickup' : "Retrait à l'atelier"],
+            ['home', english ? 'Home delivery' : 'Livraison à domicile'],
+            ['carrier', english ? 'Carrier' : 'Transporteur'],
           ] as const).map(([value, label]) => (
             <label key={value} className="flex items-center gap-2 rounded-md border border-stone-200 p-3 text-sm">
               <input type="checkbox" checked={deliveryMethods.includes(value)} onChange={() => setDeliveryMethods((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value])} />
@@ -55,31 +56,31 @@ function ShopPaymentForm({ shop }: { shop: Shop }) {
             </label>
           ))}
         </div>
-        {!deliveryMethods.length ? <p className="mt-1 text-xs text-red-700">Sélectionnez au moins un mode de livraison.</p> : null}
+        {!deliveryMethods.length ? <p className="mt-1 text-xs text-red-700">{english ? 'Select at least one delivery method.' : 'Sélectionnez au moins un mode de livraison.'}</p> : null}
       </div>
       <div>
         {provider === 'momo' || provider === 'both' ? <div><label htmlFor={`shop-momo-${shop.id}`} className="block text-sm font-medium text-stone-700">Numéro MoMo</label><input id={`shop-momo-${shop.id}`} required value={momoNumber} onChange={(event) => setMomoNumber(event.target.value)} placeholder="+237..." className="field mt-1" /></div> : null}
         {provider === 'orange_money' || provider === 'both' ? <div className="mt-3"><label htmlFor={`shop-orange-${shop.id}`} className="block text-sm font-medium text-stone-700">Numéro Orange Money</label><input id={`shop-orange-${shop.id}`} required value={orangeMoneyNumber} onChange={(event) => setOrangeMoneyNumber(event.target.value)} placeholder="+237..." className="field mt-1" /></div> : null}
       </div>
       <div>
-        <label htmlFor={`shop-availability-${shop.id}`} className="block text-sm font-medium text-stone-700">Disponibilité affichée aux clients</label>
+        <label htmlFor={`shop-availability-${shop.id}`} className="block text-sm font-medium text-stone-700">{english ? 'Availability shown to customers' : 'Disponibilité affichée aux clients'}</label>
         <select id={`shop-availability-${shop.id}`} value={availability} onChange={(event) => setAvailability(event.target.value as typeof availability)} className="field mt-1">
-          <option value="available">Disponible pour de nouveaux projets</option>
-          <option value="busy">Peu de disponibilité en ce moment</option>
-          <option value="unavailable">Indisponible actuellement</option>
+          <option value="available">{english ? 'Available for new projects' : 'Disponible pour de nouveaux projets'}</option>
+          <option value="busy">{english ? 'Limited availability' : 'Peu de disponibilité en ce moment'}</option>
+          <option value="unavailable">{english ? 'Currently unavailable' : 'Indisponible actuellement'}</option>
         </select>
       </div>
       <div>
-        <label htmlFor={`shop-provider-${shop.id}`} className="block text-sm font-medium text-stone-700">Moyens acceptés</label>
+        <label htmlFor={`shop-provider-${shop.id}`} className="block text-sm font-medium text-stone-700">{english ? 'Accepted payment methods' : 'Moyens acceptés'}</label>
         <select id={`shop-provider-${shop.id}`} value={provider} onChange={(event) => setProvider(event.target.value as typeof provider)} className="field mt-1">
-          <option value="both">MoMo et Orange Money</option>
-          <option value="momo">MoMo uniquement</option>
-          <option value="orange_money">Orange Money uniquement</option>
+          <option value="both">{english ? 'MoMo and Orange Money' : 'MoMo et Orange Money'}</option>
+          <option value="momo">{english ? 'MoMo only' : 'MoMo uniquement'}</option>
+          <option value="orange_money">{english ? 'Orange Money only' : 'Orange Money uniquement'}</option>
         </select>
       </div>
       {notice ? <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">{notice}</p> : null}
       {error ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
-      <button type="submit" disabled={saving || !deliveryMethods.length} className="rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-white hover:bg-amber-800 disabled:opacity-60">{saving ? 'Enregistrement...' : 'Enregistrer les paramètres'}</button>
+      <button type="submit" disabled={saving || !deliveryMethods.length} className="rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-white hover:bg-amber-800 disabled:opacity-60">{saving ? (english ? 'Saving…' : 'Enregistrement…') : (english ? 'Save settings' : 'Enregistrer les paramètres')}</button>
     </form>
   );
 }
@@ -87,6 +88,7 @@ function ShopPaymentForm({ shop }: { shop: Shop }) {
 function ProfileForm({ user }: { user: User }) {
   const { updateUser } = useAuth();
   const { t, language } = useLanguage();
+  const english = language === 'en';
   const router = useRouter();
   const [name, setName] = useState(user.name ?? '');
   const [phone, setPhone] = useState(user.phone ?? '');
@@ -127,7 +129,7 @@ function ProfileForm({ user }: { user: User }) {
       });
       setBioSuggestion(result.content);
     } catch (suggestionError) {
-      setError(suggestionError instanceof ApiError ? suggestionError.message : 'Impossible de préparer une suggestion de description.');
+      setError(suggestionError instanceof ApiError ? suggestionError.message : (english ? 'Could not prepare a bio suggestion.' : 'Impossible de préparer une suggestion de description.'));
     } finally {
       setSuggestingBio(false);
     }
@@ -141,9 +143,9 @@ function ProfileForm({ user }: { user: User }) {
     try {
       const updated = await api.updateProfile(user.id, { name: name.trim(), phone: phone.trim(), whatsappPhone: whatsappPhone.trim(), location: location.trim(), bio: bio.trim() });
       updateUser(updated);
-      setNotice('Profil mis à jour avec succès.');
+      setNotice(english ? 'Profile updated successfully.' : 'Profil mis à jour avec succès.');
     } catch (saveError) {
-      setError(saveError instanceof ApiError ? saveError.message : 'Impossible de mettre à jour le profil.');
+      setError(saveError instanceof ApiError ? saveError.message : (english ? 'Could not update the profile.' : 'Impossible de mettre à jour le profil.'));
     } finally {
       setSaving(false);
     }
@@ -157,9 +159,9 @@ function ProfileForm({ user }: { user: User }) {
       const result = await api.uploadAvatar(file);
       setAvatarUrl(result.avatarUrl);
       updateUser({ avatarUrl: result.avatarUrl });
-      setNotice('Photo de profil mise à jour.');
+      setNotice(english ? 'Profile photo updated.' : 'Photo de profil mise à jour.');
     } catch (uploadError) {
-      setError(uploadError instanceof ApiError ? uploadError.message : 'Impossible de téléverser cette photo.');
+      setError(uploadError instanceof ApiError ? uploadError.message : (english ? 'Could not upload this photo.' : 'Impossible de téléverser cette photo.'));
     } finally {
       setUploadingAvatar(false);
     }
@@ -205,11 +207,11 @@ function ProfileForm({ user }: { user: User }) {
         <div>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <label htmlFor="profile-bio" className="block text-sm font-medium text-stone-700">{t('profile_bio')}</label>
-            {user.role === 'artisan' ? <button type="button" disabled={suggestingBio} onClick={() => void suggestBio()} className="rounded-md border border-amber-700 px-3 py-1.5 text-sm font-medium text-amber-800 disabled:opacity-50">{suggestingBio ? 'Préparation…' : 'Suggérer une description avec l’IA'}</button> : null}
+            {user.role === 'artisan' ? <button type="button" disabled={suggestingBio} onClick={() => void suggestBio()} className="rounded-md border border-amber-700 px-3 py-1.5 text-sm font-medium text-amber-800 disabled:opacity-50">{suggestingBio ? (english ? 'Preparing…' : 'Préparation…') : (english ? 'Suggest a bio with AI' : 'Suggérer une description avec l’IA')}</button> : null}
           </div>
           <textarea id="profile-bio" rows={5} value={bio} onChange={(event) => setBio(event.target.value)} placeholder={t('profile_bio_placeholder')} className="field mt-1" />
-          {user.role === 'artisan' ? <p className="mt-1 text-xs text-stone-500">La suggestion est un brouillon : vérifiez-la et appliquez-la vous-même.</p> : null}
-          {bioSuggestion ? <div className="mt-3 space-y-3 rounded-md border border-amber-200 bg-amber-50 p-4"><p className="whitespace-pre-wrap text-sm text-stone-800">{bioSuggestion}</p><div className="flex flex-wrap gap-2"><button type="button" onClick={() => { setBio(bioSuggestion); setBioSuggestion(''); }} className="rounded-md bg-amber-700 px-3 py-2 text-sm font-medium text-white hover:bg-amber-800">Utiliser cette suggestion</button><button type="button" onClick={() => setBioSuggestion('')} className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm text-stone-700">Ignorer</button></div></div> : null}
+          {user.role === 'artisan' ? <p className="mt-1 text-xs text-stone-500">{english ? 'This is a draft. Review it and apply it yourself.' : 'La suggestion est un brouillon : vérifiez-la et appliquez-la vous-même.'}</p> : null}
+          {bioSuggestion ? <div className="mt-3 space-y-3 rounded-md border border-amber-200 bg-amber-50 p-4"><p className="whitespace-pre-wrap text-sm text-stone-800">{bioSuggestion}</p><div className="flex flex-wrap gap-2"><button type="button" onClick={() => { setBio(bioSuggestion); setBioSuggestion(''); }} className="rounded-md bg-amber-700 px-3 py-2 text-sm font-medium text-white hover:bg-amber-800">{english ? 'Use this suggestion' : 'Utiliser cette suggestion'}</button><button type="button" onClick={() => setBioSuggestion('')} className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm text-stone-700">{english ? 'Dismiss' : 'Ignorer'}</button></div></div> : null}
         </div>
         {notice ? <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">{notice}</p> : null}
         {error ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
@@ -221,12 +223,12 @@ function ProfileForm({ user }: { user: User }) {
       {user.role === 'artisan' ? (
         <section className="space-y-4">
           <div>
-            <h2 className="text-xl font-semibold text-stone-900">Paramètres des boutiques</h2>
-            <p className="mt-1 text-sm text-stone-600">Modifiez le numéro Mobile Money et les moyens de paiement acceptés par chaque boutique.</p>
+            <h2 className="text-xl font-semibold text-stone-900">{english ? 'Shop settings' : 'Paramètres des boutiques'}</h2>
+            <p className="mt-1 text-sm text-stone-600">{english ? 'Update the Mobile Money number and payment methods accepted by each shop.' : 'Modifiez le numéro Mobile Money et les moyens de paiement acceptés par chaque boutique.'}</p>
           </div>
-          {shopsLoading ? <p className="rounded-md border border-stone-200 bg-white p-4 text-sm text-stone-600">Chargement des boutiques...</p> : null}
-          {!shopsLoading && !shops?.length ? <p className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Aucune boutique n’est encore associée à ce profil. Créez une boutique pour configurer ses paiements.</p> : null}
-          {shops?.map((shop) => <ShopPaymentForm key={shop.id} shop={shop} />)}
+          {shopsLoading ? <p className="rounded-md border border-stone-200 bg-white p-4 text-sm text-stone-600">{english ? 'Loading shops…' : 'Chargement des boutiques…'}</p> : null}
+          {!shopsLoading && !shops?.length ? <p className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{english ? 'No shop is linked to this profile yet. Create a shop to configure its payments.' : 'Aucune boutique n’est encore associée à ce profil. Créez une boutique pour configurer ses paiements.'}</p> : null}
+          {shops?.map((shop) => <ShopPaymentForm key={shop.id} shop={shop} language={language} />)}
         </section>
       ) : null}
     </div>
@@ -235,7 +237,8 @@ function ProfileForm({ user }: { user: User }) {
 
 export default function ProfilePage() {
   const { user, ready } = useAuth();
-  if (!ready) return <p className="text-stone-600">Chargement...</p>;
-  if (!user) return <p className="text-stone-600">Connectez-vous pour modifier votre profil.</p>;
+  const { language } = useLanguage();
+  if (!ready) return <p className="text-stone-600">{language === 'en' ? 'Loading…' : 'Chargement…'}</p>;
+  if (!user) return <p className="text-stone-600">{language === 'en' ? 'Sign in to edit your profile.' : 'Connectez-vous pour modifier votre profil.'}</p>;
   return <ProfileForm key={user.id} user={user} />;
 }
