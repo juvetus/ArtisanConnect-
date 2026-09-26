@@ -1,7 +1,43 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
-import { CustomerRequestsService } from './customer-requests.service.js';
+import { CustomerRequestsService, scoreArtisanForRequest } from './customer-requests.service.js';
 
 describe('CustomerRequestsService', () => {
+  it('classe métier, proximité, budget, disponibilité et avis sans accepter un métier incohérent', () => {
+    const request = {
+      category: 'menuiserie',
+      city: 'Douala',
+      neighborhood: 'Akwa',
+      budgetMin: 80000,
+      budgetMax: 120000,
+      requestedDate: null,
+    };
+    const strongMatch = scoreArtisanForRequest(request, {
+      artisan: { location: 'Douala' },
+      shops: [{ city: 'Douala', neighborhood: 'Akwa', category: 'Menuiserie', verifiedBadge: true, identityVerified: true, availability: 'available', successfulSales: 25 }],
+      categories: ['menuiserie'],
+      prices: [{ min: 90000, max: 110000, estimatedDays: 3 }],
+      averageRating: 4.8,
+    });
+    const weakMatch = scoreArtisanForRequest(request, {
+      artisan: { location: 'Yaoundé' },
+      shops: [{ city: 'Yaoundé', neighborhood: 'Mvan', category: 'menuiserie', verifiedBadge: false, identityVerified: false, availability: 'unavailable', successfulSales: 0 }],
+      categories: ['menuiserie'],
+      prices: [{ min: 500000, max: 500000 }],
+      averageRating: null,
+    });
+    const wrongTrade = scoreArtisanForRequest(request, {
+      artisan: { location: 'Douala' },
+      shops: [{ city: 'Douala', neighborhood: 'Akwa', category: 'Plomberie', verifiedBadge: true, identityVerified: true, availability: 'available', successfulSales: 25 }],
+      categories: ['plomberie'],
+      prices: [{ min: 90000, max: 110000 }],
+      averageRating: 5,
+    });
+
+    expect(strongMatch).toBeGreaterThan(weakMatch);
+    expect(strongMatch).toBeLessThanOrEqual(100);
+    expect(wrongTrade).toBe(0);
+  });
+
   const requests = {
     create: vi.fn(),
     save: vi.fn(),
@@ -14,6 +50,7 @@ describe('CustomerRequestsService', () => {
   };
   const listings = { find: vi.fn() };
   const services = { find: vi.fn() };
+  const serviceReviews = { find: vi.fn().mockResolvedValue([]) };
   const shops = { find: vi.fn() };
   const notifications = {
     notify: vi.fn().mockResolvedValue(undefined),
@@ -33,6 +70,7 @@ describe('CustomerRequestsService', () => {
       users as never,
       listings as never,
       services as never,
+      serviceReviews as never,
       shops as never,
       notifications as never,
       storage as never,

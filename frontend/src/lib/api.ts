@@ -96,6 +96,13 @@ export const api = {
     if (data.referenceImage) form.append('referenceImage', data.referenceImage);
     return request<{ imageUrl: string; label: string; quota: { used: number; limit: number; remaining: number } }>('/assistant/generate-image', { method: 'POST', body: form });
   },
+  assistantAnalyzePhoto: async (photo: File, declaredTrade: string, language: 'fr' | 'en' = 'fr') => {
+    const form = new FormData();
+    form.append('photo', photo);
+    form.append('declaredTrade', declaredTrade);
+    form.append('language', language);
+    return request<{ probableTrade: string; qualityScore: number; issues: string[]; recommendations: string[]; tradeCoherence: 'coherent' | 'uncertain' | 'incoherent'; authenticityAssessment: 'not_verifiable_from_image_alone'; optimizedCaption: string; limitations: string; provider: 'ai' }>('/assistant/analyze-photo', { method: 'POST', body: form });
+  },
   assistantImageQuota: () => request<{ planSlug: string | null; limit: number; used: number; remaining: number; subscriptionId: string | null }>('/assistant/image-quota'),
 
     updateProfile: (id: string, data: { name?: string; phone?: string; whatsappPhone?: string; location?: string; bio?: string; avatarUrl?: string }) => patch<User>(`/users/${id}`, data),

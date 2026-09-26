@@ -24,6 +24,16 @@ export class AssistantController {
     return this.assistant.generateImage({ ...body, userId: user.id, referenceImage });
   }
 
+  @Post('analyze-photo')
+  @UseInterceptors(FileInterceptor('photo', { limits: { fileSize: 5 * 1024 * 1024 } }))
+  analyzePhoto(@CurrentUser() user: AuthUser, @Body('language') language: 'fr' | 'en' = 'fr', @Body('declaredTrade') declaredTrade = '', @UploadedFile() photo?: Express.Multer.File) {
+    if (user.role !== 'artisan') throw new BadRequestException('Assistant réservé aux artisans');
+    if (!photo || !['image/jpeg', 'image/png', 'image/webp'].includes(photo.mimetype)) {
+      throw new BadRequestException('Ajoutez une photo JPG, PNG ou WebP (5 Mo maximum).');
+    }
+    return this.assistant.analyzeArtisanPhoto(photo, declaredTrade, language);
+  }
+
   @Get('image-quota')
   imageQuota(@CurrentUser() user: AuthUser) {
     if (user.role !== 'artisan') throw new BadRequestException('Assistant réservé aux artisans');

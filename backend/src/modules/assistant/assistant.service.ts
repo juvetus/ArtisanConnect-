@@ -6,11 +6,24 @@ import { Repository } from 'typeorm';
 import { AiImageGeneration } from '../../entities/index.js';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service.js';
 
-export type AssistantTask = 'atelier' | 'presentation' | 'produit' | 'reponse' | 'devis' | 'whatsapp' | 'bio' | 'siarc' | 'correction' | 'traduction';
+export type AssistantTask = 'atelier' | 'presentation' | 'profil' | 'produit' | 'reponse' | 'devis' | 'whatsapp' | 'bio' | 'siarc' | 'correction' | 'traduction';
+
+export interface ArtisanPhotoAnalysis {
+  probableTrade: string;
+  qualityScore: number;
+  issues: string[];
+  recommendations: string[];
+  tradeCoherence: 'coherent' | 'uncertain' | 'incoherent';
+  authenticityAssessment: 'not_verifiable_from_image_alone';
+  optimizedCaption: string;
+  limitations: string;
+  provider: 'ai';
+}
 
 const TASK_INSTRUCTIONS: Record<AssistantTask, string> = {
   atelier: 'Rédige une description chaleureuse et concrète de l’atelier, ses savoir-faire, sa ville et ses matières.',
   presentation: 'Rédige une présentation professionnelle courte de l’artisan ou de la structure.',
+  profil: 'Crée un pack de profil artisan avec les sections suivantes : 1) description professionnelle claire et vendeuse de 150 mots maximum, 2) liste structurée des services proposés, 3) conseils de prix prudents en FCFA en expliquant les facteurs qui les font varier et sans inventer de tarifs locaux, 4) réponse automatique WhatsApp polie et professionnelle, 5) mini-texte pour réseaux sociaux. Utilise seulement les informations fournies; signale les informations manquantes par [à préciser]. Ton professionnel, simple et adapté au Cameroun.',
   produit: 'Rédige une fiche produit claire avec titre, description, usages, matières, dimensions si disponibles et appel à l’action.',
   reponse: 'Rédige une réponse polie et professionnelle à un client, avec un ton naturel adapté à WhatsApp.',
   devis: 'Rédige un devis simple en FCFA avec prestation, quantité, prix, délai, validité et conditions. N’invente pas les informations absentes : utilise [à préciser].',
@@ -105,9 +118,71 @@ export class AssistantService {
     return { content, provider: 'ai' as const };
   }
 
+  async analyzeArtisanPhoto(image: Express.Multer.File, declaredTrade: string, language: 'fr' | 'en' = 'fr'): Promise<ArtisanPhotoAnalysis> {
+    const apiKey = this.config.get<string>('AI_API_KEY');
+    if (!apiKey) throw new BadRequestException('L’analyse photo nécessite la configuration de AI_API_KEY.');
+
+    const baseUrl = (this.config.get<string>('AI_BASE_URL') || 'https://api.openai.com/v1').replace(/\/$/, '');
+    const model = this.config.get<string>('AI_MODEL') || 'gpt-4o-mini';
+    const imageData = image.buffer.toString('base64');
+    const languageName = language === 'en' ? 'English' : 'French';
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        temperature: 0.2,
+        response_format: { type: 'json_object' },
+        messages: [
+          {
+            role: 'system',
+            content: `Analyze this artisan portfolio photo and return only a JSON object in ${languageName} with keys: probableTrade (string), qualityScore (integer 0-100), issues (array of short strings), recommendations (array of practical short strings), tradeCoherence ("coherent"|"uncertain"|"incoherent"), authenticityAssessment (always "not_verifiable_from_image_alone"), optimizedCaption (string), limitations (string). Assess only visible photo quality and whether the pictured work seems consistent with the given trade when supplied. Never claim the image is stolen, authentic, or proof of the artisan's work; pixels alone cannot establish ownership or provenance. Be respectful and constructive.`,
+          },
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: `Analyze the attached artisan portfolio photo. Artisan-declared trade: ${declaredTrade.trim().slice(0, 100) || 'not provided'}. Do not infer ownership.` },
+              { type: 'image_url', image_url: { url: `data:${image.mimetype};base64,${imageData}`, detail: 'high' } },
+            ],
+          },
+        ],
+      }),
+    });
+    if (!response.ok) throw new BadRequestException('Le service d’analyse photo est momentanément indisponible.');
+    const data = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) throw new BadRequestException('Le service IA n’a produit aucune analyse.');
+    try {
+      const parsed = JSON.parse(content) as Partial<ArtisanPhotoAnalysis>;
+      if (
+        typeof parsed.probableTrade !== 'string' ||
+        typeof parsed.qualityScore !== 'number' ||
+        !Number.isFinite(parsed.qualityScore) ||
+        !Array.isArray(parsed.issues) ||
+        !Array.isArray(parsed.recommendations) ||
+        !['coherent', 'uncertain', 'incoherent'].includes(parsed.tradeCoherence ?? '') ||
+        typeof parsed.optimizedCaption !== 'string' ||
+        typeof parsed.limitations !== 'string'
+      ) throw new Error('Invalid photo analysis shape');
+      return {
+        probableTrade: parsed.probableTrade.slice(0, 120),
+        qualityScore: Math.max(0, Math.min(100, Math.round(parsed.qualityScore))),
+        issues: parsed.issues.filter((item): item is string => typeof item === 'string').slice(0, 8),
+        recommendations: parsed.recommendations.filter((item): item is string => typeof item === 'string').slice(0, 8),
+        tradeCoherence: parsed.tradeCoherence as ArtisanPhotoAnalysis['tradeCoherence'],
+        authenticityAssessment: 'not_verifiable_from_image_alone',
+        optimizedCaption: parsed.optimizedCaption.slice(0, 500),
+        limitations: parsed.limitations.slice(0, 500),
+        provider: 'ai',
+      };
+    } catch {
+      throw new BadRequestException('Le résultat d’analyse photo est invalide.');
+    }
+  }
+
   private fallback(task: AssistantTask, input: string, language: 'fr' | 'en') {
     if (language === 'en') return `ArtisanConnect assistant draft\n\n${input}\n\nPlease adapt this text with your exact prices, location and delivery details.`;
-    const labels: Record<AssistantTask, string> = { atelier: 'Description de l’atelier', presentation: 'Présentation professionnelle', produit: 'Fiche produit', reponse: 'Réponse client', devis: 'Devis simple', whatsapp: 'Message WhatsApp', bio: 'Bio artisan', siarc: 'Présentation SIARC', correction: 'Texte corrigé', traduction: 'Traduction' };
+    const labels: Record<AssistantTask, string> = { atelier: 'Description de l’atelier', presentation: 'Présentation professionnelle', profil: 'Pack de profil artisan', produit: 'Fiche produit', reponse: 'Réponse client', devis: 'Devis simple', whatsapp: 'Message WhatsApp', bio: 'Bio artisan', siarc: 'Présentation SIARC', correction: 'Texte corrigé', traduction: 'Traduction' };
     return `${labels[task]}\n\n${input}\n\nAdaptez ce brouillon avec vos prix, votre ville et vos délais réels.`;
   }
 }

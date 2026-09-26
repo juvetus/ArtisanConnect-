@@ -5,11 +5,12 @@ import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
 import { api, ApiError } from '@/lib/api';
 
-type Task = 'atelier' | 'presentation' | 'produit' | 'reponse' | 'devis' | 'whatsapp' | 'bio' | 'siarc' | 'correction' | 'traduction';
+type Task = 'atelier' | 'presentation' | 'profil' | 'produit' | 'reponse' | 'devis' | 'whatsapp' | 'bio' | 'siarc' | 'correction' | 'traduction';
 
 const TASKS: { value: Task; fr: string; en: string; placeholder: string }[] = [
   { value: 'atelier', fr: 'Description atelier', en: 'Workshop description', placeholder: 'Métier, ville, matières, savoir-faire...' },
   { value: 'presentation', fr: 'Présentation professionnelle', en: 'Professional presentation', placeholder: 'Nom, métier, expérience, spécialités...' },
+  { value: 'profil', fr: 'Pack complet de profil', en: 'Complete profile pack', placeholder: 'Métier, description actuelle, services proposés, niveau de qualité, ville/quartier, expérience et style de communication...' },
   { value: 'produit', fr: 'Fiche produit', en: 'Product sheet', placeholder: 'Produit, matières, dimensions, usage, prix...' },
   { value: 'reponse', fr: 'Réponse client', en: 'Client reply', placeholder: 'Copiez le message du client et indiquez votre réponse...' },
   { value: 'devis', fr: 'Devis simple', en: 'Simple quote', placeholder: 'Prestation, quantité, prix ou informations à préciser...' },

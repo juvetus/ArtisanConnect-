@@ -19,11 +19,14 @@ export default function AssistantImagesPage() {
   const { language } = useLanguage();
   const english = language === 'en';
   const [prompt, setPrompt] = useState('');
+  const [declaredTrade, setDeclaredTrade] = useState('');
   const [style, setStyle] = useState('studio');
   const [referenceImage, setReferenceImage] = useState<File | undefined>();
   const [images, setImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [analysis, setAnalysis] = useState<Awaited<ReturnType<typeof api.assistantAnalyzePhoto>> | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
   const [quota, setQuota] = useState<{ planSlug: string | null; limit: number; used: number; remaining: number } | null>(null);
 
   useEffect(() => {
@@ -45,6 +48,20 @@ export default function AssistantImagesPage() {
     }
   };
 
+  const analyzePhoto = async () => {
+    if (!referenceImage) return;
+    setAnalyzing(true);
+    setError('');
+    setAnalysis(null);
+    try {
+      setAnalysis(await api.assistantAnalyzePhoto(referenceImage, declaredTrade, language));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : (english ? 'Photo analysis failed.' : 'L’analyse photo a échoué.'));
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
   if (!ready || !user) return <p className="text-stone-600">{english ? 'Loading...' : 'Chargement...'}</p>;
   if (user.role !== 'artisan') return <p className="text-stone-600">{english ? 'This studio is reserved for artisans.' : 'Ce studio est réservé aux artisans.'}</p>;
 
@@ -62,6 +79,10 @@ export default function AssistantImagesPage() {
             <strong>{english ? 'Important:' : 'Important :'}</strong>{' '}
             {english ? 'AI images are inspiration or staging only. They are not proof of a completed artisan work. Use real photos for your portfolio.' : 'Les images IA servent uniquement à présenter une idée ou une mise en scène. Elles ne prouvent pas une réalisation. Utilisez des photos réelles pour votre portfolio.'}
           </div>
+          <label className="block text-sm font-medium text-stone-700">
+            {english ? 'Your trade (for photo analysis)' : 'Votre métier (pour analyser la photo)'}
+            <input value={declaredTrade} onChange={(event) => setDeclaredTrade(event.target.value)} placeholder={english ? 'e.g. carpenter, tailor, potter' : 'Ex. menuisier, couturière, potier'} className="field mt-1 w-full" />
+          </label>
           <label className="block text-sm font-medium text-stone-700">
             {english ? 'Describe the product' : 'Décrivez le produit'}
             <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={7} placeholder={english ? 'Example: handwoven raffia basket, natural colours, round shape...' : 'Exemple : panier rond en raphia tressé à la main, couleurs naturelles...'} className="field mt-1 w-full" />
@@ -83,6 +104,20 @@ export default function AssistantImagesPage() {
             <span className="mt-1 block text-xs font-normal text-stone-500">{english ? 'The AI will use this photo as a product reference. JPG, PNG or WebP, 5 MB maximum.' : 'L’IA utilisera cette photo comme référence du produit. JPG, PNG ou WebP, 5 Mo maximum.'}</span>
           </label>
           {referenceImage ? <img src={URL.createObjectURL(referenceImage)} alt={english ? 'Selected product reference' : 'Référence produit sélectionnée'} className="h-24 w-24 rounded-md border border-stone-200 object-cover" /> : null}
+          <div className="rounded-md border border-stone-200 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div><h2 className="text-sm font-semibold text-stone-900">{english ? 'Analyze portfolio photo' : 'Analyser une photo de portfolio'}</h2><p className="mt-1 text-xs text-stone-600">{english ? 'Photo quality and trade coherence only; ownership cannot be verified from pixels.' : 'Qualité visuelle et cohérence avec le métier seulement; la propriété ne peut pas être vérifiée à partir des pixels.'}</p></div>
+              <button type="button" disabled={!referenceImage || analyzing} onClick={() => void analyzePhoto()} className="rounded-md border border-amber-700 px-3 py-2 text-sm font-medium text-amber-800 disabled:opacity-50">{analyzing ? (english ? 'Analyzing…' : 'Analyse…') : (english ? 'Analyze photo' : 'Analyser la photo')}</button>
+            </div>
+            {analysis ? <div className="mt-4 space-y-3 border-t border-stone-200 pt-3 text-sm">
+              <div className="flex flex-wrap justify-between gap-2"><p className="font-semibold text-stone-900">{english ? 'Probable trade' : 'Métier probable'} : {analysis.probableTrade}</p><p className="font-semibold text-amber-800">{english ? 'Photo quality' : 'Qualité photo'} : {analysis.qualityScore}/100</p></div>
+              <p className="text-stone-700">{english ? 'Trade coherence' : 'Cohérence métier'} : {analysis.tradeCoherence === 'coherent' ? (english ? 'Coherent' : 'Cohérente') : analysis.tradeCoherence === 'incoherent' ? (english ? 'Not obvious' : 'Non évidente') : (english ? 'Uncertain' : 'Incertaine')}</p>
+              {analysis.issues?.length ? <p className="text-stone-700">{english ? 'Points to improve' : 'À améliorer'} : {analysis.issues.join(' · ')}</p> : null}
+              {analysis.recommendations?.length ? <ul className="list-disc space-y-1 pl-5 text-stone-700">{analysis.recommendations.map((item, index) => <li key={`${index}-${item}`}>{item}</li>)}</ul> : null}
+              <p className="text-stone-700"><span className="font-medium">{english ? 'Suggested caption' : 'Légende suggérée'} :</span> {analysis.optimizedCaption}</p>
+              <p className="rounded bg-stone-50 p-2 text-xs text-stone-600">{english ? 'Authenticity and ownership are not verifiable from this image alone.' : 'L’authenticité et la propriété ne sont pas vérifiables à partir de cette image seule.'}</p>
+            </div> : null}
+          </div>
           {error ? <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
           <button type="button" disabled={loading || (prompt.trim().length < 20 && !referenceImage) || images.length >= 3} onClick={() => void generate()} className="rounded-md bg-amber-700 px-5 py-3 font-medium text-white disabled:opacity-60">
             {loading ? (english ? 'Generating...' : 'Génération...') : (english ? 'Generate image' : 'Générer une image')}

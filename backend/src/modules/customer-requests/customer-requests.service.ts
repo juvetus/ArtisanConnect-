@@ -1,7 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, Repository } from 'typeorm';
-import { CustomerRequest, Listing, Service, Shop, User } from '../../entities/index.js';
+import { CustomerRequest, Listing, Service, ServiceReview, Shop, User } from '../../entities/index.js';
 import type { ContactPreference } from '../../entities/customer-request.entity.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { StorageService } from '../storage/storage.service.js';
@@ -22,10 +22,16 @@ function looselyMatches(first: string, second: string): boolean {
   return first === second || first.includes(second) || second.includes(first);
 }
 
-/** Score de pertinence : métier (50), ville (30), quartier (10), boutique vérifiée (10). */
+/** Score de pertinence : métier (50), proximité (25), fiabilité (10), disponibilité (5), budget (10). */
 export function scoreArtisanForRequest(
-  request: Pick<CustomerRequest, 'category' | 'city' | 'neighborhood'>,
-  context: { artisan: { location?: string | null }; shops: Pick<Shop, 'city' | 'neighborhood' | 'category' | 'verifiedBadge' | 'identityVerified'>[]; categories: string[] },
+  request: Pick<CustomerRequest, 'category' | 'city' | 'neighborhood' | 'budgetMin' | 'budgetMax' | 'requestedDate'>,
+  context: {
+    artisan: { location?: string | null };
+    shops: Pick<Shop, 'city' | 'neighborhood' | 'category' | 'verifiedBadge' | 'identityVerified' | 'availability' | 'successfulSales'>[];
+    categories: string[];
+    prices: { min: number; max: number; estimatedDays?: number }[];
+    averageRating: number | null;
+  },
 ): number {
   const wantedCategory = normalize(request.category);
   const wantedCity = normalize(request.city);
@@ -43,11 +49,31 @@ export function scoreArtisanForRequest(
   // Sans métier correspondant, la demande n'est pas adressée à cet artisan.
   if (!categoryScore) return 0;
 
-  const cityScore = artisanCities.some((value) => looselyMatches(value, wantedCity)) ? 30 : 0;
-  const neighborhoodScore = wantedNeighborhood && artisanNeighborhoods.some((value) => looselyMatches(value, wantedNeighborhood)) ? 10 : 0;
-  const trustScore = context.shops.some((shop) => shop.identityVerified) ? 10 : context.shops.some((shop) => shop.verifiedBadge) ? 5 : 0;
+  const cityScore = artisanCities.some((value) => looselyMatches(value, wantedCity)) ? 20 : 0;
+  const neighborhoodScore = wantedNeighborhood && artisanNeighborhoods.some((value) => looselyMatches(value, wantedNeighborhood)) ? 5 : 0;
+  const identityScore = context.shops.some((shop) => shop.identityVerified) ? 4 : context.shops.some((shop) => shop.verifiedBadge) ? 3 : 0;
+  const salesScore = context.shops.some((shop) => shop.successfulSales >= 20) ? 3 : context.shops.some((shop) => shop.successfulSales >= 5) ? 2 : context.shops.some((shop) => shop.successfulSales > 0) ? 1 : 0;
+  const ratingScore = context.averageRating === null ? 1 : context.averageRating >= 4.7 ? 3 : context.averageRating >= 4 ? 2 : context.averageRating >= 3 ? 1 : 0;
+  const availability = context.shops.some((shop) => shop.availability === 'available')
+    ? 'available'
+    : context.shops.some((shop) => shop.availability === 'busy')
+      ? 'busy'
+      : context.shops.length ? 'unavailable' : 'available';
+  let availabilityScore = availability === 'available' ? 5 : availability === 'busy' ? 2 : 0;
+  if (request.requestedDate && context.prices.some((price) => price.estimatedDays !== undefined)) {
+    const daysUntilWanted = Math.ceil((new Date(request.requestedDate).getTime() - Date.now()) / 86400000);
+    if (daysUntilWanted >= 0 && context.prices.every((price) => price.estimatedDays !== undefined && price.estimatedDays > daysUntilWanted)) availabilityScore = 0;
+  }
 
-  return categoryScore + cityScore + neighborhoodScore + trustScore;
+  let budgetScore = 5;
+  const budgetMin = Number(request.budgetMin ?? 0);
+  const budgetMax = Number(request.budgetMax ?? 0);
+  if (context.prices.length && (budgetMin > 0 || budgetMax > 0)) {
+    const overlapsBudget = context.prices.some((price) => (!budgetMax || price.min <= budgetMax) && (!budgetMin || price.max >= budgetMin));
+    budgetScore = overlapsBudget ? 10 : 0;
+  }
+
+  return categoryScore + cityScore + neighborhoodScore + identityScore + salesScore + ratingScore + availabilityScore + budgetScore;
 }
 
 @Injectable()
@@ -57,6 +83,7 @@ export class CustomerRequestsService {
     @InjectRepository(User) private readonly users: Repository<User>,
     @InjectRepository(Listing) private readonly listings: Repository<Listing>,
     @InjectRepository(Service) private readonly services: Repository<Service>,
+    @InjectRepository(ServiceReview) private readonly serviceReviews: Repository<ServiceReview>,
     @InjectRepository(Shop) private readonly shops: Repository<Shop>,
     private readonly notifications: NotificationsService,
     private readonly storage: StorageService,
@@ -128,11 +155,12 @@ export class CustomerRequestsService {
     if (!artisans.length) return [];
 
     const artisanIds = artisans.map((artisan) => artisan.id);
-    const [shops, listings, services, premiumIds] = await Promise.all([
+    const [shops, listings, services, premiumIds, reviews] = await Promise.all([
       this.shops.find({ where: { sellerId: In(artisanIds), status: 'active' } }),
       this.listings.find({ where: { sellerId: In(artisanIds), status: 'active' } }),
       this.services.find({ where: { status: 'approved' }, relations: { artisan: true } }),
       this.subscriptions.findPremiumUserIds(artisanIds),
+      this.serviceReviews.find({ where: { recipientId: In(artisanIds), verified: true } }),
     ]);
 
     return artisans
@@ -146,6 +174,11 @@ export class CustomerRequestsService {
             ...listings.filter((listing) => listing.sellerId === artisan.id).map((listing) => listing.category),
             ...services.filter((service) => service.artisan?.id === artisan.id).map((service) => service.category),
           ],
+          prices: [
+            ...listings.filter((listing) => listing.sellerId === artisan.id && listing.type === 'service').map((listing) => ({ min: Number(listing.price), max: Number(listing.price) })),
+            ...services.filter((service) => service.artisan?.id === artisan.id).map((service) => ({ min: Number(service.priceMin ?? service.price), max: Number(service.priceMax ?? service.price), estimatedDays: Number(service.estimatedDays) })),
+          ],
+          ...this.reviewStats(artisan.id, reviews),
         }),
       }))
       .filter((candidate) => candidate.score > 0)
@@ -153,6 +186,15 @@ export class CustomerRequestsService {
       .sort((first, second) => second.score - first.score || Number(second.premium) - Number(first.premium))
       .slice(0, MAX_TARGETED_ARTISANS)
       .map((candidate) => candidate.artisan);
+  }
+
+  private reviewStats(artisanId: string, reviews: ServiceReview[]) {
+    const matchingReviews = reviews.filter((review) => review.recipientId === artisanId);
+    return {
+      averageRating: matchingReviews.length
+        ? matchingReviews.reduce((sum, review) => sum + Number(review.rating), 0) / matchingReviews.length
+        : null,
+    };
   }
 
   async findMine(clientId: string) {
@@ -213,15 +255,21 @@ export class CustomerRequestsService {
     });
 
     const artisan = await this.users.findOne({ where: { id: artisanId } });
-    const [shops, listings, services] = await Promise.all([
+    const [shops, listings, services, reviews] = await Promise.all([
       this.shops.find({ where: { sellerId: artisanId, status: 'active' } }),
       this.listings.find({ where: { sellerId: artisanId, status: 'active' } }),
       this.services.find({ where: { artisan: { id: artisanId }, status: 'approved' } }),
+      this.serviceReviews.find({ where: { recipientId: artisanId, verified: true } }),
     ]);
     const context = {
       artisan: { location: artisan?.location ?? null },
       shops,
       categories: [...listings.map((listing) => listing.category), ...services.map((service) => service.category)],
+      prices: [
+        ...listings.filter((listing) => listing.type === 'service').map((listing) => ({ min: Number(listing.price), max: Number(listing.price) })),
+        ...services.map((service) => ({ min: Number(service.priceMin ?? service.price), max: Number(service.priceMax ?? service.price), estimatedDays: Number(service.estimatedDays) })),
+      ],
+      ...this.reviewStats(artisanId, reviews),
     };
 
     const normalizedCategory = normalize(category);
