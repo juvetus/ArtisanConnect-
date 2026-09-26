@@ -139,6 +139,11 @@ export function Header() {
                   {t('nav_service_requests')}
                 </Link>
               )}
+              {user.role === 'admin' && (
+                <Link href="/admin/customer-requests" className={navLinkClass('/admin/customer-requests')}>
+                  Demandes sans artisan
+                </Link>
+              )}
               {user.role === 'artisan' && (
                 <Link href="/shop/create" className={navLinkClass('/shop/create')}>
                   {t('nav_create_shop')}

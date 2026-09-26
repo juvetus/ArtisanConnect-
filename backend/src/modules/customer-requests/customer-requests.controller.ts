@@ -3,6 +3,7 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { CurrentUser, type AuthUser } from '../auth/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { Public } from '../auth/public.decorator.js';
+import { AdminGuard } from '../auth/admin.guard.js';
 import { CustomerRequestsService } from './customer-requests.service.js';
 
 @Controller('customer-requests')
@@ -24,6 +25,18 @@ export class CustomerRequestsController {
   @Get('mine')
   mine(@CurrentUser() user: AuthUser) {
     return this.service.findMine(user.id);
+  }
+
+  @UseGuards(AdminGuard)
+  @Get('admin/unmatched')
+  unmatchedForAdmin() {
+    return this.service.findUnmatchedForAdmin();
+  }
+
+  @UseGuards(AdminGuard)
+  @Post('admin/:id/reply')
+  replyAsAdmin(@Param('id') id: string, @Body('message') message: string) {
+    return this.service.replyAsAdmin(id, message);
   }
 
   @Get('artisan/open')

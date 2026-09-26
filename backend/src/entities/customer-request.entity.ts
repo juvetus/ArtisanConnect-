@@ -70,6 +70,12 @@ export class CustomerRequest {
   @Column({ type: 'timestamp', nullable: true })
   paidAt: Date | null;
 
+  @Column({ type: 'text', nullable: true })
+  adminReply: string | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  adminRepliedAt: Date | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

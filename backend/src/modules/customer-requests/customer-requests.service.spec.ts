@@ -124,11 +124,46 @@ describe('CustomerRequestsService', () => {
 
     expect(notifications.notifyAdmins).toHaveBeenCalledWith(expect.objectContaining({
       title: 'Demande client sans artisan correspondant',
-      link: '/admin',
+      link: '/admin/customer-requests',
       relatedId: 'request-no-match',
     }));
     expect(whatsApp.sendAdminNoMatch).toHaveBeenCalledWith(expect.stringContaining('Aucun artisan actif'), expect.stringContaining('/admin'));
     expect(notifications.notify).not.toHaveBeenCalled();
+  });
+
+  it('enregistre la réponse admin et notifie le client', async () => {
+    const request = {
+      id: 'request-no-match',
+      clientId: 'client-1',
+      category: 'automatisme',
+      city: 'Garoua',
+      contactedArtisanIds: [],
+      adminReply: null as string | null,
+      adminRepliedAt: null as Date | null,
+    };
+    requests.findOne.mockResolvedValue(request);
+    requests.save.mockImplementation(async (value) => value);
+    users.findOne.mockResolvedValue({ id: 'client-1', name: 'Amina', email: 'amina@example.cm' });
+
+    const result = await service.replyAsAdmin('request-no-match', 'Nous recherchons un artisan compatible et vous recontactons.');
+
+    expect(requests.save).toHaveBeenCalledWith(expect.objectContaining({
+      adminReply: 'Nous recherchons un artisan compatible et vous recontactons.',
+      adminRepliedAt: expect.any(Date),
+    }));
+    expect(notifications.notify).toHaveBeenCalledWith(expect.objectContaining({
+      recipientId: 'client-1',
+      title: 'Réponse de l’équipe ArtisanConnect',
+      content: 'Nous recherchons un artisan compatible et vous recontactons.',
+      link: '/customer-requests',
+    }));
+    expect(emails.send).toHaveBeenCalledWith(expect.objectContaining({ to: 'amina@example.cm' }));
+    expect(result.success).toBe(true);
+  });
+
+  it('refuse une réponse admin vide', async () => {
+    await expect(service.replyAsAdmin('request-no-match', '  ')).rejects.toBeInstanceOf(BadRequestException);
+    expect(requests.findOne).not.toHaveBeenCalled();
   });
 
   it('refuse une demande sans description suffisante', async () => {

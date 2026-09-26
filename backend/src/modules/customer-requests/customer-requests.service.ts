@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 import { CustomerRequest, Listing, Service, Shop, User } from '../../entities/index.js';
 import type { ContactPreference } from '../../entities/customer-request.entity.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
@@ -104,12 +104,12 @@ export class CustomerRequestsService {
       await this.notifications.notifyAdmins({
         title: 'Demande client sans artisan correspondant',
         content: `${summary}\nAucun artisan actif ne correspond au métier demandé. Un suivi manuel est nécessaire.`,
-        link: '/admin',
+        link: '/admin/customer-requests',
         relatedId: request.id,
       }).catch(() => undefined);
       await this.whatsApp.sendAdminNoMatch(
         `${summary} Aucun artisan actif ne correspond au métier demandé.`,
-        `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/admin`,
+        `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/admin/customer-requests`,
       );
     }
     for (const artisan of targets) {
@@ -180,6 +180,59 @@ export class CustomerRequestsService {
   async findMine(clientId: string) {
     const requests = await this.requests.find({ where: { clientId }, order: { createdAt: 'DESC' } });
     return this.enrichResponses(requests);
+  }
+
+  async findUnmatchedForAdmin() {
+    const requests = await this.requests.find({
+      where: [
+        { status: 'new', contactedArtisanIds: '' },
+        { status: 'new', contactedArtisanIds: IsNull() },
+      ],
+      order: { createdAt: 'DESC' },
+      take: 200,
+    });
+    const clients = requests.length
+      ? await this.users.find({ where: requests.map((request) => ({ id: request.clientId })) })
+      : [];
+    const clientsById = new Map(clients.map((client) => [client.id, client]));
+    return requests.map((request) => ({
+      ...request,
+      client: clientsById.get(request.clientId)
+        ? { id: clientsById.get(request.clientId)!.id, name: clientsById.get(request.clientId)!.name, email: clientsById.get(request.clientId)!.email }
+        : null,
+    }));
+  }
+
+  async replyAsAdmin(requestId: string, message: string) {
+    const reply = message?.trim();
+    if (!reply) throw new BadRequestException('La réponse est obligatoire');
+    const request = await this.requests.findOne({ where: { id: requestId } });
+    if (!request) throw new NotFoundException('Demande introuvable');
+    if ((request.contactedArtisanIds ?? []).length > 0) {
+      throw new BadRequestException('Un artisan a déjà été ciblé pour cette demande');
+    }
+
+    request.adminReply = reply;
+    request.adminRepliedAt = new Date();
+    await this.requests.save(request);
+    await this.notifications.notify({
+      recipientId: request.clientId,
+      type: 'order_status',
+      title: 'Réponse de l’équipe ArtisanConnect',
+      content: reply,
+      link: '/customer-requests',
+      relatedId: request.id,
+    }).catch(() => undefined);
+
+    const client = await this.users.findOne({ where: { id: request.clientId } });
+    if (client?.email) {
+      await this.emails.send({
+        to: client.email,
+        subject: '[ArtisanConnect] Réponse à votre demande',
+        text: `Bonjour ${client.name ?? ''},\n\nL’équipe ArtisanConnect vous répond au sujet de votre demande ${request.category} à ${request.city} :\n\n${reply}\n\nConsultez votre demande : ${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/customer-requests`,
+      }).catch(() => undefined);
+    }
+    return { success: true, adminReply: request.adminReply, adminRepliedAt: request.adminRepliedAt };
   }
 
   async findOpenForArtisan(artisanId: string, category?: string, city?: string) {
