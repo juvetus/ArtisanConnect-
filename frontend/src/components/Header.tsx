@@ -97,7 +97,7 @@ export function Header() {
           </Link>
           {user?.role !== 'artisan' ? (
             <Link href="/trouver-un-artisan" className={navLinkClass('/trouver-un-artisan')}>
-              {t('nav_find_artisan')}
+              {user?.role === 'institution' ? (language === 'en' ? 'Source artisans' : 'Sourcer des artisans') : t('nav_find_artisan')}
             </Link>
           ) : null}
           {user?.role !== 'artisan' && user?.role !== 'institution' ? (

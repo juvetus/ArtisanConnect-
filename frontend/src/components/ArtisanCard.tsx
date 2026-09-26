@@ -49,7 +49,7 @@ export function ArtisanCard({ artisan }: { artisan: PublicArtisan }) {
       </div>
       <div className={`mt-auto grid gap-2 pt-5 ${user?.role === 'artisan' || user?.role === 'admin' ? 'grid-cols-1' : 'grid-cols-[1fr_auto]'}`}>
         {user?.role === 'institution' ? (
-          <Link href="/contact" className="rounded-md bg-amber-700 px-3 py-2 text-center text-sm font-medium text-white hover:bg-amber-800">Partenariat</Link>
+          <Link href={`/messages?to=${artisan.seller.id}`} className="rounded-md bg-amber-700 px-3 py-2 text-center text-sm font-medium text-white hover:bg-amber-800">Contacter l’artisan</Link>
         ) : !user || user.role === 'client' ? (
           <Link href={quoteHref} className="rounded-md bg-amber-700 px-3 py-2 text-center text-sm font-medium text-white hover:bg-amber-800">
             {t('home_artisan_quote')}
