@@ -23,8 +23,6 @@ describe('ServiceOrdersService', () => {
   const payments = {};
   const users = { find: vi.fn() };
   const notifications = { notify: vi.fn() };
-  const emails = { send: vi.fn().mockResolvedValue(true) };
-  const whatsApp = { sendServiceRequest: vi.fn().mockResolvedValue(false) };
 
   let service: ServiceOrdersService;
 
@@ -39,8 +37,6 @@ describe('ServiceOrdersService', () => {
       payments as never,
       users as never,
       notifications as never,
-      emails as never,
-      whatsApp as never,
     );
     services.findOne.mockResolvedValue({
       id: 'service-1',
@@ -66,7 +62,7 @@ describe('ServiceOrdersService', () => {
     expect(notifications.notify).not.toHaveBeenCalled();
   });
 
-  it('notifie l’artisan par notification interne, e-mail et WhatsApp', async () => {
+  it('notifie l’artisan via le service central de notifications', async () => {
     const createdOrder = { id: 'order-1', clientId: 'client-1', artisanId: 'artisan-1' };
     orders.count.mockResolvedValue(0);
     orders.save.mockResolvedValue(createdOrder);
@@ -80,7 +76,5 @@ describe('ServiceOrdersService', () => {
       relatedId: 'order-1',
       title: 'Nouvelle demande pour votre service',
     }));
-    expect(emails.send).toHaveBeenCalledWith(expect.objectContaining({ to: 'awa@example.cm' }));
-    expect(whatsApp.sendServiceRequest).toHaveBeenCalledWith('+237699000001', expect.any(Array));
   });
 });

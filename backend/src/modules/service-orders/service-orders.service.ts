@@ -7,9 +7,7 @@ import { ServiceQuote } from '../../entities/service-quote.entity.js';
 import { User } from '../../entities/user.entity.js';
 import { ServicePayment } from '../../entities/service-payment.entity.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
-import { EmailService } from '../email/email.service.js';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { WhatsAppService } from '../whatsapp/whatsapp.service.js';
 
 const PLATFORM_FEE_RATE = 0.10;
 
@@ -27,8 +25,6 @@ export class ServiceOrdersService {
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
     private readonly notificationsService: NotificationsService,
-    private readonly emailService: EmailService,
-    private readonly whatsAppService: WhatsAppService,
   ) {}
 
   async createOrder(clientId: string, data: {
@@ -111,7 +107,6 @@ export class ServiceOrdersService {
     });
 
     const requestSummary = `Nouvelle demande pour « ${service.title} ». Elle sera transmise après validation de l’équipe ArtisanConnect.`;
-    const artisanUrl = `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/artisan/service-orders`;
     try {
       await this.notificationsService.notify({
         recipientId: service.artisan.id,
@@ -124,20 +119,6 @@ export class ServiceOrdersService {
     } catch {
       // Une notification ne doit pas annuler la demande.
     }
-    if (service.artisan.email) {
-      await this.emailService.send({
-        to: service.artisan.email,
-        subject: `[ArtisanConnect] Nouvelle demande pour ${service.title}`,
-        text: `Bonjour ${service.artisan.name ?? ''},\n\n${requestSummary}\n\nConsulter : ${artisanUrl}`,
-        html: `<p>Bonjour ${this.escapeHtml(service.artisan.name ?? '')},</p><p>${this.escapeHtml(requestSummary)}</p><p><a href="${this.escapeHtml(artisanUrl)}">Consulter la demande</a></p>`,
-      }).catch(() => undefined);
-    }
-    await this.whatsAppService.sendServiceRequest(service.artisan.whatsappPhone ?? service.artisan.phone, [
-      service.artisan.name ?? 'Artisan',
-      `Nouvelle demande pour le service « ${service.title} ». ${requestSummary}`,
-      artisanUrl,
-    ]);
-
     const admins = await this.usersRepository.find({ where: { role: 'admin' } });
     await Promise.all(admins.map(async (admin) => {
       try {
@@ -149,27 +130,11 @@ export class ServiceOrdersService {
           link: `/admin/service-orders`,
           relatedId: savedOrder.id,
         });
-        await this.emailService.send({
-          to: admin.email,
-          subject: '[ArtisanConnect] Nouvelle demande de service à valider',
-          text: `Une nouvelle demande pour « ${service.title} » attend votre validation.\n\nConsulter : ${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/admin/service-orders`,
-          html: `<p>Une nouvelle demande pour <strong>${this.escapeHtml(service.title)}</strong> attend votre validation.</p><p><a href="${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/admin/service-orders">Ouvrir les demandes à valider</a></p>`,
-        });
       } catch {
-        // Une notification ou un e-mail admin ne doit pas annuler la demande.
+        // Une notification ne doit pas annuler la demande.
       }
     }));
     return this.findByIdForUser(savedOrder.id, clientId);
-  }
-
-  private escapeHtml(value: string): string {
-    return value.replace(/[&<>\"']/g, (character) => ({
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '\"': '&quot;',
-      "'": '&#039;',
-    })[character] ?? character);
   }
 
   async findByIdForUser(id: string, userId: string) {
@@ -317,15 +282,6 @@ export class ServiceOrdersService {
         link: `/service-orders/${order.id}`,
         relatedId: order.id,
       });
-      await this.emailService.sendQuoteEmail({
-        to: order.client.email,
-        recipientName: order.client.name,
-        serviceTitle: 'votre demande de service',
-        kind: 'received',
-        price: data.proposedPrice,
-        days: data.proposedDays,
-        serviceUrl: `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/service-orders/${order.id}`,
-      });
     } catch {
       // Le devis reste valide même si la notification échoue.
     }
@@ -375,14 +331,6 @@ export class ServiceOrdersService {
         content: quote.clientResponse,
         link: `/service-orders/${order.id}`,
         relatedId: order.id,
-      });
-      await this.emailService.sendQuoteEmail({
-        to: order.artisan.email,
-        recipientName: order.artisan.name,
-        serviceTitle: 'votre devis',
-        kind: accepted ? 'accepted' : 'rejected',
-        response: quote.clientResponse ?? undefined,
-        serviceUrl: `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/service-orders/${order.id}`,
       });
     } catch {
       // La réponse client reste enregistrée même si la notification échoue.
@@ -499,12 +447,6 @@ export class ServiceOrdersService {
           link: `/service-orders/${order.id}`,
           relatedId: order.id,
         });
-        await this.emailService.send({
-          to: order.client.email,
-          subject: '[ArtisanConnect] Votre commande a été livrée',
-          text: `${content}\n\n${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/service-orders/${order.id}`,
-          html: `<p>${content}</p><p><a href="${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/service-orders/${order.id}">Consulter la livraison</a></p>`,
-        });
       } catch {
         // La livraison reste enregistrée même si la notification échoue.
       }
@@ -557,7 +499,7 @@ export class ServiceOrdersService {
       let content = '';
       if (order.status === 'pending_admin_validation' && now - order.createdAt.getTime() > 24 * 60 * 60 * 1000) {
         const admins = await this.usersRepository.find({ where: { role: 'admin', isActive: true } });
-        for (const admin of admins) await this.sendReminder(admin.id, admin.email, order.id, 'Demande admin en attente', `La demande « ${order.service?.title} » attend une validation depuis plus de 24 h.`, since, '/admin/service-orders');
+        for (const admin of admins) await this.sendReminder(admin.id, order.id, 'Demande admin en attente', `La demande « ${order.service?.title} » attend une validation depuis plus de 24 h.`, since, '/admin/service-orders');
         continue;
       }
       if (order.status === 'sent_to_artisan' && now - order.updatedAt.getTime() > 48 * 60 * 60 * 1000) {
@@ -568,14 +510,13 @@ export class ServiceOrdersService {
       } else if (order.status === 'delivered' && order.deliveredAt && now - order.deliveredAt.getTime() > 24 * 60 * 60 * 1000) {
         recipientId = order.clientId; title = 'Livraison à valider'; content = `La livraison de « ${order.service?.title} » attend votre validation.`;
       }
-      if (recipientId) await this.sendReminder(recipientId, recipientId === order.clientId ? order.client.email : order.artisan.email, order.id, title, content, since, `/service-orders/${order.id}`);
+      if (recipientId) await this.sendReminder(recipientId, order.id, title, content, since, `/service-orders/${order.id}`);
     }
   }
 
-  private async sendReminder(recipientId: string, email: string, orderId: string, title: string, content: string, since: Date, link: string) {
+  private async sendReminder(recipientId: string, orderId: string, title: string, content: string, since: Date, link: string) {
     if (await this.notificationsService.hasRecent(recipientId, orderId, title, since)) return;
     await this.notificationsService.notify({ recipientId, type: 'order_status', title, content, link, relatedId: orderId });
-    await this.emailService.send({ to: email, subject: `[ArtisanConnect] ${title}`, text: `${content}\n\n${process.env.FRONTEND_URL ?? 'http://localhost:3000'}${link}` });
   }
 
   async respondToDelivery(clientId: string, orderId: string, accepted: boolean, feedback?: string) {

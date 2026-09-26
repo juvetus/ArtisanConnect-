@@ -8,7 +8,6 @@ import type { Listing } from '../../entities/listing.entity.js';
 import type { ServiceReview } from '../../entities/service-review.entity.js';
 import type { Service } from '../../entities/service.entity.js';
 import type { NotificationsService } from '../notifications/notifications.service.js';
-import type { EmailService } from '../email/email.service.js';
 
 describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
   let service: ShopsService;
@@ -19,7 +18,6 @@ describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
   let mockServicesRepo: Partial<Record<keyof Repository<Service>, any>>;
   let mockSubscriptionsService: { findPremiumUserIds: any };
   let mockNotificationsService: Partial<NotificationsService>;
-  let mockEmailService: Partial<EmailService>;
 
   beforeEach(() => {
     mockShopsRepo = {
@@ -55,10 +53,6 @@ describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
       notify: vi.fn().mockResolvedValue({} as any),
     };
 
-    mockEmailService = {
-      send: vi.fn().mockResolvedValue(true),
-    };
-
     service = new ShopsService(
       mockShopsRepo as Repository<Shop>,
       mockListingsRepo as Repository<Listing>,
@@ -66,7 +60,6 @@ describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
       mockServiceReviewsRepo as Repository<ServiceReview>,
       mockServicesRepo as Repository<Service>,
       mockNotificationsService as NotificationsService,
-      mockEmailService as EmailService,
       mockSubscriptionsService as never,
     );
   });
@@ -95,11 +88,6 @@ describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
         recipientId: 'admin-1',
         type: 'shop_review',
         title: 'Nouvelle boutique artisan à valider',
-      }),
-    );
-    expect(mockEmailService.send).toHaveBeenCalledWith(
-      expect.objectContaining({
-        to: 'admin@test.com',
       }),
     );
   });

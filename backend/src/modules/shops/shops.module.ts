@@ -3,7 +3,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Shop, Listing, User, ServiceReview, Service } from '../../entities/index.js';
 import { ListingsModule } from '../listings/listings.module.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
-import { EmailModule } from '../email/email.module.js';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module.js';
 import { ShopsService } from './shops.service.js';
 import { ShopsController } from './shops.controller.js';
@@ -13,7 +12,6 @@ import { ShopsController } from './shops.controller.js';
     TypeOrmModule.forFeature([Shop, Listing, User, ServiceReview, Service]),
     forwardRef(() => ListingsModule),
     NotificationsModule,
-    EmailModule,
     SubscriptionsModule,
   ],
   controllers: [ShopsController],

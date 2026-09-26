@@ -19,14 +19,9 @@ describe('CustomerRequestsService', () => {
     notify: vi.fn().mockResolvedValue(undefined),
     notifyAdmins: vi.fn().mockResolvedValue(undefined),
   };
-  const emails = { send: vi.fn().mockResolvedValue(true) };
   const storage = { isEnabled: vi.fn().mockReturnValue(true), uploadBuffer: vi.fn() };
   const subscriptions = { findPremiumUserIds: vi.fn().mockResolvedValue(new Set<string>()) };
   const momo = { initiateCollectionPayment: vi.fn(), getPaymentStatus: vi.fn() };
-  const whatsApp = {
-    sendServiceRequest: vi.fn().mockResolvedValue(false),
-    sendAdminNoMatch: vi.fn().mockResolvedValue(false),
-  };
 
   let service: CustomerRequestsService;
 
@@ -40,11 +35,9 @@ describe('CustomerRequestsService', () => {
       services as never,
       shops as never,
       notifications as never,
-      emails as never,
       storage as never,
       subscriptions as never,
       momo as never,
-      whatsApp as never,
     );
   });
 
@@ -102,8 +95,6 @@ describe('CustomerRequestsService', () => {
       link: '/artisan/customer-requests',
       relatedId: 'request-1',
     }));
-    expect(emails.send).toHaveBeenCalledWith(expect.objectContaining({ to: 'menuisier@test.cm' }));
-    expect(whatsApp.sendServiceRequest).toHaveBeenCalledWith('+237699000001', expect.any(Array));
     expect(result.contactedArtisanIds).toEqual(['artisan-menuisier']);
   });
 
@@ -127,7 +118,6 @@ describe('CustomerRequestsService', () => {
       link: '/admin/customer-requests',
       relatedId: 'request-no-match',
     }));
-    expect(whatsApp.sendAdminNoMatch).toHaveBeenCalledWith(expect.stringContaining('Aucun artisan actif'), expect.stringContaining('/admin'));
     expect(notifications.notify).not.toHaveBeenCalled();
   });
 
@@ -157,7 +147,6 @@ describe('CustomerRequestsService', () => {
       content: 'Nous recherchons un artisan compatible et vous recontactons.',
       link: '/customer-requests',
     }));
-    expect(emails.send).toHaveBeenCalledWith(expect.objectContaining({ to: 'amina@example.cm' }));
     expect(result.success).toBe(true);
   });
 

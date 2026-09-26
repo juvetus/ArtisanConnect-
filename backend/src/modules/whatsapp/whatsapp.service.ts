@@ -7,15 +7,17 @@ export class WhatsAppService {
 
   constructor(private readonly config: ConfigService) {}
 
-  async sendAdminNoMatch(summary: string, requestUrl: string): Promise<boolean> {
-    const adminPhone = this.config.get<string>('ADMIN_WHATSAPP_PHONE', '+33782510546');
-    return this.sendServiceRequest(adminPhone, ['Administration', summary, requestUrl]);
+  async sendNotification(phone: string | null | undefined, recipientName: string, title: string, content: string, link: string, isAdmin = false): Promise<boolean> {
+    const recipient = phone?.trim() || (isAdmin ? this.config.get<string>('ADMIN_WHATSAPP_PHONE', '+33782510546') : undefined);
+    if (!recipient) return false;
+    return this.sendTemplate(recipient, [recipientName, `${title}: ${content}`, link]);
   }
 
-  async sendServiceRequest(phone: string | null | undefined, parameters: string[]): Promise<boolean> {
+  private async sendTemplate(phone: string | null | undefined, parameters: string[]): Promise<boolean> {
     const accessToken = this.config.get<string>('WHATSAPP_ACCESS_TOKEN');
     const phoneNumberId = this.config.get<string>('WHATSAPP_PHONE_NUMBER_ID');
-    const templateName = this.config.get<string>('WHATSAPP_SERVICE_REQUEST_TEMPLATE');
+    const templateName = this.config.get<string>('WHATSAPP_NOTIFICATION_TEMPLATE')
+      || this.config.get<string>('WHATSAPP_SERVICE_REQUEST_TEMPLATE');
     if (!accessToken || !phoneNumberId || !templateName || !phone) return false;
 
     const recipient = this.normalizePhone(phone);

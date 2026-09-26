@@ -9,7 +9,6 @@ import { Service } from '../../entities/service.entity.js';
 import { computeVerification } from './verification.js';
 import type { VerificationLevel } from './verification.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
-import { EmailService } from '../email/email.service.js';
 import { StorageService } from '../storage/storage.service.js';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service.js';
 
@@ -44,7 +43,6 @@ export class ShopsService {
     @InjectRepository(Service)
     private servicesRepository: Repository<Service>,
     private notificationsService: NotificationsService,
-    private emailService: EmailService,
     private subscriptionsService: SubscriptionsService,
   ) {}
 
@@ -115,14 +113,6 @@ export class ShopsService {
             relatedId: savedShop.id,
           });
 
-          if (admin.email) {
-            await this.emailService.send({
-              to: admin.email,
-              subject: `[ArtisanConnect] Nouvelle boutique artisan à valider : ${savedShop.name}`,
-              text: `Bonjour ${admin.name || 'Admin'},\n\n${sellerName} a créé la boutique artisan « ${savedShop.name} ».\nLes pièces KYC pourront être complétées après création.\n\nLien : /admin\n\nArtisanConnect`,
-              html: `<p>Bonjour ${admin.name || 'Admin'},</p><p><strong>${sellerName}</strong> a créé la boutique artisan <strong>« ${savedShop.name} »</strong>.</p><p>Les pièces KYC pourront être complétées après création.</p><p><a href="/admin">Accéder au panneau d'administration</a></p><p>ArtisanConnect</p>`,
-            });
-          }
         }
       } catch (err) {
         // La notification ne doit pas bloquer la transaction de création de la boutique
@@ -472,17 +462,6 @@ export class ShopsService {
           relatedId: shop.id,
         });
 
-        if (seller.email) {
-          await this.emailService.send({
-            to: seller.email,
-            subject: approve
-              ? `[ArtisanConnect] Votre boutique « ${shop.name} » est validée !`
-              : `[ArtisanConnect] Décision concernant votre boutique « ${shop.name} »`,
-            text: approve
-              ? `Bonjour ${seller.name},\n\nFélicitations ! Votre boutique « ${shop.name} » a été validée par notre équipe. Vous pouvez dès à présent créer vos annonces.\n\nAccédez à votre atelier : /dashboard\n\nArtisanConnect`
-              : `Bonjour ${seller.name},\n\nVotre boutique « ${shop.name} » n'a pas pu être validée.\nMotif : ${reason ?? 'Preuves KYC insuffisantes'}.\n\nArtisanConnect`,
-          });
-        }
       }
     } catch {
       // Notification non bloquante

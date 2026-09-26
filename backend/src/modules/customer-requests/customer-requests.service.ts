@@ -4,11 +4,9 @@ import { In, IsNull, Repository } from 'typeorm';
 import { CustomerRequest, Listing, Service, Shop, User } from '../../entities/index.js';
 import type { ContactPreference } from '../../entities/customer-request.entity.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
-import { EmailService } from '../email/email.service.js';
 import { StorageService } from '../storage/storage.service.js';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service.js';
 import { MomoService } from '../momo/momo.service.js';
-import { WhatsAppService } from '../whatsapp/whatsapp.service.js';
 
 /** Une demande est adressée à quelques artisans pertinents, pas à toute la place de marché. */
 const MAX_TARGETED_ARTISANS = 5;
@@ -61,11 +59,9 @@ export class CustomerRequestsService {
     @InjectRepository(Service) private readonly services: Repository<Service>,
     @InjectRepository(Shop) private readonly shops: Repository<Shop>,
     private readonly notifications: NotificationsService,
-    private readonly emails: EmailService,
     private readonly storage: StorageService,
     private readonly subscriptions: SubscriptionsService,
     private readonly momo: MomoService,
-    private readonly whatsApp: WhatsAppService,
   ) {}
 
   async create(clientId: string, data: { category: string; city: string; neighborhood?: string; description: string; budgetMin?: number; budgetMax?: number; requestedDate?: string; contactPreference?: ContactPreference; contactPhone?: string }) {
@@ -98,7 +94,6 @@ export class CustomerRequestsService {
     await this.requests.save(request);
 
     const deadline = request.requestedDate ? ` (souhaité pour le ${new Date(request.requestedDate).toLocaleDateString('fr-FR')})` : '';
-    const opportunitiesUrl = `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/artisan/customer-requests`;
     const summary = `${request.category} à ${request.neighborhood ? `${request.neighborhood}, ` : ''}${request.city}${deadline} : ${request.description.slice(0, 140)}${request.description.length > 140 ? '…' : ''}`;
     if (!targets.length) {
       await this.notifications.notifyAdmins({
@@ -107,10 +102,6 @@ export class CustomerRequestsService {
         link: '/admin/customer-requests',
         relatedId: request.id,
       }).catch(() => undefined);
-      await this.whatsApp.sendAdminNoMatch(
-        `${summary} Aucun artisan actif ne correspond au métier demandé.`,
-        `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/admin/customer-requests`,
-      );
     }
     for (const artisan of targets) {
       await this.notifications.notify({
@@ -122,19 +113,6 @@ export class CustomerRequestsService {
         relatedId: request.id,
       }).catch(() => undefined);
 
-      if (artisan.email) {
-        await this.emails.send({
-          to: artisan.email,
-          subject: `[ArtisanConnect] Demande ${request.category} à ${request.city}`,
-          text: `Bonjour ${artisan.name ?? ''},\n\nUn client recherche un artisan : ${summary}\n\nRépondez avec votre prix et votre délai depuis votre espace : ${opportunitiesUrl}\n\nArtisanConnect`,
-          html: `<p>Bonjour ${artisan.name ?? ''},</p><p>Un client recherche un artisan :</p><blockquote>${summary}</blockquote><p><a href="${opportunitiesUrl}">Répondre avec votre prix et votre délai</a></p><p>ArtisanConnect</p>`,
-        }).catch(() => undefined);
-      }
-      await this.whatsApp.sendServiceRequest(artisan.whatsappPhone ?? artisan.phone, [
-        artisan.name ?? 'Artisan',
-        summary,
-        opportunitiesUrl,
-      ]);
     }
 
     return request;
@@ -224,14 +202,6 @@ export class CustomerRequestsService {
       relatedId: request.id,
     }).catch(() => undefined);
 
-    const client = await this.users.findOne({ where: { id: request.clientId } });
-    if (client?.email) {
-      await this.emails.send({
-        to: client.email,
-        subject: '[ArtisanConnect] Réponse à votre demande',
-        text: `Bonjour ${client.name ?? ''},\n\nL’équipe ArtisanConnect vous répond au sujet de votre demande ${request.category} à ${request.city} :\n\n${reply}\n\nConsultez votre demande : ${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/customer-requests`,
-      }).catch(() => undefined);
-    }
     return { success: true, adminReply: request.adminReply, adminRepliedAt: request.adminRepliedAt };
   }
 

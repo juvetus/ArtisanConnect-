@@ -4,9 +4,10 @@ import { Notification, User } from '../../entities/index.js';
 import { NotificationsService } from './notifications.service.js';
 import { NotificationsController } from './notifications.controller.js';
 import { EmailModule } from '../email/email.module.js';
+import { WhatsAppModule } from '../whatsapp/whatsapp.module.js';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Notification, User]), EmailModule],
+  imports: [TypeOrmModule.forFeature([Notification, User]), EmailModule, WhatsAppModule],
   controllers: [NotificationsController],
   providers: [NotificationsService],
   exports: [NotificationsService],
