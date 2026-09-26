@@ -100,22 +100,22 @@ export function Header() {
               {user?.role === 'institution' ? (language === 'en' ? 'Source artisans' : 'Sourcer des artisans') : t('nav_find_artisan')}
             </Link>
           ) : null}
-          {user?.role !== 'artisan' && user?.role !== 'institution' ? (
+          {user?.role !== 'artisan' && user?.role !== 'institution' && user?.role !== 'admin' ? (
             <Link href="/services" className={navLinkClass('/services')}>
               {t('nav_services')}
             </Link>
           ) : null}
-          {user?.role !== 'artisan' ? (
+          {user?.role !== 'artisan' && user?.role !== 'admin' ? (
             <Link href="/how-it-works" className={navLinkClass('/how-it-works')}>
               {t('nav_how_it_works')}
             </Link>
           ) : null}
-          {user?.role !== 'artisan' ? (
+          {user?.role !== 'artisan' && user?.role !== 'admin' ? (
             <Link href="/blog" className={navLinkClass('/blog')}>
               Blog
             </Link>
           ) : null}
-          {!user || (user.role !== 'client' && user.role !== 'artisan' && user.role !== 'institution') ? (
+          {!user || (user.role !== 'client' && user.role !== 'artisan' && user.role !== 'institution' && user.role !== 'admin') ? (
             <Link href="/institutions" className={navLinkClass('/institutions')}>
               {t('nav_institutions')}
             </Link>
