@@ -105,6 +105,36 @@ describe('CustomerRequestsService', () => {
     expect(requests.save).not.toHaveBeenCalled();
   });
 
+  it('masque une demande pourvue aux artisans qui n’ont pas répondu', async () => {
+    requests.find.mockResolvedValue([
+      { id: 'awarded', status: 'in_progress', category: 'menuiserie', city: 'Douala', createdAt: '2025-01-02T09:00:00.000Z', responses: [{ artisanId: 'artisan-2', message: 'offre', status: 'accepted', createdAt: '2025-01-02T10:00:00.000Z' }] },
+    ]);
+    users.findOne.mockResolvedValue({ id: 'artisan-1', location: 'Douala' });
+    shops.find.mockResolvedValue([]);
+    listings.find.mockResolvedValue([{ category: 'menuiserie' }]);
+    services.find.mockResolvedValue([]);
+
+    expect(await service.findOpenForArtisan('artisan-1')).toEqual([]);
+    const [forWinner] = await service.findOpenForArtisan('artisan-2');
+    expect(forWinner).toEqual(expect.objectContaining({ awarded: true, awardedToMe: true }));
+    expect(forWinner).not.toHaveProperty('responses');
+  });
+
+  it('refuse la modification d’offre à un artisan non retenu', async () => {
+    requests.findOne.mockResolvedValue({
+      id: 'request-1',
+      clientId: 'client-1',
+      status: 'in_progress',
+      responses: [
+        { artisanId: 'artisan-1', message: 'offre', status: 'rejected', createdAt: new Date().toISOString() },
+        { artisanId: 'artisan-2', message: 'offre', status: 'accepted', createdAt: new Date().toISOString() },
+      ],
+    });
+
+    await expect(service.updateResponse('artisan-1', 'request-1', { price: 1000 })).rejects.toBeInstanceOf(BadRequestException);
+    expect(requests.save).not.toHaveBeenCalled();
+  });
+
   it('enregistre la réponse et notifie le client', async () => {
     const request = { id: 'request-1', clientId: 'client-1', status: 'new', responses: [], contactedArtisanIds: [] };
     requests.findOne.mockResolvedValue(request);

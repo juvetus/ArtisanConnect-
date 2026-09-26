@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { CurrentUser, type AuthUser } from '../auth/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
@@ -45,6 +45,11 @@ export class CustomerRequestsController {
   @Post(':id/respond')
   respond(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() body: { price?: number; days?: number; message: string }) {
     return this.service.respond(user.id, id, body);
+  }
+
+  @Patch(':id/respond')
+  updateResponse(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() body: { price?: number; days?: number; message?: string }) {
+    return this.service.updateResponse(user.id, id, body);
   }
 
   @Post(':id/responses/:artisanId/decision')

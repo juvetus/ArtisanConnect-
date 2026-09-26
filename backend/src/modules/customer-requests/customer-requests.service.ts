@@ -94,6 +94,7 @@ export class CustomerRequestsService {
     await this.requests.save(request);
 
     const deadline = request.requestedDate ? ` (souhaité pour le ${new Date(request.requestedDate).toLocaleDateString('fr-FR')})` : '';
+    const opportunitiesUrl = `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/artisan/customer-requests`;
     const summary = `${request.category} à ${request.neighborhood ? `${request.neighborhood}, ` : ''}${request.city}${deadline} : ${request.description.slice(0, 140)}${request.description.length > 140 ? '…' : ''}`;
     for (const artisan of targets) {
       await this.notifications.notify({
@@ -109,8 +110,8 @@ export class CustomerRequestsService {
         await this.emails.send({
           to: artisan.email,
           subject: `[ArtisanConnect] Demande ${request.category} à ${request.city}`,
-          text: `Bonjour ${artisan.name ?? ''},\n\nUn client recherche un artisan : ${summary}\n\nRépondez avec votre prix et votre délai depuis votre espace : /artisan/customer-requests\n\nArtisanConnect`,
-          html: `<p>Bonjour ${artisan.name ?? ''},</p><p>Un client recherche un artisan :</p><blockquote>${summary}</blockquote><p><a href="/artisan/customer-requests">Répondre avec votre prix et votre délai</a></p><p>ArtisanConnect</p>`,
+          text: `Bonjour ${artisan.name ?? ''},\n\nUn client recherche un artisan : ${summary}\n\nRépondez avec votre prix et votre délai depuis votre espace : ${opportunitiesUrl}\n\nArtisanConnect`,
+          html: `<p>Bonjour ${artisan.name ?? ''},</p><p>Un client recherche un artisan :</p><blockquote>${summary}</blockquote><p><a href="${opportunitiesUrl}">Répondre avec votre prix et votre délai</a></p><p>ArtisanConnect</p>`,
         }).catch(() => undefined);
       }
     }
@@ -162,7 +163,7 @@ export class CustomerRequestsService {
 
   async findOpenForArtisan(artisanId: string, category?: string, city?: string) {
     const requests = await this.requests.find({
-      where: [{ status: 'new' }, { status: 'contacted' }],
+      where: [{ status: 'new' }, { status: 'contacted' }, { status: 'in_progress' }],
       order: { createdAt: 'DESC' },
       take: 100,
     });
@@ -184,19 +185,29 @@ export class CustomerRequestsService {
 
     return requests
       .filter((request) => {
+        // Une fois l'accord conclu, seuls les artisans ayant répondu voient encore la demande.
+        if (request.status === 'in_progress' && !(request.responses ?? []).some((response) => response.artisanId === artisanId)) return false;
         if (normalizedCategory && !normalize(request.category).includes(normalizedCategory)) return false;
         if (normalizedCity && !normalize(request.city).includes(normalizedCity)) return false;
         return true;
       })
-      .map((request) => ({
-        ...request,
-        // « Adressée » = l'artisan fait partie des destinataires retenus lors de la création.
-        targeted: (request.contactedArtisanIds ?? []).includes(artisanId),
-        alreadyAnswered: (request.responses ?? []).some((response) => response.artisanId === artisanId),
-        matchScore: Math.min(100, scoreArtisanForRequest(request, context)),
-      }))
+      .map(({ responses, ...request }) => {
+        const myResponse = (responses ?? []).find((response) => response.artisanId === artisanId) ?? null;
+        const awarded = request.status === 'in_progress';
+        return {
+          ...request,
+          // « Adressée » = l'artisan fait partie des destinataires retenus lors de la création.
+          targeted: (request.contactedArtisanIds ?? []).includes(artisanId),
+          alreadyAnswered: Boolean(myResponse),
+          myResponse,
+          awarded,
+          awardedToMe: awarded && myResponse?.status === 'accepted',
+          matchScore: Math.min(100, scoreArtisanForRequest(request, context)),
+        };
+      })
       .sort(
         (first, second) =>
+          Number(first.awarded && !first.awardedToMe) - Number(second.awarded && !second.awardedToMe) ||
           Number(second.targeted) - Number(first.targeted) ||
           (second.matchScore ?? 0) - (first.matchScore ?? 0) ||
           new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime(),
@@ -290,12 +301,50 @@ export class CustomerRequestsService {
     return request;
   }
 
+  /** L'artisan ajuste son offre, y compris le prix convenu après discussion avec le client. */
+  async updateResponse(artisanId: string, id: string, data: { price?: number; days?: number; message?: string }) {
+    const request = await this.requests.findOne({ where: { id } });
+    if (!request) throw new NotFoundException('Demande introuvable');
+    const current = (request.responses ?? []).find((response) => response.artisanId === artisanId);
+    if (!current) throw new NotFoundException('Vous n’avez pas encore répondu à cette demande');
+    if (request.status === 'completed') throw new BadRequestException('Cette demande est clôturée');
+    if (request.status === 'in_progress' && current.status !== 'accepted') throw new BadRequestException('Offre déjà pourvue : le client a retenu un autre artisan');
+    if (data.price !== undefined && (!Number.isFinite(data.price) || data.price < 0)) throw new BadRequestException('Prix invalide');
+    if (data.days !== undefined && (!Number.isFinite(data.days) || data.days < 1)) throw new BadRequestException('Délai invalide');
+
+    const updated = {
+      ...current,
+      price: data.price ?? current.price,
+      days: data.days ?? current.days,
+      message: data.message?.trim() || current.message,
+      // Une offre refusée puis modifiée redevient une proposition à étudier.
+      status: current.status === 'rejected' ? undefined : current.status,
+      updatedAt: new Date().toISOString(),
+    };
+    request.responses = (request.responses ?? []).map((response) => (response.artisanId === artisanId ? updated : response));
+    await this.requests.save(request);
+
+    const terms = [updated.price !== undefined ? `${updated.price} FCFA` : 'prix à convenir', updated.days ? `${updated.days} jours` : null].filter(Boolean).join(' · ');
+    await this.notifications.notify({
+      recipientId: request.clientId,
+      type: 'order_status',
+      title: 'Un artisan a modifié son offre',
+      content: `Nouvelle offre : ${terms}. ${updated.message}`,
+      link: '/customer-requests',
+      relatedId: request.id,
+    });
+    return request;
+  }
+
   async decideResponse(clientId: string, requestId: string, artisanId: string, decision: 'accepted' | 'rejected') {
     const request = await this.requests.findOne({ where: { id: requestId } });
     if (!request) throw new NotFoundException('Demande introuvable');
     if (request.clientId !== clientId) throw new ForbiddenException('Cette demande ne vous concerne pas');
     const response = (request.responses ?? []).find((item) => item.artisanId === artisanId);
     if (!response) throw new NotFoundException('Réponse artisan introuvable');
+    if (decision === 'accepted' && request.status === 'in_progress' && response.status !== 'accepted') {
+      throw new BadRequestException('Vous avez déjà retenu un artisan pour cette demande');
+    }
     request.responses = (request.responses ?? []).map((item) => ({
       ...item,
       status: item.artisanId === artisanId ? decision : item.status,
@@ -310,6 +359,17 @@ export class CustomerRequestsService {
       link: `/artisan/customer-requests`,
       relatedId: request.id,
     });
+    if (decision === 'accepted') {
+      const others = (request.responses ?? []).filter((item) => item.artisanId !== artisanId);
+      await Promise.all(others.map((item) => this.notifications.notify({
+        recipientId: item.artisanId,
+        type: 'order_status',
+        title: 'Offre déjà pourvue',
+        content: `Le client a retenu un autre artisan pour la demande ${request.category} à ${request.city}.`,
+        link: '/artisan/customer-requests',
+        relatedId: request.id,
+      })));
+    }
     return request;
   }
 

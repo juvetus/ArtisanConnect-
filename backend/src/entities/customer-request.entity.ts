@@ -49,7 +49,7 @@ export class CustomerRequest {
   contactedArtisanIds: string[];
 
   @Column({ type: 'jsonb', default: [] })
-  responses: { artisanId: string; price?: number; days?: number; message: string; status?: 'accepted' | 'rejected'; createdAt: string }[];
+  responses: { artisanId: string; price?: number; days?: number; message: string; status?: 'accepted' | 'rejected'; createdAt: string; updatedAt?: string }[];
 
   @CreateDateColumn()
   createdAt: Date;
