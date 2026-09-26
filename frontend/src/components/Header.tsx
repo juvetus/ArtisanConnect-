@@ -29,6 +29,10 @@ export function Header() {
     refreshInterval: 20000,
   });
 
+  const { data: opportunityUnread } = useSWR(user?.role === 'artisan' ? 'opportunity-notifications-unread' : null, () => api.notificationsOpportunitiesUnread(), {
+    refreshInterval: 20000,
+  });
+
   const handleLogout = () => {
     setMenuOpen(false);
     logout();
@@ -165,8 +169,9 @@ export function Header() {
                 </Link>
               )}
               {user.role === 'artisan' && (
-                <Link href="/artisan/customer-requests" className={navLinkClass('/artisan/customer-requests')}>
+                <Link href="/artisan/customer-requests" className={`${navLinkClass('/artisan/customer-requests')} flex items-center justify-between gap-2`}>
                   {t('nav_opportunities')}
+                  {opportunityUnread && opportunityUnread.unreadCount > 0 ? <span className="rounded-full bg-red-600 px-1.5 py-0.5 text-xs font-semibold text-white">{opportunityUnread.unreadCount}</span> : null}
                 </Link>
               )}
               {user.role === 'artisan' && (

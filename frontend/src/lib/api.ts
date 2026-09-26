@@ -479,6 +479,10 @@ export const api = {
 
   notificationsUnread: () => request<{ unreadCount: number }>('/notifications/unread'),
 
+  notificationsOpportunitiesUnread: () => request<{ unreadCount: number }>('/notifications/opportunities/unread'),
+
+  markOpportunityNotificationsRead: () => post<{ success: boolean }>('/notifications/opportunities/read-all'),
+
   markNotificationRead: (id: string) => patch<{ success: boolean }>(`/notifications/${id}/read`, {}),
 
   markAllNotificationsRead: () => post<{ success: boolean }>('/notifications/read-all'),

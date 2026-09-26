@@ -26,6 +26,10 @@ export default function ArtisanCustomerRequestsPage() {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    if (ready && user?.role === 'artisan') void api.markOpportunityNotificationsRead().catch(() => undefined);
+  }, [ready, user?.id, user?.role]);
+
   if (!ready || !user) return <p className="text-stone-600">{t('opportunities_login')}</p>;
 
   const isPending = (request: RequestItem) => !request.alreadyAnswered && !request.awarded;

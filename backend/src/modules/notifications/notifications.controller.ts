@@ -21,6 +21,17 @@ export class NotificationsController {
     return { unreadCount: await this.notificationsService.unreadCount(user.id) };
   }
 
+  @Get('opportunities/unread')
+  async unreadOpportunities(@CurrentUser() user: AuthUser) {
+    return { unreadCount: await this.notificationsService.unreadOpportunityCount(user.id) };
+  }
+
+  @Post('opportunities/read-all')
+  async markOpportunityNotificationsRead(@CurrentUser() user: AuthUser) {
+    await this.notificationsService.markOpportunityNotificationsRead(user.id);
+    return { success: true };
+  }
+
   @Patch(':id/read')
   async markRead(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     await this.notificationsService.markAsRead(id, user.id);

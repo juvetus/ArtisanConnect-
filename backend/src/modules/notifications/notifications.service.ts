@@ -55,6 +55,19 @@ export class NotificationsService {
     return this.notificationsRepository.count({ where: { recipientId, read: false } });
   }
 
+  async unreadOpportunityCount(recipientId: string): Promise<number> {
+    return this.notificationsRepository.count({
+      where: { recipientId, read: false, title: 'Nouvelle demande client pour vous' },
+    });
+  }
+
+  async markOpportunityNotificationsRead(recipientId: string): Promise<void> {
+    await this.notificationsRepository.update(
+      { recipientId, read: false, title: 'Nouvelle demande client pour vous' },
+      { read: true },
+    );
+  }
+
   async hasRecent(recipientId: string, relatedId: string, title: string, since: Date): Promise<boolean> {
     return (await this.notificationsRepository.count({
       where: { recipientId, relatedId, title, createdAt: MoreThan(since) },

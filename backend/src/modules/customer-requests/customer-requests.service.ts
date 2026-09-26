@@ -213,7 +213,8 @@ export class CustomerRequestsService {
         if (request.status === 'in_progress' && !(request.responses ?? []).some((response) => response.artisanId === artisanId)) return false;
         if (normalizedCategory && !normalize(request.category).includes(normalizedCategory)) return false;
         if (normalizedCity && !normalize(request.city).includes(normalizedCity)) return false;
-        return true;
+        const alreadyAnswered = (request.responses ?? []).some((response) => response.artisanId === artisanId);
+        return alreadyAnswered || scoreArtisanForRequest(request, context) > 0;
       })
       .map(({ responses, ...request }) => {
         const myResponse = (responses ?? []).find((response) => response.artisanId === artisanId) ?? null;

@@ -152,6 +152,22 @@ describe('CustomerRequestsService', () => {
     expect(result.map((request) => request.id)).toEqual(['match']);
   });
 
+  it('masque les demandes hors métier tout en conservant celles auxquelles l’artisan a répondu', async () => {
+    requests.find.mockResolvedValue([
+      { id: 'wrong-trade', clientId: 'client-1', status: 'new', category: 'AUTOMATICIEN', city: 'Garoua', responses: [], createdAt: '2025-01-02T10:00:00.000Z' },
+      { id: 'answered-before-profile-change', clientId: 'client-2', status: 'contacted', category: 'AUTOMATICIEN', city: 'Garoua', responses: [{ artisanId: 'artisan-1', message: 'Mon offre', createdAt: '2025-01-02T09:00:00.000Z' }], createdAt: '2025-01-02T08:00:00.000Z' },
+    ]);
+    users.findOne.mockResolvedValue({ id: 'artisan-1', location: 'Garoua' });
+    users.find.mockResolvedValue([]);
+    shops.find.mockResolvedValue([]);
+    listings.find.mockResolvedValue([{ category: 'plomberie' }]);
+    services.find.mockResolvedValue([]);
+
+    const result = await service.findOpenForArtisan('artisan-1');
+
+    expect(result.map((request) => request.id)).toEqual(['answered-before-profile-change']);
+  });
+
   it('affiche le nom et uniquement le numéro de contact autorisé par le client', async () => {
     requests.find.mockResolvedValue([
       { id: 'request-whatsapp', clientId: 'client-wa', status: 'new', category: 'menuiserie', city: 'Douala', contactPreference: 'whatsapp', contactPhone: '+237699000001', createdAt: '2025-01-02T09:00:00.000Z' },
