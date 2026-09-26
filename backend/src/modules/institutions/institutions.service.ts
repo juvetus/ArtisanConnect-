@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { ArtisanFormalization, InstitutionalProgram, InstitutionalResource, Listing, Order, ProgramApplication, User } from '../../entities/index.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 
 type ResourceType = 'training' | 'guide' | 'template';
 type ProgramType = 'training' | 'support' | 'funding' | 'grant';
@@ -17,6 +18,7 @@ export class InstitutionsService {
     @InjectRepository(InstitutionalProgram) private programs: Repository<InstitutionalProgram>,
     @InjectRepository(ArtisanFormalization) private formalizations: Repository<ArtisanFormalization>,
     @InjectRepository(ProgramApplication) private applications: Repository<ProgramApplication>,
+    private notificationsService: NotificationsService,
   ) {}
 
   async listResources() {
@@ -130,7 +132,14 @@ export class InstitutionsService {
     } else {
       Object.assign(record, data, { status: 'submitted', progress: Math.max(record.progress, 50) });
     }
-    return this.formalizations.save(record);
+    const saved = await this.formalizations.save(record);
+    void this.notificationsService.notifyAdmins({
+      title: 'Dossier de formalisation à examiner',
+      content: `Le dossier « ${saved.businessName} » a été soumis ou mis à jour.`,
+      link: '/admin',
+      relatedId: saved.id,
+    }).catch(() => undefined);
+    return saved;
   }
 
   async dashboard(institutionId: string) {

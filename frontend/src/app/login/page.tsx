@@ -19,9 +19,14 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    const value = identifier.trim();
+    if (!value.includes('@') && !value.startsWith('+') && !value.startsWith('00')) {
+      setError(t('login_phone_code_required'));
+      return;
+    }
     setPending(true);
     try {
-      await login(identifier, password);
+      await login(value, password);
       router.push('/');
     } catch {
       setError('Email ou mot de passe incorrect / Incorrect email or password.');
@@ -47,8 +52,11 @@ export default function LoginPage() {
             required
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
+            placeholder="email@exemple.com / +237 6XX XXX XXX"
+            aria-describedby="identifier-help"
             className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600"
           />
+          <p id="identifier-help" className="mt-1 text-xs text-stone-500">{t('login_phone_hint')}</p>
         </div>
 
         <div>

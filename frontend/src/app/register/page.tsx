@@ -20,6 +20,8 @@ export default function RegisterPage() {
   const [phoneCountry, setPhoneCountry] = useState('+237');
   const [phoneOtp, setPhoneOtp] = useState('');
   const [phoneOtpExpected, setPhoneOtpExpected] = useState<string | null>(null);
+  const [phoneAccountCreated, setPhoneAccountCreated] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<Role>('client');
@@ -38,6 +40,7 @@ export default function RegisterPage() {
         return;
       }
       if (contactType === 'phone') {
+        setPhoneAccountCreated(true);
         setPhoneOtpExpected(result.developmentOtp ?? null);
         return;
       }
@@ -62,7 +65,8 @@ export default function RegisterPage() {
   const verifyPhone = async () => {
     try {
       await api.verifyPhone(`${phoneCountry}${phone}`, phoneOtp);
-      router.push('/login');
+      setError('');
+      setPhoneVerified(true);
     } catch (error) {
       setError(error instanceof ApiError ? error.message : 'Code de vérification invalide ou expiré.');
     }
@@ -192,7 +196,7 @@ export default function RegisterPage() {
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
-        {phoneOtpExpected ? <div className="space-y-3 rounded-md bg-amber-50 p-4"><p className="text-sm text-stone-700">Code OTP de test : <strong>{phoneOtpExpected}</strong></p><input value={phoneOtp} onChange={(e) => setPhoneOtp(e.target.value)} placeholder="Code à 6 chiffres" className="w-full rounded-md border border-stone-300 px-3 py-2" /><button type="button" onClick={() => void verifyPhone()} className="w-full rounded-md bg-green-700 py-2 font-medium text-white">Vérifier le numéro</button></div> : <button
+        {phoneVerified ? <div role="status" className="space-y-3 rounded-md border border-green-200 bg-green-50 p-4"><p className="text-sm font-medium text-green-800">{t('register_phone_success', { phone: `${phoneCountry}${phone}` })}</p><Link href="/login" className="block w-full rounded-md bg-green-700 py-2 text-center font-medium text-white">{t('register_login_link')}</Link></div> : phoneAccountCreated ? <div className="space-y-3 rounded-md bg-amber-50 p-4"><p role="status" className="text-sm font-medium text-stone-800">{t('register_phone_created')}</p>{phoneOtpExpected ? <p className="text-sm text-stone-700">{t('register_phone_test_code')} <strong>{phoneOtpExpected}</strong></p> : null}<input value={phoneOtp} onChange={(e) => setPhoneOtp(e.target.value)} placeholder={t('register_phone_code_placeholder')} inputMode="numeric" className="w-full rounded-md border border-stone-300 px-3 py-2" /><button type="button" onClick={() => void verifyPhone()} className="w-full rounded-md bg-green-700 py-2 font-medium text-white">{t('register_phone_verify')}</button></div> : <button
           type="submit"
           disabled={pending}
           className="w-full rounded-md bg-amber-700 py-2 font-medium text-white hover:bg-amber-800 disabled:opacity-60"

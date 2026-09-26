@@ -96,6 +96,10 @@ export class AuthService {
   }
 
   async login(identifier: string, password: string) {
+    const trimmed = identifier.trim();
+    if (!trimmed.includes('@') && !trimmed.startsWith('+') && !trimmed.startsWith('00')) {
+      throw new BadRequestException("L'indicatif du pays est obligatoire pour un numéro de téléphone (ex. +237...).");
+    }
     const normalized = identifier.includes('@') ? identifier.toLowerCase().trim() : this.normalizePhone(identifier);
     const user = await this.usersService.findByIdentifierWithPassword(normalized);
     

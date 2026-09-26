@@ -65,24 +65,12 @@ export class ServicesService {
     service.status = 'pending_validation';
     const savedService = await this.servicesRepository.save(service);
 
-    // Prévenir chaque administrateur sans bloquer la soumission si une notification échoue.
-    try {
-      const [admins, artisan] = await Promise.all([
-        this.usersRepository.find({ where: { role: 'admin', isActive: true } }),
-        this.usersRepository.findOne({ where: { id: artisanId } }),
-      ]);
-      const artisanName = artisan?.name || 'Un artisan';
-      await Promise.all(admins.map((admin) => this.notificationsService.notify({
-        recipientId: admin.id,
-        type: 'service_review',
-        title: 'Nouveau service à valider',
-        content: `${artisanName} a soumis le service « ${savedService.title} » pour validation.`,
-        link: '/admin/services',
-        relatedId: savedService.id,
-      })));
-    } catch {
-      // La notification ne doit pas annuler la soumission du service.
-    }
+    void this.notificationsService.notifyAdmins({
+      title: 'Nouveau service à valider',
+      content: `Le service « ${savedService.title} » a été soumis pour validation.`,
+      link: '/admin/services',
+      relatedId: savedService.id,
+    }).catch(() => undefined);
 
     return savedService;
   }
