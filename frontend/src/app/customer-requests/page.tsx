@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/auth-context';
 import { whatsappHref } from '@/lib/whatsapp';
 import { trackEvent } from '@/lib/analytics';
 import { CUSTOMER_REQUEST_STATUS_LABELS } from '@/lib/types';
+import { useLanguage } from '@/lib/language-context';
 
 export default function CustomerRequestsPage() {
   return (
@@ -20,6 +21,7 @@ export default function CustomerRequestsPage() {
 
 function CustomerRequestsContent() {
   const { user, ready } = useAuth();
+  const { language } = useLanguage();
   const searchParams = useSearchParams();
   const { data: requests, mutate } = useSWR(user?.role === 'client' ? 'customer-requests' : null, api.getMyCustomerRequests, { refreshInterval: 10000, revalidateOnFocus: true });
   // Préremplissage depuis la fiche artisan : /customer-requests?category=&city=&neighborhood=
@@ -35,6 +37,7 @@ function CustomerRequestsContent() {
   const [photos, setPhotos] = useState<File[]>([]);
   const [notice, setNotice] = useState('');
   const [saving, setSaving] = useState(false);
+  const [suggestingRequest, setSuggestingRequest] = useState(false);
   const [payment, setPayment] = useState<Record<string, { method: 'momo' | 'cash'; phone: string }>>({});
 
   const runPayment = async (action: () => Promise<unknown>, success: string) => {
@@ -63,6 +66,29 @@ function CustomerRequestsContent() {
       await mutate();
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Impossible de clôturer cette demande.');
+    }
+  };
+
+  const suggestRequest = async () => {
+    if (!description.trim()) return;
+    setSuggestingRequest(true);
+    setNotice('');
+    try {
+      const result = await api.assistantSuggestClientRequest({
+        description,
+        category,
+        city,
+        neighborhood,
+        budgetMin: budgetMin ? Number(budgetMin) : undefined,
+        budgetMax: budgetMax ? Number(budgetMax) : undefined,
+        language,
+      });
+      setDescription(result.content);
+      setNotice('Suggestion préparée. Relisez et modifiez votre demande avant de la publier.');
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Impossible de préparer une suggestion.');
+    } finally {
+      setSuggestingRequest(false);
     }
   };
 
@@ -143,7 +169,16 @@ function CustomerRequestsContent() {
           <div><label htmlFor="request-city" className="block text-sm font-medium text-stone-700">Ville *</label><input id="request-city" required value={city} onChange={(event) => setCity(event.target.value)} placeholder="Douala, Yaoundé..." className="field mt-1" /></div>
         </div>
         <div><label htmlFor="request-neighborhood" className="block text-sm font-medium text-stone-700">Quartier</label><input id="request-neighborhood" value={neighborhood} onChange={(event) => setNeighborhood(event.target.value)} className="field mt-1" /></div>
-        <div><label htmlFor="request-description" className="block text-sm font-medium text-stone-700">Décrivez votre besoin *</label><textarea id="request-description" required minLength={20} rows={7} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Décrivez le travail, les dimensions, les matériaux et le résultat attendu..." className="field mt-1" /></div>
+        <div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <label htmlFor="request-description" className="block text-sm font-medium text-stone-700">Décrivez votre besoin *</label>
+            <button type="button" disabled={!description.trim() || suggestingRequest} onClick={() => void suggestRequest()} className="rounded-md border border-amber-700 px-3 py-1.5 text-sm font-medium text-amber-800 disabled:opacity-50">
+              {suggestingRequest ? 'Préparation…' : 'Améliorer avec l’IA'}
+            </button>
+          </div>
+          <textarea id="request-description" required minLength={20} rows={7} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Décrivez le travail, les dimensions, les matériaux et le résultat attendu..." className="field mt-1" />
+          <p className="mt-1 text-xs text-stone-500">La suggestion reste modifiable et n’est pas publiée automatiquement.</p>
+        </div>
         <div className="grid gap-4 sm:grid-cols-2"><div><label htmlFor="request-min" className="block text-sm font-medium text-stone-700">Budget minimum (FCFA)</label><input id="request-min" type="number" min="0" value={budgetMin} onChange={(event) => setBudgetMin(event.target.value)} className="field mt-1" /></div><div><label htmlFor="request-max" className="block text-sm font-medium text-stone-700">Budget maximum (FCFA)</label><input id="request-max" type="number" min="0" value={budgetMax} onChange={(event) => setBudgetMax(event.target.value)} className="field mt-1" /></div></div>
 
         <div>

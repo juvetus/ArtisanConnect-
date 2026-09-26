@@ -36,6 +36,22 @@ describe('AssistantService profile and photo analysis', () => {
     expect(payload.messages[0].content).toContain('WhatsApp');
   });
 
+  it('uses safe instructions for client request clarification and artisan reply drafts', async () => {
+    const requests: string[] = [];
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (_url: string, init: RequestInit) => {
+      const payload = JSON.parse(String(init.body));
+      requests.push(payload.messages[0].content);
+      return { ok: true, json: async () => ({ choices: [{ message: { content: 'Brouillon à relire.' } }] }) };
+    }));
+
+    await service.generate({ task: 'demande_client', input: 'Je cherche une table.', context: 'Ville : Douala' });
+    await service.generate({ task: 'reponse_opportunite', input: 'Le client cherche une table.', context: 'Budget : non précisé' });
+
+    expect(requests[0]).toContain('N’invente ni dimensions, ni matériaux, ni budget, ni délai');
+    expect(requests[1]).toContain('N’invente aucun prix');
+    expect(requests[1]).toContain('Ne prétends pas avoir déjà envoyé le message');
+  });
+
   it('analyzes photo quality without claiming image ownership can be proven', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,

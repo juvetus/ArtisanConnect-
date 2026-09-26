@@ -88,6 +88,12 @@ export const api = {
   assistantGenerate: (data: { task: string; input: string; language?: 'fr' | 'en'; context?: string }) =>
     post<{ content: string; provider: 'ai' | 'local' }>('/assistant/generate', data),
 
+  assistantSuggestClientRequest: (data: { description: string; category?: string; city?: string; neighborhood?: string; budgetMin?: number; budgetMax?: number; language?: 'fr' | 'en' }) =>
+    post<{ content: string; provider: 'ai' | 'local' }>('/assistant/suggest-client-request', data),
+
+  assistantSuggestOpportunityReply: (data: { description: string; category: string; city: string; neighborhood?: string | null; budgetMin?: number | null; budgetMax?: number | null; requestedDate?: string | null; language?: 'fr' | 'en' }) =>
+    post<{ content: string; provider: 'ai' | 'local' }>('/assistant/suggest-opportunity-reply', data),
+
   assistantGenerateImage: async (data: { prompt: string; style: string; language?: 'fr' | 'en'; referenceImage?: File }) => {
     const form = new FormData();
     form.append('prompt', data.prompt);

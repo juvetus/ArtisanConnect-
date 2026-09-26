@@ -6,7 +6,7 @@ import { Repository } from 'typeorm';
 import { AiImageGeneration } from '../../entities/index.js';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service.js';
 
-export type AssistantTask = 'atelier' | 'presentation' | 'profil' | 'produit' | 'reponse' | 'devis' | 'whatsapp' | 'bio' | 'siarc' | 'correction' | 'traduction';
+export type AssistantTask = 'atelier' | 'presentation' | 'profil' | 'demande_client' | 'reponse_opportunite' | 'produit' | 'reponse' | 'devis' | 'whatsapp' | 'bio' | 'siarc' | 'correction' | 'traduction';
 
 export interface ArtisanPhotoAnalysis {
   probableTrade: string;
@@ -24,6 +24,8 @@ const TASK_INSTRUCTIONS: Record<AssistantTask, string> = {
   atelier: 'Rédige une description chaleureuse et concrète de l’atelier, ses savoir-faire, sa ville et ses matières.',
   presentation: 'Rédige une présentation professionnelle courte de l’artisan ou de la structure.',
   profil: 'Crée un pack de profil artisan avec les sections suivantes : 1) description professionnelle claire et vendeuse de 150 mots maximum, 2) liste structurée des services proposés, 3) conseils de prix prudents en FCFA en expliquant les facteurs qui les font varier et sans inventer de tarifs locaux, 4) réponse automatique WhatsApp polie et professionnelle, 5) mini-texte pour réseaux sociaux. Utilise seulement les informations fournies; signale les informations manquantes par [à préciser]. Ton professionnel, simple et adapté au Cameroun.',
+  demande_client: 'Aide un client à clarifier sa demande de service. Réécris son texte en français simple et précis, en conservant strictement les faits fournis. N’invente ni dimensions, ni matériaux, ni budget, ni délai. Termine par une courte liste de questions facultatives si des détails importants manquent. Retourne un brouillon à relire, pas un message envoyé.',
+  reponse_opportunite: 'Aide un artisan à rédiger un brouillon de réponse poli, professionnel et humain à la demande client fournie. Réponds au besoin précis, indique une prochaine étape ou une question utile. N’invente aucun prix, délai, disponibilité, certification ou engagement. Ne prétends pas avoir déjà envoyé le message.',
   produit: 'Rédige une fiche produit claire avec titre, description, usages, matières, dimensions si disponibles et appel à l’action.',
   reponse: 'Rédige une réponse polie et professionnelle à un client, avec un ton naturel adapté à WhatsApp.',
   devis: 'Rédige un devis simple en FCFA avec prestation, quantité, prix, délai, validité et conditions. N’invente pas les informations absentes : utilise [à préciser].',
@@ -182,7 +184,7 @@ export class AssistantService {
 
   private fallback(task: AssistantTask, input: string, language: 'fr' | 'en') {
     if (language === 'en') return `ArtisanConnect assistant draft\n\n${input}\n\nPlease adapt this text with your exact prices, location and delivery details.`;
-    const labels: Record<AssistantTask, string> = { atelier: 'Description de l’atelier', presentation: 'Présentation professionnelle', profil: 'Pack de profil artisan', produit: 'Fiche produit', reponse: 'Réponse client', devis: 'Devis simple', whatsapp: 'Message WhatsApp', bio: 'Bio artisan', siarc: 'Présentation SIARC', correction: 'Texte corrigé', traduction: 'Traduction' };
+    const labels: Record<AssistantTask, string> = { atelier: 'Description de l’atelier', presentation: 'Présentation professionnelle', profil: 'Pack de profil artisan', demande_client: 'Aide à préciser une demande', reponse_opportunite: 'Réponse à une opportunité', produit: 'Fiche produit', reponse: 'Réponse client', devis: 'Devis simple', whatsapp: 'Message WhatsApp', bio: 'Bio artisan', siarc: 'Présentation SIARC', correction: 'Texte corrigé', traduction: 'Traduction' };
     return `${labels[task]}\n\n${input}\n\nAdaptez ce brouillon avec vos prix, votre ville et vos délais réels.`;
   }
 }
