@@ -95,7 +95,7 @@ export function Header() {
           <Link href="/annonces" className={navLinkClass('/annonces')}>
             {t('nav_listings')}
           </Link>
-          {user?.role !== 'artisan' ? (
+          {user?.role !== 'artisan' && user?.role !== 'client' ? (
             <Link href="/trouver-un-artisan" className={navLinkClass('/trouver-un-artisan')}>
               {user?.role === 'institution' ? (language === 'en' ? 'Source artisans' : 'Sourcer des artisans') : t('nav_find_artisan')}
             </Link>
