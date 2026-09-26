@@ -98,9 +98,11 @@ export function Header() {
           <Link href="/trouver-un-artisan" className={navLinkClass('/trouver-un-artisan')}>
             {t('nav_find_artisan')}
           </Link>
-          <Link href="/services" className={navLinkClass('/services')}>
-            {t('nav_services')}
-          </Link>
+          {user?.role !== 'artisan' ? (
+            <Link href="/services" className={navLinkClass('/services')}>
+              {t('nav_services')}
+            </Link>
+          ) : null}
           <Link href="/how-it-works" className={navLinkClass('/how-it-works')}>
             {t('nav_how_it_works')}
           </Link>

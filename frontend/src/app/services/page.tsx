@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { useState } from 'react';
 import { api } from '@/lib/api';
 import { useLanguage } from '@/lib/language-context';
+import { useAuth } from '@/lib/auth-context';
 import type { Service } from '@/lib/types';
 import { Pagination } from '@/components/Pagination';
 import { categoryLabel, SERVICE_CATEGORIES } from '@/lib/categories';
@@ -13,6 +14,7 @@ import { formatXAF } from '@/lib/format';
 import { resolveMediaUrl } from '@/lib/media';
 
 export default function ServicesCatalogPage() {
+  const { user } = useAuth();
   const { t, language } = useLanguage();
   const english = language === 'en';
   const [page, setPage] = useState(0);
@@ -59,7 +61,7 @@ export default function ServicesCatalogPage() {
           <h2 className="mt-1 text-3xl font-semibold text-stone-900">{t('services_page_title')}</h2>
           <p className="mt-2 text-stone-600">{t('services_page_subtitle')}</p>
         </div>
-        <a href="/customer-requests" className="rounded-lg bg-amber-700 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-amber-800">{english ? 'I am looking for an artisan' : 'Je cherche un artisan'}</a>
+        {user?.role !== 'artisan' ? <a href="/customer-requests" className="rounded-lg bg-amber-700 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-amber-800">{english ? 'I am looking for an artisan' : 'Je cherche un artisan'}</a> : null}
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setAudienceFilter((prev) => (prev === 'women' ? 'all' : 'women'))}
@@ -177,7 +179,7 @@ export default function ServicesCatalogPage() {
                 <p className="mt-2 text-sm text-stone-600">{service.averageRating ? `★ ${service.averageRating}/5` : t('service_no_rating')} <span className="text-stone-400">{t('service_reviews_count', { count: service.reviewCount ?? 0 })}</span></p>
                 <p className="mt-2 truncate text-xs text-stone-500">{service.artisan?.name ?? (english ? 'Local artisan' : 'Artisan local')}{service.artisan?.location ? ` · ${service.artisan.location}` : ''}</p>
               </div>
-              <div className="mt-5 grid grid-cols-2 gap-2"><Link href={`/services/${service.id}`} className="rounded-md bg-amber-700 px-3 py-2 text-center text-sm font-medium text-white hover:bg-amber-800">{english ? 'View service' : 'Voir le service'}</Link><Link href={quoteHref} className="rounded-md border border-amber-300 px-3 py-2 text-center text-sm font-medium text-amber-800 hover:bg-amber-50">{english ? 'Request a quote' : 'Demander un devis'}</Link></div>
+              <div className={`mt-5 grid gap-2 ${user?.role === 'artisan' ? 'grid-cols-1' : 'grid-cols-2'}`}><Link href={`/services/${service.id}`} className="rounded-md bg-amber-700 px-3 py-2 text-center text-sm font-medium text-white hover:bg-amber-800">{english ? 'View service' : 'Voir le service'}</Link>{user?.role !== 'artisan' ? <Link href={quoteHref} className="rounded-md border border-amber-300 px-3 py-2 text-center text-sm font-medium text-amber-800 hover:bg-amber-50">{english ? 'Request a quote' : 'Demander un devis'}</Link> : null}</div>
               </div>
             </article>
           );
