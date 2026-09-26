@@ -100,7 +100,7 @@ export function Header() {
               {t('nav_find_artisan')}
             </Link>
           ) : null}
-          {user?.role !== 'artisan' ? (
+          {user?.role !== 'artisan' && user?.role !== 'institution' ? (
             <Link href="/services" className={navLinkClass('/services')}>
               {t('nav_services')}
             </Link>
@@ -108,7 +108,7 @@ export function Header() {
           <Link href="/how-it-works" className={navLinkClass('/how-it-works')}>
             {t('nav_how_it_works')}
           </Link>
-          {user?.role !== 'client' ? (
+          {user?.role !== 'client' && user?.role !== 'institution' ? (
             <Link href="/tarifs" className={navLinkClass('/tarifs')}>
               {t('nav_pricing')}
             </Link>
@@ -116,7 +116,7 @@ export function Header() {
           <Link href="/blog" className={navLinkClass('/blog')}>
             Blog
           </Link>
-          {!user || (user.role !== 'client' && user.role !== 'artisan') ? (
+          {!user || (user.role !== 'client' && user.role !== 'artisan' && user.role !== 'institution') ? (
             <Link href="/institutions" className={navLinkClass('/institutions')}>
               {t('nav_institutions')}
             </Link>

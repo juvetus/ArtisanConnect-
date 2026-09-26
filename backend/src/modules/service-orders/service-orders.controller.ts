@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Param, Post, Res, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, ForbiddenException, Get, Param, Post, Res, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
@@ -32,6 +32,9 @@ export class ServiceOrdersController {
     clientConfirmed: boolean;
     termsAccepted: boolean;
   }) {
+    if (user.role !== 'client') {
+      throw new ForbiddenException('Seuls les comptes client peuvent commander un service.');
+    }
     return this.serviceOrdersService.createOrder(user.id, body);
   }
 

@@ -106,6 +106,17 @@ function CustomerRequestsContent() {
       </div>
     );
   }
+  if (user.role === 'institution') {
+    return (
+      <div className="mx-auto max-w-3xl space-y-5">
+        <h1 className="text-2xl font-semibold text-stone-900">Contactez-nous pour un partenariat</h1>
+        <p role="status" className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+          La publication d’une demande pour trouver un artisan est réservée aux clients. Les institutions peuvent nous contacter pour organiser un programme ou un partenariat avec les artisans.
+        </p>
+        <Link href="/contact" className="inline-flex rounded-md bg-amber-700 px-4 py-2 font-medium text-white hover:bg-amber-800">Contacter ArtisanConnect</Link>
+      </div>
+    );
+  }
 
   type MyRequest = NonNullable<typeof requests>[number];
   const renderPayment = (request: MyRequest) => {

@@ -3,12 +3,14 @@
 import Link from 'next/link';
 import { categoryLabel } from '@/lib/categories';
 import { useLanguage } from '@/lib/language-context';
+import { useAuth } from '@/lib/auth-context';
 import { resolveMediaUrl } from '@/lib/media';
 import { VerificationBadge } from '@/components/VerificationBadge';
 import type { PublicArtisan } from '@/lib/types';
 
 export function ArtisanCard({ artisan }: { artisan: PublicArtisan }) {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const location = [artisan.neighborhood, artisan.city].filter(Boolean).join(', ');
   const quoteParams = new URLSearchParams();
   if (artisan.category) quoteParams.set('category', artisan.category);
@@ -45,10 +47,14 @@ export function ArtisanCard({ artisan }: { artisan: PublicArtisan }) {
           {artisan.isWomenLed ? <span className="rounded-full bg-rose-50 px-2 py-0.5 text-rose-800">{t('badge_women')}</span> : null}
           {artisan.isCooperative ? <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-indigo-800">{t('badge_coop')}</span> : null}
       </div>
-      <div className="mt-auto grid grid-cols-[1fr_auto] gap-2 pt-5">
-        <Link href={quoteHref} className="rounded-md bg-amber-700 px-3 py-2 text-center text-sm font-medium text-white hover:bg-amber-800">
-          {t('home_artisan_quote')}
-        </Link>
+      <div className={`mt-auto grid gap-2 pt-5 ${user?.role === 'artisan' || user?.role === 'admin' ? 'grid-cols-1' : 'grid-cols-[1fr_auto]'}`}>
+        {user?.role === 'institution' ? (
+          <Link href="/contact" className="rounded-md bg-amber-700 px-3 py-2 text-center text-sm font-medium text-white hover:bg-amber-800">Partenariat</Link>
+        ) : !user || user.role === 'client' ? (
+          <Link href={quoteHref} className="rounded-md bg-amber-700 px-3 py-2 text-center text-sm font-medium text-white hover:bg-amber-800">
+            {t('home_artisan_quote')}
+          </Link>
+        ) : null}
         <Link href={`/shop/${artisan.id}`} className="rounded-md border border-stone-300 px-3 py-2 text-center text-sm font-medium text-stone-700 hover:bg-stone-50">
           {t('home_artisan_view')}
         </Link>

@@ -9,6 +9,7 @@ import type { PublicArtisan } from '@/lib/types';
 import { DirectoryIntro } from '@/components/DirectoryIntro';
 import { DirectoryResultsInfo } from '@/components/DirectoryResultsInfo';
 import { DirectorySectionLabel } from '@/components/DirectorySectionLabel';
+import { DirectoryNoResultsAction } from '@/components/DirectoryNoResultsAction';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://artisanconnectcm.info';
 
@@ -120,17 +121,7 @@ export default async function ArtisansDirectoryPage({ params, searchParams }: Pa
           </div>
         </>
       ) : (
-        <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-6">
-          <p className="text-sm text-amber-900">
-            Aucun artisan ne correspond encore à cette recherche. Publiez votre besoin : nous le transmettons aux artisans concernés.
-          </p>
-          <Link
-            href="/customer-requests"
-            className="inline-flex rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-white hover:bg-amber-800"
-          >
-            Demander un devis
-          </Link>
-        </div>
+        <DirectoryNoResultsAction />
       )}
 
       {suggestedNeighborhoods.length ? (
