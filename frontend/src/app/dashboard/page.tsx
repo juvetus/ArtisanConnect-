@@ -10,7 +10,7 @@ import { useLanguage } from '@/lib/language-context';
 import { CATEGORIES, PRODUCT_CATEGORIES, SERVICE_CATEGORIES, categoryLabel } from '@/lib/categories';
 import { formatXAF } from '@/lib/format';
 import { StatusBadge } from '@/components/StatusBadge';
-import type { Listing, ListingType, Order } from '@/lib/types';
+import type { Listing, ListingType, Order, ServiceOrder } from '@/lib/types';
 import { resolveMediaUrl } from '@/lib/media';
 import type { Shop } from '@/lib/types';
 
@@ -31,6 +31,7 @@ export default function DashboardPage() {
       ]);
       return { listings, orders, requestStats, serviceOrders };
     },
+    { refreshInterval: 30000 },
   );
 
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
@@ -59,6 +60,12 @@ export default function DashboardPage() {
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (ready && !isArtisan) router.push('/');
@@ -339,14 +346,37 @@ export default function DashboardPage() {
   const listings = Array.isArray(data?.listings) ? data.listings : [];
   const orders = Array.isArray(data?.orders) ? data.orders : [];
   const requestStats: { requestsReceived: number; responsesSent: number; openRequests: number; averageResponseMinutes: number } = data?.requestStats ?? { requestsReceived: 0, responsesSent: 0, openRequests: 0, averageResponseMinutes: 0 };
-  const serviceOrders = Array.isArray(data?.serviceOrders) ? data.serviceOrders : [];
+  const serviceOrders: ServiceOrder[] = Array.isArray(data?.serviceOrders) ? data.serviceOrders : [];
+  const isActiveOrder = (order: Order) => order.status === 'pending' || order.status === 'confirmed';
+  const sortedOrders = [...orders].sort((a, b) => Number(isActiveOrder(b)) - Number(isActiveOrder(a)) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const activeServiceOrders = serviceOrders
+    .filter((order) => !['completed', 'cancelled', 'rejected'].includes(order.status))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const activeOrders = sortedOrders.filter(isActiveOrder);
+  const formatDateTime = (value: string) => new Date(value).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
+  const elapsed = (value: string) => {
+    const minutes = Math.max(0, Math.round((now - new Date(value).getTime()) / 60000));
+    if (minutes < 60) return `il y a ${minutes} min`;
+    const hours = Math.round(minutes / 60);
+    return hours < 24 ? `il y a ${hours} h` : `il y a ${Math.round(hours / 24)} j`;
+  };
+  const serviceStatusLabel: Record<string, string> = {
+    pending_admin_validation: 'En validation',
+    details_requested: 'Détails demandés',
+    sent_to_artisan: 'Nouvelle demande',
+    quote_pending: 'Devis envoyé',
+    accepted: 'Devis accepté',
+    in_progress: 'En cours',
+    delivered: 'Livré, en attente du client',
+    disputed: 'Litige',
+  };
   const quotesSent = serviceOrders.filter((order: { status?: string }) => ['quote_pending', 'accepted', 'in_progress', 'delivered', 'completed', 'disputed'].includes(order.status ?? '')).length;
   const responseRate = requestStats.requestsReceived > 0 ? Math.round((requestStats.responsesSent / requestStats.requestsReceived) * 100) : 0;
   const averageResponseLabel = requestStats.averageResponseMinutes >= 60
     ? `${Math.round(requestStats.averageResponseMinutes / 60)} h`
     : `${requestStats.averageResponseMinutes} min`;
   const planEndDate = planStatus?.endDate ? new Date(planStatus.endDate) : null;
-  const daysUntilPlanEnd = planEndDate ? Math.ceil((planEndDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000)) : null;
+  const daysUntilPlanEnd = planEndDate ? Math.ceil((planEndDate.getTime() - now) / (24 * 60 * 60 * 1000)) : null;
   const planNeedsRenewal = Boolean(planStatus?.planSlug && planStatus.planSlug !== 'starter' && planEndDate);
   const planRenewalHref = planStatus?.planSlug ? `/payment?type=subscription&plan=${encodeURIComponent(planStatus.planSlug)}` : '/payment?type=subscription';
   const totalShopMetrics = shops.reduce((total, shop) => {
@@ -403,6 +433,43 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-10">
+      {activeOrders.length + activeServiceOrders.length > 0 && (
+        <section aria-live="polite" className="rounded-xl border-2 border-red-300 bg-red-50 p-5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="flex items-center gap-2 text-xl font-semibold text-red-900">
+              <span className="relative flex h-3 w-3"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" /><span className="relative inline-flex h-3 w-3 rounded-full bg-red-600" /></span>
+              À traiter ({activeOrders.length + activeServiceOrders.length})
+            </h2>
+            <p className="text-sm text-red-800">Ces commandes restent affichées jusqu’à leur finalisation.</p>
+          </div>
+          <ul className="mt-4 grid gap-3 lg:grid-cols-2">
+            {activeOrders.map((order) => (
+              <li key={order.id} className="rounded-lg border border-red-200 bg-white p-4">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <span className="rounded-full bg-red-600 px-2.5 py-0.5 text-xs font-semibold uppercase text-white">Commande produit</span>
+                  <StatusBadge status={order.status} />
+                </div>
+                <p className="mt-2 text-lg font-semibold text-stone-950">{order.listing?.title ?? 'Annonce supprimée'}</p>
+                <p className="text-sm text-stone-700">{order.quantity} × · {order.buyer?.name ?? 'Client'} · <strong>{formatXAF(order.totalPrice)}</strong></p>
+                <p className="mt-1 text-base font-medium text-red-800">{formatDateTime(order.createdAt)} · {elapsed(order.createdAt)}</p>
+                <a href={`#order-${order.id}`} className="mt-3 inline-block rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">Traiter la commande</a>
+              </li>
+            ))}
+            {activeServiceOrders.map((order) => (
+              <li key={order.id} className="rounded-lg border border-red-200 bg-white p-4">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <span className="rounded-full bg-amber-700 px-2.5 py-0.5 text-xs font-semibold uppercase text-white">Demande de service</span>
+                  <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-medium text-stone-700">{serviceStatusLabel[order.status] ?? order.status}</span>
+                </div>
+                <p className="mt-2 text-lg font-semibold text-stone-950">{order.service?.title ?? 'Service'}</p>
+                <p className="text-sm text-stone-700">{order.client?.name ?? 'Client'}{order.budgetMax ? ` · Budget : ${formatXAF(order.budgetMax)}` : ''}</p>
+                <p className="mt-1 text-base font-medium text-red-800">{formatDateTime(order.createdAt)} · {elapsed(order.createdAt)}</p>
+                <Link href={`/service-orders/${order.id}`} className="mt-3 inline-block rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">Traiter la demande</Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <div>
         <div className="overflow-hidden rounded-xl border border-amber-200 bg-amber-50">
           <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between">
@@ -451,16 +518,17 @@ export default function DashboardPage() {
           </p>
         ) : (
           <ul className="mt-3 space-y-3">
-            {orders.map((order) => (
+            {sortedOrders.map((order) => (
               <li
                 key={order.id}
-                className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-stone-200 bg-white p-4"
+                id={`order-${order.id}`}
+                className={`flex scroll-mt-6 flex-wrap items-center justify-between gap-4 rounded-lg border bg-white p-4 ${isActiveOrder(order) ? 'border-red-300 ring-1 ring-red-100' : 'border-stone-200'}`}
               >
                 <div>
                   <p className="font-medium">{order.listing?.title ?? 'Annonce supprimée'}</p>
                   <p className="text-sm text-stone-600">
                     {order.quantity} × · Acheteur : {order.buyer?.name ?? '—'} ·{' '}
-                    {new Date(order.createdAt).toLocaleDateString('fr-FR')}
+                    {formatDateTime(order.createdAt)}
                   </p>
                   <Link
                     href={`/messages?to=${order.buyerId}`}
