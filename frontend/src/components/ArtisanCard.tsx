@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth-context';
 import { resolveMediaUrl } from '@/lib/media';
 import { VerificationBadge } from '@/components/VerificationBadge';
 import type { PublicArtisan } from '@/lib/types';
+import { whatsappHref } from '@/lib/whatsapp';
 
 export function ArtisanCard({ artisan }: { artisan: PublicArtisan }) {
   const { t } = useLanguage();
@@ -17,6 +18,9 @@ export function ArtisanCard({ artisan }: { artisan: PublicArtisan }) {
   if (artisan.city) quoteParams.set('city', artisan.city);
   if (artisan.neighborhood) quoteParams.set('neighborhood', artisan.neighborhood);
   const quoteHref = `/customer-requests${quoteParams.size ? `?${quoteParams}` : ''}`;
+  const institutionalWhatsApp = user?.role === 'institution'
+    ? whatsappHref(artisan.whatsappPhone, `Bonjour ${artisan.name}, nous vous contactons via ArtisanConnect au sujet d’un possible partenariat avec votre activité artisanale.`)
+    : null;
 
   return (
     <article className="flex h-full flex-col rounded-lg border border-stone-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
@@ -49,7 +53,10 @@ export function ArtisanCard({ artisan }: { artisan: PublicArtisan }) {
       </div>
       <div className={`mt-auto grid gap-2 pt-5 ${user?.role === 'artisan' || user?.role === 'admin' ? 'grid-cols-1' : 'grid-cols-[1fr_auto]'}`}>
         {user?.role === 'institution' ? (
-          <Link href={`/messages?to=${artisan.seller.id}`} className="rounded-md bg-amber-700 px-3 py-2 text-center text-sm font-medium text-white hover:bg-amber-800">Contacter l’artisan</Link>
+          <>
+            <Link href={`/messages?to=${artisan.seller.id}`} className="rounded-md bg-amber-700 px-3 py-2 text-center text-sm font-medium text-white hover:bg-amber-800">Messagerie</Link>
+            {institutionalWhatsApp ? <a href={institutionalWhatsApp} target="_blank" rel="noreferrer" className="rounded-md border border-green-700 px-3 py-2 text-center text-sm font-medium text-green-800 hover:bg-green-50">WhatsApp</a> : null}
+          </>
         ) : !user || user.role === 'client' ? (
           <Link href={quoteHref} className="rounded-md bg-amber-700 px-3 py-2 text-center text-sm font-medium text-white hover:bg-amber-800">
             {t('home_artisan_quote')}

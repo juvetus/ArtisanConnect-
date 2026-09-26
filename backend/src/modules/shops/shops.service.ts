@@ -250,8 +250,8 @@ export class ShopsService {
   }
 
   /**
-   * Annuaire public d'artisans : boutiques actives, classées par niveau de confiance.
-   * Aucun numéro de téléphone n'est exposé, le contact passe par la fiche boutique.
+  * Annuaire public d'artisans : boutiques actives, classées par niveau de confiance.
+  * N'expose que le numéro WhatsApp explicitement renseigné comme moyen de contact.
    */
   async findPublicDirectory(
     options: {
@@ -339,6 +339,7 @@ export class ShopsService {
           premium: premiumSellerIds.has(shop.sellerId),
           createdAt: shop.createdAt,
           coverImageUrl: shop.seller?.avatarUrl ?? coverByShop.get(shop.id) ?? null,
+          whatsappPhone: shop.seller?.whatsappPhone?.trim() || null,
           rating,
           verification: computeVerification(shop, {
             phoneVerified: Boolean(shop.seller?.verifiedPhone),

@@ -131,6 +131,7 @@ export interface PublicArtisan {
   premium?: boolean;
   createdAt: string;
   coverImageUrl?: string | null;
+  whatsappPhone?: string | null;
   rating: { average: number | null; count: number };
   verification: VerificationState;
   seller: { id: string; name: string | null; avatarUrl?: string | null; verifiedPhone: boolean };

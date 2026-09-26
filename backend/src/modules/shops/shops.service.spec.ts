@@ -64,6 +64,58 @@ describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
     );
   });
 
+  it('expose uniquement le numéro WhatsApp déclaré comme contact public dans l’annuaire', async () => {
+    mockShopsRepo.find = vi.fn().mockResolvedValue([
+      {
+        id: 'shop-contact',
+        sellerId: 'seller-contact',
+        status: 'active',
+        type: 'artisan',
+        kycDocuments: [],
+        identityVerified: false,
+        successfulSales: 0,
+        name: 'Atelier Contact',
+        description: 'Artisan local',
+        city: 'Douala',
+        category: 'menuiserie',
+        seller: { id: 'seller-contact', name: 'Awa', whatsappPhone: '+237699000001', phone: '+237699000099', verifiedPhone: true },
+        createdAt: new Date(),
+      },
+      {
+        id: 'shop-no-contact',
+        sellerId: 'seller-no-contact',
+        status: 'active',
+        type: 'artisan',
+        kycDocuments: [],
+        identityVerified: false,
+        successfulSales: 0,
+        name: 'Atelier Sans WhatsApp',
+        description: 'Artisan local',
+        city: 'Yaoundé',
+        category: 'couture',
+        seller: { id: 'seller-no-contact', name: 'Biya', whatsappPhone: null, phone: '+237699000099', verifiedPhone: true },
+        createdAt: new Date(),
+      },
+    ]);
+    mockListingsRepo.find = vi.fn().mockResolvedValue([]);
+    const queryBuilder = {
+      select: vi.fn().mockReturnThis(),
+      addSelect: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      groupBy: vi.fn().mockReturnThis(),
+      getRawMany: vi.fn().mockResolvedValue([]),
+    };
+    mockServiceReviewsRepo.createQueryBuilder = vi.fn().mockReturnValue(queryBuilder);
+
+    const result = await service.findPublicDirectory();
+    const withContact = result.find((shop) => shop.id === 'shop-contact');
+    const withoutContact = result.find((shop) => shop.id === 'shop-no-contact');
+
+    expect(withContact?.whatsappPhone).toBe('+237699000001');
+    expect(withoutContact?.whatsappPhone).toBeNull();
+    expect(withContact).not.toHaveProperty('phone');
+  });
+
   it('doit créer une boutique de type artisan avec le statut PENDING et notifier les admins', async () => {
     const shop = await service.create('artisan-user-id', {
       type: 'artisan',
