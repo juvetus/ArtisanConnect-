@@ -135,6 +135,7 @@ export default function OrdersPage() {
   if (!ready || !user || isLoading) return <p className="text-stone-600">{t('action_loading')}</p>;
 
   const [orders] = data ?? [[]];
+  const isFinishedOrder = (order: Order) => order.status === 'completed' || order.status === 'cancelled';
 
   return (
     <div className="space-y-6">
@@ -150,10 +151,16 @@ export default function OrdersPage() {
       ) : (
         <ul className="space-y-3">
           {orders.map((order) => (
-            <li
-              key={order.id}
-              className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-stone-200 bg-white p-4"
-            >
+            <li key={order.id} className="list-none">
+              <details open={!isFinishedOrder(order)} className="rounded-lg border border-stone-200 bg-white">
+                <summary className={`flex flex-wrap items-center justify-between gap-4 p-4 ${isFinishedOrder(order) ? 'cursor-pointer' : 'list-none [&::-webkit-details-marker]:hidden'}`}>
+                  <span className="min-w-0">
+                    <span className="block font-medium">{order.listing?.title ?? 'Annonce supprimée'}</span>
+                    <span className="mt-1 block text-sm text-stone-600">{order.quantity} × · Vendu par {order.seller?.name ?? '—'} · {new Date(order.createdAt).toLocaleDateString('fr-FR')}</span>
+                  </span>
+                  <span className="flex items-center gap-4"><span className="text-lg font-semibold">{formatXAF(order.totalPrice)}</span><StatusBadge status={order.status} /></span>
+                </summary>
+                <div className="flex flex-wrap items-center justify-between gap-4 border-t border-stone-100 p-4">
               <div>
                 <p className="font-medium">{order.listing?.title ?? 'Annonce supprimée'}</p>
                 <p className="text-sm text-stone-600">
@@ -304,6 +311,8 @@ export default function OrdersPage() {
                 <span className="text-lg font-semibold">{formatXAF(order.totalPrice)}</span>
                 <StatusBadge status={order.status} />
               </div>
+                </div>
+              </details>
             </li>
           ))}
         </ul>
