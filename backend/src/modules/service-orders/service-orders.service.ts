@@ -1,6 +1,6 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { ServiceOrder, type ServiceOrderStatus } from '../../entities/service-order.entity.js';
 import { Service } from '../../entities/service.entity.js';
 import { ServiceQuote } from '../../entities/service-quote.entity.js';
@@ -9,6 +9,7 @@ import { ServicePayment } from '../../entities/service-payment.entity.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { EmailService } from '../email/email.service.js';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { WhatsAppService } from '../whatsapp/whatsapp.service.js';
 
 const PLATFORM_FEE_RATE = 0.10;
 
@@ -27,6 +28,7 @@ export class ServiceOrdersService {
     private readonly usersRepository: Repository<User>,
     private readonly notificationsService: NotificationsService,
     private readonly emailService: EmailService,
+    private readonly whatsAppService: WhatsAppService,
   ) {}
 
   async createOrder(clientId: string, data: {
@@ -67,28 +69,74 @@ export class ServiceOrdersService {
       throw new ForbiddenException('Vous ne pouvez pas commander votre propre service');
     }
 
-    const order = this.ordersRepository.create({
-      clientId,
-      artisanId: service.artisan.id,
-      serviceId: service.id,
-      projectObjective: data.projectObjective.trim(),
-      options: data.options ?? {},
-      inspirationLinks: data.inspirationLinks?.trim() || null,
-      budgetMin: data.budgetMin ?? null,
-      budgetMax: data.budgetMax ?? null,
-      platformFee: 0,
-      requestedDate: data.requestedDate ? new Date(data.requestedDate) : null,
-      deliveryMethod: data.deliveryMethod,
-      deliveryAddress: data.deliveryMethod !== 'workshop' ? data.deliveryAddress!.trim() : null,
-      deliveryLatitude: data.deliveryMethod !== 'workshop' ? data.deliveryLatitude ?? null : null,
-      deliveryLongitude: data.deliveryMethod !== 'workshop' ? data.deliveryLongitude ?? null : null,
-      fileUrls: data.fileUrls ?? [],
-      status: 'pending_admin_validation',
-      clientConfirmed: data.clientConfirmed,
-      termsAccepted: data.termsAccepted,
+    const activeStatuses: ServiceOrderStatus[] = ['pending_admin_validation', 'details_requested', 'sent_to_artisan', 'quote_pending', 'accepted', 'in_progress', 'delivered', 'disputed'];
+    const savedOrder = await this.ordersRepository.manager.transaction(async (transaction) => {
+      const lockedService = await transaction.findOne(Service, {
+        where: { id: service.id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!lockedService || lockedService.status !== 'approved') {
+        throw new NotFoundException('Service approuvé introuvable');
+      }
+
+      const orderRepository = transaction.getRepository(ServiceOrder);
+      const existingOrder = await orderRepository.count({
+        where: { clientId, serviceId: service.id, status: In(activeStatuses) },
+      });
+      if (existingOrder > 0) {
+        throw new ConflictException('Vous avez déjà une demande active pour ce service. Terminez-la ou annulez-la avant d’en créer une nouvelle.');
+      }
+
+      const order = orderRepository.create({
+        clientId,
+        artisanId: service.artisan.id,
+        serviceId: service.id,
+        projectObjective: data.projectObjective.trim(),
+        options: data.options ?? {},
+        inspirationLinks: data.inspirationLinks?.trim() || null,
+        budgetMin: data.budgetMin ?? null,
+        budgetMax: data.budgetMax ?? null,
+        platformFee: 0,
+        requestedDate: data.requestedDate ? new Date(data.requestedDate) : null,
+        deliveryMethod: data.deliveryMethod,
+        deliveryAddress: data.deliveryMethod !== 'workshop' ? data.deliveryAddress!.trim() : null,
+        deliveryLatitude: data.deliveryMethod !== 'workshop' ? data.deliveryLatitude ?? null : null,
+        deliveryLongitude: data.deliveryMethod !== 'workshop' ? data.deliveryLongitude ?? null : null,
+        fileUrls: data.fileUrls ?? [],
+        status: 'pending_admin_validation',
+        clientConfirmed: data.clientConfirmed,
+        termsAccepted: data.termsAccepted,
+      });
+      return orderRepository.save(order);
     });
 
-    const savedOrder = await this.ordersRepository.save(order);
+    const requestSummary = `Nouvelle demande pour « ${service.title} ». Elle sera transmise après validation de l’équipe ArtisanConnect.`;
+    const artisanUrl = `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/artisan/service-orders`;
+    try {
+      await this.notificationsService.notify({
+        recipientId: service.artisan.id,
+        type: 'new_order',
+        title: 'Nouvelle demande pour votre service',
+        content: requestSummary,
+        link: '/artisan/service-orders',
+        relatedId: savedOrder.id,
+      });
+    } catch {
+      // Une notification ne doit pas annuler la demande.
+    }
+    if (service.artisan.email) {
+      await this.emailService.send({
+        to: service.artisan.email,
+        subject: `[ArtisanConnect] Nouvelle demande pour ${service.title}`,
+        text: `Bonjour ${service.artisan.name ?? ''},\n\n${requestSummary}\n\nConsulter : ${artisanUrl}`,
+        html: `<p>Bonjour ${this.escapeHtml(service.artisan.name ?? '')},</p><p>${this.escapeHtml(requestSummary)}</p><p><a href="${this.escapeHtml(artisanUrl)}">Consulter la demande</a></p>`,
+      }).catch(() => undefined);
+    }
+    await this.whatsAppService.sendServiceRequest(service.artisan.whatsappPhone ?? service.artisan.phone, [
+      service.artisan.name ?? 'Artisan',
+      `Nouvelle demande pour le service « ${service.title} ». ${requestSummary}`,
+      artisanUrl,
+    ]);
 
     const admins = await this.usersRepository.find({ where: { role: 'admin' } });
     await Promise.all(admins.map(async (admin) => {

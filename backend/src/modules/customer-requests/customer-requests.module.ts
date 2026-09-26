@@ -6,11 +6,12 @@ import { EmailModule } from '../email/email.module.js';
 import { StorageModule } from '../storage/storage.module.js';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module.js';
 import { MomoModule } from '../momo/momo.module.js';
+import { WhatsAppModule } from '../whatsapp/whatsapp.module.js';
 import { CustomerRequestsController } from './customer-requests.controller.js';
 import { CustomerRequestsService } from './customer-requests.service.js';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([CustomerRequest, User, Listing, Service, Shop]), NotificationsModule, EmailModule, StorageModule, SubscriptionsModule, MomoModule],
+  imports: [TypeOrmModule.forFeature([CustomerRequest, User, Listing, Service, Shop]), NotificationsModule, EmailModule, StorageModule, SubscriptionsModule, MomoModule, WhatsAppModule],
   controllers: [CustomerRequestsController],
   providers: [CustomerRequestsService],
 })

@@ -8,6 +8,7 @@ import { EmailService } from '../email/email.service.js';
 import { StorageService } from '../storage/storage.service.js';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service.js';
 import { MomoService } from '../momo/momo.service.js';
+import { WhatsAppService } from '../whatsapp/whatsapp.service.js';
 
 /** Une demande est adressée à quelques artisans pertinents, pas à toute la place de marché. */
 const MAX_TARGETED_ARTISANS = 5;
@@ -64,6 +65,7 @@ export class CustomerRequestsService {
     private readonly storage: StorageService,
     private readonly subscriptions: SubscriptionsService,
     private readonly momo: MomoService,
+    private readonly whatsApp: WhatsAppService,
   ) {}
 
   async create(clientId: string, data: { category: string; city: string; neighborhood?: string; description: string; budgetMin?: number; budgetMax?: number; requestedDate?: string; contactPreference?: ContactPreference; contactPhone?: string }) {
@@ -98,6 +100,14 @@ export class CustomerRequestsService {
     const deadline = request.requestedDate ? ` (souhaité pour le ${new Date(request.requestedDate).toLocaleDateString('fr-FR')})` : '';
     const opportunitiesUrl = `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/artisan/customer-requests`;
     const summary = `${request.category} à ${request.neighborhood ? `${request.neighborhood}, ` : ''}${request.city}${deadline} : ${request.description.slice(0, 140)}${request.description.length > 140 ? '…' : ''}`;
+    if (!targets.length) {
+      await this.notifications.notifyAdmins({
+        title: 'Demande client sans artisan correspondant',
+        content: `${summary}\nAucun artisan actif ne correspond au métier demandé. Un suivi manuel est nécessaire.`,
+        link: '/admin',
+        relatedId: request.id,
+      }).catch(() => undefined);
+    }
     for (const artisan of targets) {
       await this.notifications.notify({
         recipientId: artisan.id,
@@ -106,7 +116,7 @@ export class CustomerRequestsService {
         content: summary,
         link: '/artisan/customer-requests',
         relatedId: request.id,
-      });
+      }).catch(() => undefined);
 
       if (artisan.email) {
         await this.emails.send({
@@ -116,6 +126,11 @@ export class CustomerRequestsService {
           html: `<p>Bonjour ${artisan.name ?? ''},</p><p>Un client recherche un artisan :</p><blockquote>${summary}</blockquote><p><a href="${opportunitiesUrl}">Répondre avec votre prix et votre délai</a></p><p>ArtisanConnect</p>`,
         }).catch(() => undefined);
       }
+      await this.whatsApp.sendServiceRequest(artisan.whatsappPhone ?? artisan.phone, [
+        artisan.name ?? 'Artisan',
+        summary,
+        opportunitiesUrl,
+      ]);
     }
 
     return request;

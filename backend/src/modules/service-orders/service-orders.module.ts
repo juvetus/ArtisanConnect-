@@ -10,9 +10,10 @@ import { EmailModule } from '../email/email.module.js';
 import { ServicePayment } from '../../entities/service-payment.entity.js';
 import { User } from '../../entities/user.entity.js';
 import { ReportsModule } from '../reports/reports.module.js';
+import { WhatsAppModule } from '../whatsapp/whatsapp.module.js';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ServiceOrder, Service, ServiceQuote, ServicePayment, User]), NotificationsModule, EmailModule, ReportsModule],
+  imports: [TypeOrmModule.forFeature([ServiceOrder, Service, ServiceQuote, ServicePayment, User]), NotificationsModule, EmailModule, ReportsModule, WhatsAppModule],
   controllers: [ServiceOrdersController],
   providers: [ServiceOrdersService],
   exports: [ServiceOrdersService],

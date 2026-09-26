@@ -15,11 +15,15 @@ describe('CustomerRequestsService', () => {
   const listings = { find: vi.fn() };
   const services = { find: vi.fn() };
   const shops = { find: vi.fn() };
-  const notifications = { notify: vi.fn() };
+  const notifications = {
+    notify: vi.fn().mockResolvedValue(undefined),
+    notifyAdmins: vi.fn().mockResolvedValue(undefined),
+  };
   const emails = { send: vi.fn().mockResolvedValue(true) };
   const storage = { isEnabled: vi.fn().mockReturnValue(true), uploadBuffer: vi.fn() };
   const subscriptions = { findPremiumUserIds: vi.fn().mockResolvedValue(new Set<string>()) };
   const momo = { initiateCollectionPayment: vi.fn(), getPaymentStatus: vi.fn() };
+  const whatsApp = { sendServiceRequest: vi.fn().mockResolvedValue(false) };
 
   let service: CustomerRequestsService;
 
@@ -36,6 +40,7 @@ describe('CustomerRequestsService', () => {
       storage as never,
       subscriptions as never,
       momo as never,
+      whatsApp as never,
     );
   });
 
@@ -68,7 +73,7 @@ describe('CustomerRequestsService', () => {
     requests.create.mockReturnValue(created);
     requests.save.mockResolvedValue(created);
     users.find.mockResolvedValue([
-      { id: 'artisan-menuisier', role: 'artisan', isActive: true, location: 'Douala', email: 'menuisier@test.cm' },
+      { id: 'artisan-menuisier', role: 'artisan', isActive: true, location: 'Douala', email: 'menuisier@test.cm', whatsappPhone: '+237699000001' },
       { id: 'artisan-couturier', role: 'artisan', isActive: true, location: 'Douala', email: 'couture@test.cm' },
     ]);
     shops.find.mockResolvedValue([{ sellerId: 'artisan-menuisier', city: 'Douala', neighborhood: 'Akwa', verifiedBadge: true }]);
@@ -94,7 +99,31 @@ describe('CustomerRequestsService', () => {
       relatedId: 'request-1',
     }));
     expect(emails.send).toHaveBeenCalledWith(expect.objectContaining({ to: 'menuisier@test.cm' }));
+    expect(whatsApp.sendServiceRequest).toHaveBeenCalledWith('+237699000001', expect.any(Array));
     expect(result.contactedArtisanIds).toEqual(['artisan-menuisier']);
+  });
+
+  it('notifie les administrateurs quand aucun artisan ne correspond', async () => {
+    const created = { id: 'request-no-match', clientId: 'client-1', category: 'verrerie', city: 'Bafoussam', description: 'Je cherche un artisan verrier pour une installation complète.', contactedArtisanIds: [] };
+    requests.create.mockReturnValue(created);
+    requests.save.mockResolvedValue(created);
+    users.find.mockResolvedValue([]);
+    shops.find.mockResolvedValue([]);
+    listings.find.mockResolvedValue([]);
+    services.find.mockResolvedValue([]);
+
+    await service.create('client-1', {
+      category: 'verrerie',
+      city: 'Bafoussam',
+      description: 'Je cherche un artisan verrier pour une installation complète.',
+    });
+
+    expect(notifications.notifyAdmins).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'Demande client sans artisan correspondant',
+      link: '/admin',
+      relatedId: 'request-no-match',
+    }));
+    expect(notifications.notify).not.toHaveBeenCalled();
   });
 
   it('refuse une demande sans description suffisante', async () => {
