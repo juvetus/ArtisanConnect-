@@ -52,6 +52,25 @@ describe('AssistantService profile and photo analysis', () => {
     expect(requests[1]).toContain('Ne prétends pas avoir déjà envoyé le message');
   });
 
+  it('uses fact-preserving instructions for artisan and institution descriptions', async () => {
+    const systemPrompts: string[] = [];
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (_url: string, init: RequestInit) => {
+      const payload = JSON.parse(String(init.body));
+      systemPrompts.push(payload.messages[0].content);
+      return { ok: true, json: async () => ({ choices: [{ message: { content: 'Brouillon de description.' } }] }) };
+    }));
+
+    await service.generate({ task: 'listing_description', input: 'Panier en raphia tressé.' });
+    await service.generate({ task: 'service_description', input: 'Réparation de chaise.' });
+    await service.generate({ task: 'institution_resource', input: 'Guide de gestion.' });
+    await service.generate({ task: 'institution_program', input: 'Formation en couture.' });
+
+    expect(systemPrompts[0]).toContain('N’invente ni origine');
+    expect(systemPrompts[1]).toContain('N’invente ni tarifs');
+    expect(systemPrompts[2]).toContain('N’invente ni organisme partenaire');
+    expect(systemPrompts[3]).toContain('N’invente aucun financement');
+  });
+
   it('analyzes photo quality without claiming image ownership can be proven', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,

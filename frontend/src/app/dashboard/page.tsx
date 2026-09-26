@@ -10,6 +10,7 @@ import { useLanguage } from '@/lib/language-context';
 import { CATEGORIES, PRODUCT_CATEGORIES, SERVICE_CATEGORIES, categoryLabel } from '@/lib/categories';
 import { formatXAF } from '@/lib/format';
 import { StatusBadge } from '@/components/StatusBadge';
+import { AiTextSuggestion } from '@/components/AiTextSuggestion';
 import type { Listing, ListingType, Order, ServiceOrder } from '@/lib/types';
 import { resolveMediaUrl } from '@/lib/media';
 import type { Shop } from '@/lib/types';
@@ -753,6 +754,12 @@ export default function DashboardPage() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600"
+              />
+              <AiTextSuggestion
+                task="listing_description"
+                input={description}
+                context={`Titre: ${title || 'à préciser'}\nCatégorie: ${category}\nType: ${type}\nPrix indiqué: ${price ? `${price} FCFA` : 'non précisé'}`}
+                onApply={setDescription}
               />
             </div>
 

@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
+import { AiTextSuggestion } from '@/components/AiTextSuggestion';
 import type { ArtisanFormalization, ProgramType, ResourceType, InstitutionalResource, InstitutionalProgram, ProgramApplication } from '@/lib/types';
 
 export default function InstitutionPage() {
@@ -471,6 +472,7 @@ export default function InstitutionPage() {
           <h2 className="font-semibold">{t('institution_publish_resource')}</h2>
           <input required placeholder={t('institution_resource_title')} value={resource.title} onChange={(e) => setResource({ ...resource, title: e.target.value })} className="field" />
           <textarea required placeholder={t('institution_resource_desc')} value={resource.description} onChange={(e) => setResource({ ...resource, description: e.target.value })} className="field min-h-24" />
+          <AiTextSuggestion task="institution_resource" input={resource.description} context={`Titre: ${resource.title || 'à préciser'}\nType: ${resource.type}\nThème: ${resource.theme || 'à préciser'}`} onApply={(description) => setResource((current) => ({ ...current, description }))} />
           <div className="grid grid-cols-2 gap-3">
             <select value={resource.type} onChange={(e) => setResource({ ...resource, type: e.target.value as ResourceType })} className="field">
               {Object.entries(resourceLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
@@ -488,6 +490,7 @@ export default function InstitutionPage() {
           <h2 className="font-semibold">{t('institution_publish_program')}</h2>
           <input required placeholder={t('institution_program_name')} value={program.title} onChange={(e) => setProgram({ ...program, title: e.target.value })} className="field" />
           <textarea required placeholder={t('institution_resource_desc')} value={program.description} onChange={(e) => setProgram({ ...program, description: e.target.value })} className="field min-h-24" />
+          <AiTextSuggestion task="institution_program" input={program.description} context={`Titre: ${program.title || 'à préciser'}\nType: ${program.type}\nZone d’intervention: ${program.interventionZone || 'à préciser'}\nBénéficiaires: ${program.targetBeneficiaries || 'à préciser'}\nObjectifs: ${program.objectives || 'à préciser'}\nCritères: ${program.eligibility || 'à préciser'}`} onApply={(description) => setProgram((current) => ({ ...current, description }))} />
           <select value={program.type} onChange={(e) => setProgram({ ...program, type: e.target.value as ProgramType })} className="field">
             <option value="support">{programTypeLabels.support}</option>
             <option value="funding">{programTypeLabels.funding}</option>
@@ -501,6 +504,7 @@ export default function InstitutionPage() {
             <input type="date" value={program.endDate} onChange={(e) => setProgram({ ...program, endDate: e.target.value })} className="field" />
           </div>
           <textarea placeholder={t('institution_program_objectives')} value={program.objectives} onChange={(e) => setProgram({ ...program, objectives: e.target.value })} className="field min-h-20" />
+          <AiTextSuggestion task="institution_program" input={program.objectives} context={`Programme: ${program.title || 'à préciser'}\nDescription: ${program.description || 'à préciser'}\nBénéficiaires: ${program.targetBeneficiaries || 'à préciser'}`} onApply={(objectives) => setProgram((current) => ({ ...current, objectives }))} />
           <input placeholder={t('institution_program_beneficiaries')} value={program.targetBeneficiaries} onChange={(e) => setProgram({ ...program, targetBeneficiaries: e.target.value })} className="field" />
           <input placeholder={t('institution_program_indicators')} value={program.impactIndicators} onChange={(e) => setProgram({ ...program, impactIndicators: e.target.value })} className="field" />
           <input placeholder={t('institution_program_eligibility')} value={program.eligibility} onChange={(e) => setProgram({ ...program, eligibility: e.target.value })} className="field" />
@@ -524,6 +528,7 @@ export default function InstitutionPage() {
               <div>
                 <label className="block text-xs font-semibold uppercase text-stone-600">{t('institution_resource_desc')}</label>
                 <textarea required value={editingResource.description} onChange={(e) => setEditingResource({ ...editingResource, description: e.target.value })} rows={3} className="field mt-1" />
+                <AiTextSuggestion task="institution_resource" input={editingResource.description} context={`Titre: ${editingResource.title}\nType: ${editingResource.type}\nThème: ${editingResource.theme}`} onApply={(description) => setEditingResource((current) => current ? { ...current, description } : current)} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -563,6 +568,7 @@ export default function InstitutionPage() {
               <div>
                 <label className="block text-xs font-semibold uppercase text-stone-600">{t('institution_resource_desc')}</label>
                 <textarea required value={editingProgram.description} onChange={(e) => setEditingProgram({ ...editingProgram, description: e.target.value })} rows={3} className="field mt-1" />
+                <AiTextSuggestion task="institution_program" input={editingProgram.description} context={`Titre: ${editingProgram.title}\nType: ${editingProgram.type}\nZone d’intervention: ${editingProgram.interventionZone || 'à préciser'}\nBénéficiaires: ${editingProgram.targetBeneficiaries || 'à préciser'}\nObjectifs: ${editingProgram.objectives || 'à préciser'}\nCritères: ${editingProgram.eligibility || 'à préciser'}`} onApply={(description) => setEditingProgram((current) => current ? { ...current, description } : current)} />
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
@@ -605,6 +611,7 @@ export default function InstitutionPage() {
               <div>
                 <label className="block text-xs font-semibold uppercase text-stone-600">{t('institution_program_objectives')}</label>
                 <textarea value={editingProgram.objectives} onChange={(e) => setEditingProgram({ ...editingProgram, objectives: e.target.value })} rows={2} className="field mt-1" />
+                <AiTextSuggestion task="institution_program" input={editingProgram.objectives} context={`Programme: ${editingProgram.title}\nDescription: ${editingProgram.description}\nBénéficiaires: ${editingProgram.targetBeneficiaries || 'à préciser'}`} onApply={(objectives) => setEditingProgram((current) => current ? { ...current, objectives } : current)} />
               </div>
               <div>
                 <label className="block text-xs font-semibold uppercase text-stone-600">{t('institution_program_beneficiaries')}</label>

@@ -45,6 +45,20 @@ export class AssistantController {
     return this.assistant.generate({ task: 'reponse_opportunite', input: body.description.slice(0, 3000), context, language: body.language });
   }
 
+  @Post('suggest-text')
+  suggestText(@CurrentUser() user: AuthUser, @Body() body: { task: 'listing_description' | 'service_description' | 'institution_resource' | 'institution_program'; input: string; context?: string; language?: 'fr' | 'en' }) {
+    const artisanTasks = ['listing_description', 'service_description'];
+    const institutionTasks = ['institution_resource', 'institution_program'];
+    const allowed = user.role === 'artisan'
+      ? artisanTasks.includes(body.task)
+      : user.role === 'institution' && institutionTasks.includes(body.task);
+    if (!allowed) {
+      throw new BadRequestException('Cette suggestion n’est pas disponible pour votre rôle.');
+    }
+    if (!body.input?.trim()) throw new BadRequestException('Saisissez quelques informations avant de demander une suggestion.');
+    return this.assistant.generate({ ...body, input: body.input.slice(0, 3000), context: body.context?.slice(0, 2000) });
+  }
+
   @Post('generate-image')
   @UseInterceptors(FileInterceptor('referenceImage', { limits: { fileSize: 5 * 1024 * 1024 } }))
   generateImage(@CurrentUser() user: AuthUser, @Body() body: { prompt: string; style?: string; language?: 'fr' | 'en' }, @UploadedFile() referenceImage?: Express.Multer.File) {

@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
 import { SERVICE_CATEGORIES, categoryLabel } from '@/lib/categories';
+import { AiTextSuggestion } from '@/components/AiTextSuggestion';
 
 interface Service {
   id: string;
@@ -86,7 +87,19 @@ export default function ServicesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const data: any = {
+      const data: {
+        title: string;
+        description: string;
+        estimatedDays: number;
+        category: string;
+        tags: string[];
+        fileUrls: string[];
+        videoUrls: string[];
+        externalUrls: string[];
+        price?: number;
+        priceMin?: number;
+        priceMax?: number;
+      } = {
         title: formData.title,
         description: formData.description,
         estimatedDays: parseInt(formData.estimatedDays),
@@ -326,6 +339,12 @@ export default function ServicesPage() {
                 rows={4}
                 className="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-amber-500 focus:outline-none"
               />
+              <AiTextSuggestion
+                task="service_description"
+                input={formData.description}
+                context={`Titre: ${formData.title || 'à préciser'}\nMétier: ${formData.category}\nTarif indiqué: ${formData.price || formData.priceMin || formData.priceMax ? 'renseigné par l’artisan' : 'non précisé'}\nDélai estimé: ${formData.estimatedDays} jours`}
+                onApply={(description) => setFormData((current) => ({ ...current, description }))}
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -457,7 +476,7 @@ export default function ServicesPage() {
       <div className="space-y-4">
         {!services || services.length === 0 ? (
           <p className="rounded-lg border border-stone-200 bg-stone-50 p-6 text-center text-stone-600">
-            Vous n'avez pas encore créé de service.
+            Vous n&apos;avez pas encore créé de service.
           </p>
         ) : (
           services.map((service: Service) => (

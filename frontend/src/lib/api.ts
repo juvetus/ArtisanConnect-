@@ -94,6 +94,9 @@ export const api = {
   assistantSuggestOpportunityReply: (data: { description: string; category: string; city: string; neighborhood?: string | null; budgetMin?: number | null; budgetMax?: number | null; requestedDate?: string | null; language?: 'fr' | 'en' }) =>
     post<{ content: string; provider: 'ai' | 'local' }>('/assistant/suggest-opportunity-reply', data),
 
+  assistantSuggestText: (data: { task: 'listing_description' | 'service_description' | 'institution_resource' | 'institution_program'; input: string; context?: string; language?: 'fr' | 'en' }) =>
+    post<{ content: string; provider: 'ai' | 'local' }>('/assistant/suggest-text', data),
+
   assistantGenerateImage: async (data: { prompt: string; style: string; language?: 'fr' | 'en'; referenceImage?: File }) => {
     const form = new FormData();
     form.append('prompt', data.prompt);
