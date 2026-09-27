@@ -228,7 +228,7 @@ export function Header() {
               </Link>
               {user.role === 'client' && (
                 <Link href="/customer-requests" className={navLinkClass('/customer-requests')}>
-                  Mes demandes
+                  {t('nav_my_requests')}
                 </Link>
               )}
               <Link
