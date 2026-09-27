@@ -178,7 +178,7 @@ services:
       - key: ORANGE_MONEY_MODE
         value: mock
       - key: SMTP_ENABLED
-        value: 'false'
+        value: 'true'
       - key: SMTP_HOST
         value: smtp-relay.brevo.com
       - key: SMTP_PORT
