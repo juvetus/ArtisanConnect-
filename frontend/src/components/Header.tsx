@@ -170,6 +170,17 @@ export function Header() {
                   {t('nav_institution_space')}
                 </Link>
               )}
+              <Link href="/profile" className={navLinkClass('/profile')}>
+                Profil
+              </Link>
+              <Link href="/assistant" className={navLinkClass('/assistant')}>
+                Assistant IA
+              </Link>
+              {(user.role === 'artisan' || user.role === 'admin') && (
+                <Link href="/assistant/images" className={navLinkClass('/assistant/images')}>
+                  Images IA
+                </Link>
+              )}
               <Link
                 href="/notifications"
                 className={`relative ${navLinkClass('/notifications')}`}
