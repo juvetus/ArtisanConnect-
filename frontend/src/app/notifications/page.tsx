@@ -43,6 +43,35 @@ export default function NotificationsPage() {
     if (notification.link) router.push(notification.link);
   };
 
+  const renderNotification = (notification: NotificationItem) => (
+    <li
+      key={notification.id}
+      onClick={() => markRead(notification)}
+      className={`cursor-pointer rounded-lg border p-4 transition ${
+        notification.read
+          ? 'border-stone-200 bg-white hover:border-stone-300'
+          : 'border-amber-400 bg-amber-50/60 hover:bg-amber-50'
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-stone-600">{typeLabels[notification.type]}</span>
+            {!notification.read && <span className="h-2 w-2 rounded-full bg-amber-600" />}
+          </div>
+          <p className="font-medium text-stone-900">{notification.title}</p>
+          <p className="text-sm text-stone-600">{notification.content}</p>
+        </div>
+        <span className="shrink-0 text-xs text-stone-500">
+          {new Date(notification.createdAt).toLocaleDateString(language === 'en' ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'short' })}
+        </span>
+      </div>
+    </li>
+  );
+
+  const unreadItems = data.items.filter((notification) => !notification.read);
+  const readItems = data.items.filter((notification) => notification.read);
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center justify-between">
@@ -78,40 +107,10 @@ export default function NotificationsPage() {
           {activeSearch ? 'Aucune notification ne correspond à cette recherche.' : t('notifications_empty')}
         </p>
       ) : (
-        <ul className="space-y-3">
-          {data.items.map((notification) => (
-            <li
-              key={notification.id}
-              onClick={() => markRead(notification)}
-              className={`cursor-pointer rounded-lg border p-4 transition ${
-                notification.read
-                  ? 'border-stone-200 bg-white hover:border-stone-300'
-                  : 'border-amber-400 bg-amber-50/60 hover:bg-amber-50'
-              }`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-stone-600">
-                      {typeLabels[notification.type]}
-                    </span>
-                    {!notification.read && (
-                      <span className="h-2 w-2 rounded-full bg-amber-600" />
-                    )}
-                  </div>
-                  <p className="font-medium text-stone-900">{notification.title}</p>
-                  <p className="text-sm text-stone-600">{notification.content}</p>
-                </div>
-                <span className="shrink-0 text-xs text-stone-500">
-                  {new Date(notification.createdAt).toLocaleDateString(language === 'en' ? 'en-US' : 'fr-FR', {
-                    day: 'numeric',
-                    month: 'short',
-                  })}
-                </span>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <div className="space-y-4">
+          {unreadItems.length ? <section><h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-amber-800">Non lues ({unreadItems.length})</h2><ul className="space-y-3">{unreadItems.map(renderNotification)}</ul></section> : null}
+          {readItems.length ? <details className="rounded-lg border border-stone-200 bg-stone-50 p-3" open={unreadItems.length === 0 && page === 0}><summary className="cursor-pointer text-sm font-semibold text-stone-700">Déjà traitées ({readItems.length})</summary><ul className="mt-3 space-y-3">{readItems.map(renderNotification)}</ul></details> : null}
+        </div>
       )}
       {data.total > pageSize ? (
         <nav aria-label="Pagination des notifications" className="flex items-center justify-between border-t border-stone-200 pt-4">
