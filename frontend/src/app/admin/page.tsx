@@ -570,8 +570,8 @@ export default function AdminPage() {
       {view === 'listings' && (
         <section className="overflow-hidden rounded-lg border border-stone-200 bg-white">
           <div className="border-b border-stone-200 p-5">
-            <h2 className="font-semibold">Modération des annonces ({data.listings.length})</h2>
-            <p className="mt-1 text-sm text-stone-600">Désactivez une annonce qui ne respecte pas les règles.</p>
+            <h2 className="font-semibold">{english ? 'Listing moderation' : 'Modération des annonces'} ({data.listings.length})</h2>
+            <p className="mt-1 text-sm text-stone-600">{english ? 'Disable a listing that does not follow the rules.' : 'Désactivez une annonce qui ne respecte pas les règles.'}</p>
           </div>
           <div className="divide-y divide-stone-100">
             {data.listings.slice(listingsPage * PAGE_SIZE, (listingsPage + 1) * PAGE_SIZE).map((listing) => (
@@ -586,7 +586,7 @@ export default function AdminPage() {
                     <p className="font-medium">{listing.title}</p>
                     {listing.status === 'inactive' && (
                       <span className="rounded-full bg-stone-200 px-2 py-0.5 text-xs text-stone-600">
-                        Désactivée
+                        {english ? 'Disabled' : 'Désactivée'}
                       </span>
                     )}
                   </div>
@@ -603,15 +603,15 @@ export default function AdminPage() {
                         : 'bg-green-50 text-green-700 hover:bg-green-100'
                     }`}
                   >
-                    {listing.status === 'active' ? 'Désactiver' : 'Réactiver'}
+                    {listing.status === 'active' ? (english ? 'Disable' : 'Désactiver') : (english ? 'Reactivate' : 'Réactiver')}
                   </button>
                   {user.role === 'admin' ? <button
                     onClick={() => {
-                      if (confirm(`Supprimer définitivement l'annonce « ${listing.title} » ?`)) void runAdminAction(() => api.adminDeleteListing(listing.id));
+                      if (confirm(english ? `Permanently delete listing “${listing.title}”?` : `Supprimer définitivement l'annonce « ${listing.title} » ?`)) void runAdminAction(() => api.adminDeleteListing(listing.id));
                     }}
                     className="rounded-md bg-red-50 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
                   >
-                    Supprimer
+                    {english ? 'Delete' : 'Supprimer'}
                   </button> : null}
                 </div>
               </div>
