@@ -226,6 +226,11 @@ export function Header() {
                   </span>
                 ) : null}
               </Link>
+              {user.role === 'client' && (
+                <Link href="/customer-requests" className={navLinkClass('/customer-requests')}>
+                  Mes demandes
+                </Link>
+              )}
               <Link
                 href="/orders"
                 className={navLinkClass('/orders')}
