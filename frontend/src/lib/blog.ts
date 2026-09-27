@@ -34,6 +34,79 @@ export type BlogArticle = {
 
 export const blogArticles: BlogArticle[] = [
   {
+    slug: 'kribi-formation-teinture-artisanale-couturieres-tailleurs',
+    category: { fr: 'Formation artisanale', en: 'Craft training' },
+    title: {
+      fr: 'À Kribi, 21 couturières et tailleurs se forment à la teinture artisanale',
+      en: 'In Kribi, 21 tailors and dressmakers learn artisanal dyeing',
+    },
+    excerpt: {
+      fr: 'Une formation organisée dans l’Océan a renforcé les compétences de 21 professionnels du textile, de la teinture aux premières notions de commercialisation.',
+      en: 'A training programme in the Ocean region strengthened the skills of 21 textile professionals, from dyeing techniques to basic marketing knowledge.',
+    },
+    coverImage: '/images/blog-femmes-cooperatives.png',
+    coverAlt: { fr: 'Artisanes réunies autour d’une création textile', en: 'Women artisans gathered around a textile creation' },
+    sources: [{ label: 'MINPMEESA - Formation à la teinture artisanale à Kribi', url: 'https://www.minpmeesa.cm/site/kribi-21-couturieres-et-tailleurs-formes-aux-secrets-de-la-teinture-artisanale/' }],
+    author: 'L’équipe ArtisanConnect',
+    publishedAt: '2026-09-28',
+    readingTime: 3,
+    keywords: ['teinture artisanale Kribi', 'formation couturières Cameroun', 'MINPMEESA artisanat', 'textile camerounais'],
+    sections: {
+      fr: [
+        {
+          heading: 'Une formation dédiée au textile artisanal',
+          paragraphs: [
+            'Du 1er au 11 septembre 2026, la Délégation départementale du MINPMEESA pour l’Océan a accueilli à Kribi une formation consacrée à la teinture artisanale. La source officielle mentionne 21 participantes et participants au total, issus des métiers de la couture et de la confection.',
+            'L’initiative a été organisée avec l’appui du Fonds National de l’Emploi de Kribi et du Centre de Formation Professionnelle Agropastorale de Kribi. Elle illustre l’importance des partenariats locaux pour faire progresser les savoir-faire artisanaux.',
+          ],
+        },
+        {
+          heading: 'Des techniques directement utiles aux ateliers',
+          paragraphs: ['L’accompagnement professionnel assuré par Christelle MENI, entrepreneure et teinturière, a porté sur plusieurs étapes de la création textile :'],
+          bullets: ['les techniques d’attache et de nouage ;', 'la teinture simple ;', 'le batik, qui utilise notamment la cire ;', 'la commercialisation des créations ;', 'des notions pratiques pour développer une activité entrepreneuriale.'],
+        },
+        {
+          heading: 'Du geste technique à l’activité génératrice de revenus',
+          paragraphs: [
+            'L’intérêt d’une telle formation dépasse la maîtrise des couleurs et des motifs. Elle aide les professionnels à mieux relier leur savoir-faire à une offre vendable : choix des matières, régularité du rendu, présentation des pièces, calcul des coûts et recherche de débouchés.',
+            'La formation s’est achevée par une cérémonie de remise des parchemins aux 21 apprenants. Pour les ateliers, cette reconnaissance peut constituer un point de départ pour continuer à pratiquer, documenter les créations et développer des collections textiles adaptées au marché local.',
+          ],
+        },
+        {
+          heading: 'Ce que les artisans peuvent retenir',
+          paragraphs: ['Une compétence technique prend davantage de valeur lorsqu’elle est accompagnée d’une présentation claire et d’un suivi commercial. Les artisans peuvent prolonger ce type d’apprentissage en :'],
+          bullets: ['photographiant les étapes et les résultats réels ;', 'décrivant précisément les matières et les procédés utilisés ;', 'proposant des délais et des prix vérifiables ;', 'présentant leurs créations sur une boutique numérique ;', 'échangeant avec les clients avant de confirmer une commande.'],
+        },
+      ],
+      en: [
+        {
+          heading: 'A programme focused on artisanal textiles',
+          paragraphs: [
+            'From September 1 to 11, 2026, the MINPMEESA departmental delegation for the Ocean region hosted a training programme in Kribi dedicated to artisanal dyeing. The official source reports 21 participants from the tailoring and dressmaking sector.',
+            'The programme was organised with support from the Kribi office of the National Employment Fund and the Kribi Agropastoral Vocational Training Centre. It shows how local partnerships can strengthen practical craft skills.',
+          ],
+        },
+        {
+          heading: 'Practical techniques for textile workshops',
+          paragraphs: ['Led by entrepreneur and professional dyer Christelle MENI, the training covered several stages of textile production:'],
+          bullets: ['tying and resist-dyeing techniques;', 'basic dyeing methods;', 'batik, including wax-based dyeing;', 'sales and marketing techniques;', 'practical ideas for developing an entrepreneurial activity.'],
+        },
+        {
+          heading: 'From technical skill to income-generating work',
+          paragraphs: [
+            'The value of this type of training goes beyond mastering colours and patterns. It helps professionals connect their skills to a sellable offer: choosing materials, achieving consistent results, presenting pieces, calculating costs and finding customers.',
+            'The programme ended with certificates awarded to the 21 participants. For local workshops, this can be a starting point for documenting their creations and developing textile collections for the local market.',
+          ],
+        },
+        {
+          heading: 'What artisans can take away',
+          paragraphs: ['A technical skill becomes more valuable when it is supported by clear presentation and commercial follow-up. Artisans can build on this kind of training by:'],
+          bullets: ['photographing real processes and results;', 'describing materials and techniques accurately;', 'offering verifiable prices and timelines;', 'presenting creations through a digital shop;', 'discussing the project with clients before confirming an order.'],
+        },
+      ],
+    },
+  },
+  {
     slug: 'acheter-artisanat-local-cameroun-guide',
     category: { fr: 'Consommer local', en: 'Local shopping' },
     title: {

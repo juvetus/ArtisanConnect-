@@ -37,7 +37,7 @@ export default function AdminServiceOrdersPage() {
         .catch(() => { if (active) setNotice(english ? 'Could not load requests.' : 'Impossible de charger les demandes.'); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [ready, user]);
+  }, [ready, user, english]);
 
   const act = async (id: string, action: 'validate' | 'request' | 'reject') => {
     try {
