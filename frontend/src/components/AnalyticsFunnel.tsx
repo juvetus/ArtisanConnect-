@@ -8,18 +8,18 @@ import type { AnalyticsFunnel as AnalyticsFunnelData } from '@/lib/types';
 import { useLanguage } from '@/lib/language-context';
 
 const FUNNEL_STEPS: { key: string; label: string }[] = [
-  { key: 'visitors', label: 'Visiteurs' },
-  { key: 'searches', label: 'Recherches' },
-  { key: 'artisanProfileViews', label: 'Profils consultés' },
-  { key: 'listingViews', label: 'Annonces consultées' },
-  { key: 'whatsappClicks', label: 'Contacts WhatsApp' },
-  { key: 'quoteRequests', label: 'Demandes de devis' },
-  { key: 'serviceRequests', label: 'Demandes de prestation' },
-  { key: 'acceptedQuotes', label: 'Devis acceptés' },
-  { key: 'orders', label: 'Commandes' },
-  { key: 'completedTransactions', label: 'Commandes/prestations terminées' },
-  { key: 'verifiedReviews', label: 'Avis vérifiés' },
-  { key: 'returningClients', label: 'Clients revenus' },
+  { key: 'visitors', label: 'Visitors' },
+  { key: 'searches', label: 'Searches' },
+  { key: 'artisanProfileViews', label: 'Profile views' },
+  { key: 'listingViews', label: 'Listing views' },
+  { key: 'whatsappClicks', label: 'WhatsApp contacts' },
+  { key: 'quoteRequests', label: 'Quote requests' },
+  { key: 'serviceRequests', label: 'Service requests' },
+  { key: 'acceptedQuotes', label: 'Accepted quotes' },
+  { key: 'orders', label: 'Orders' },
+  { key: 'completedTransactions', label: 'Completed orders/services' },
+  { key: 'verifiedReviews', label: 'Verified reviews' },
+  { key: 'returningClients', label: 'Returning clients' },
 ];
 
 type FunnelMetricCard =
