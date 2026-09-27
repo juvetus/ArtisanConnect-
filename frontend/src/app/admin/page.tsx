@@ -291,10 +291,10 @@ export default function AdminPage() {
       {view === 'formalizations' && (
         <section className="space-y-4 rounded-lg border border-stone-200 bg-white p-5">
           <div>
-            <h2 className="text-xl font-semibold text-stone-900">Dossiers de formalisation ({data.formalizations.length})</h2>
-            <p className="mt-1 text-sm text-stone-600">Vérifiez les informations et justificatifs transmis par les artisans du pilote.</p>
+            <h2 className="text-xl font-semibold text-stone-900">{english ? 'Formalization files' : 'Dossiers de formalisation'} ({data.formalizations.length})</h2>
+            <p className="mt-1 text-sm text-stone-600">{english ? 'Review information and documents submitted by pilot artisans.' : 'Vérifiez les informations et justificatifs transmis par les artisans du pilote.'}</p>
           </div>
-          {!data.formalizations.length ? <p className="rounded-md bg-stone-50 p-4 text-sm text-stone-600">Aucun dossier reçu pour le moment.</p> : (
+          {!data.formalizations.length ? <p className="rounded-md bg-stone-50 p-4 text-sm text-stone-600">{english ? 'No formalization file received yet.' : 'Aucun dossier reçu pour le moment.'}</p> : (
             <div className="space-y-4">
               {data.formalizations.map((record) => {
                 let documentUrls: string[] = [];
@@ -309,18 +309,18 @@ export default function AdminPage() {
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <h3 className="font-semibold text-stone-900">{record.businessName}</h3>
-                        <p className="mt-1 text-sm text-stone-600">Artisan : {record.artisan?.name ?? 'Artisan'} · {record.artisan?.email}</p>
-                        <p className="mt-1 text-sm text-stone-600">Enregistrement : {record.registrationNumber || 'Non renseigné'} · Identifiant fiscal : {record.taxId || 'Non renseigné'}</p>
-                        <span className="mt-2 inline-block rounded-full bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-700">{record.status}</span>
+                        <p className="mt-1 text-sm text-stone-600">{english ? 'Artisan' : 'Artisan'} : {record.artisan?.name ?? 'Artisan'} · {record.artisan?.email}</p>
+                        <p className="mt-1 text-sm text-stone-600">{english ? 'Registration' : 'Enregistrement'} : {record.registrationNumber || (english ? 'Not provided' : 'Non renseigné')} · {english ? 'Tax ID' : 'Identifiant fiscal'} : {record.taxId || (english ? 'Not provided' : 'Non renseigné')}</p>
+                        <span className="mt-2 inline-block rounded-full bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-700">{english ? ({ draft: 'Draft', submitted: 'Submitted', in_review: 'Under review', approved: 'Approved', rejected: 'Rejected' }[record.status] ?? record.status) : record.status}</span>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {record.status !== 'approved' && <button type="button" onClick={() => void reviewFormalization(record, 'approved')} className="rounded-md bg-green-700 px-3 py-2 text-sm font-medium text-white hover:bg-green-800">Approuver</button>}
-                        {record.status !== 'in_review' && record.status !== 'approved' && <button type="button" onClick={() => void reviewFormalization(record, 'in_review')} className="rounded-md border border-amber-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50">En examen</button>}
-                        {record.status !== 'rejected' && record.status !== 'approved' && <button type="button" onClick={() => void reviewFormalization(record, 'rejected')} className="rounded-md border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50">Rejeter / correction</button>}
+                        {record.status !== 'approved' && <button type="button" onClick={() => void reviewFormalization(record, 'approved')} className="rounded-md bg-green-700 px-3 py-2 text-sm font-medium text-white hover:bg-green-800">{english ? 'Approve' : 'Approuver'}</button>}
+                        {record.status !== 'in_review' && record.status !== 'approved' && <button type="button" onClick={() => void reviewFormalization(record, 'in_review')} className="rounded-md border border-amber-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50">{english ? 'Under review' : 'En examen'}</button>}
+                        {record.status !== 'rejected' && record.status !== 'approved' && <button type="button" onClick={() => void reviewFormalization(record, 'rejected')} className="rounded-md border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50">{english ? 'Reject / request correction' : 'Rejeter / correction'}</button>}
                       </div>
                     </div>
-                    {documentUrls.length ? <div className="mt-3 flex flex-wrap gap-2">{documentUrls.map((url, index) => <a key={url} href={url} target="_blank" rel="noreferrer" className="rounded-md border border-stone-300 px-3 py-1.5 text-sm text-amber-800 underline">Justificatif {index + 1}</a>)}</div> : <p className="mt-3 text-sm text-stone-500">Aucun justificatif joint.</p>}
-                    {record.institutionNotes ? <p className="mt-3 rounded-md bg-amber-50 p-3 text-sm text-amber-900">Retour : {record.institutionNotes}</p> : null}
+                    {documentUrls.length ? <div className="mt-3 flex flex-wrap gap-2">{documentUrls.map((url, index) => <a key={url} href={url} target="_blank" rel="noreferrer" className="rounded-md border border-stone-300 px-3 py-1.5 text-sm text-amber-800 underline">{english ? 'Document' : 'Justificatif'} {index + 1}</a>)}</div> : <p className="mt-3 text-sm text-stone-500">{english ? 'No supporting document attached.' : 'Aucun justificatif joint.'}</p>}
+                    {record.institutionNotes ? <p className="mt-3 rounded-md bg-amber-50 p-3 text-sm text-amber-900">{english ? 'Feedback' : 'Retour'} : {record.institutionNotes}</p> : null}
                   </article>
                 );
               })}
