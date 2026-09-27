@@ -86,7 +86,7 @@ export function Header() {
         <nav
           id="main-navigation"
           onClick={() => setMenuOpen(false)}
-          className={`${menuOpen ? 'flex' : 'hidden'} order-3 w-full flex-col items-stretch gap-1 border-t border-stone-200 pt-3 text-sm md:order-none md:flex md:flex-1 md:w-auto md:flex-row md:items-center md:justify-end md:gap-1 md:border-0 md:pt-0 md:text-[13px] [&>a]:whitespace-nowrap [&>a]:px-2 [&>a]:py-2 [&>button]:whitespace-nowrap [&>button]:px-2 [&>button]:py-2`}
+          className={`${menuOpen ? 'flex' : 'hidden'} order-3 w-full flex-col items-stretch gap-1 border-t border-stone-200 pt-3 text-sm md:fixed md:left-0 md:top-[73px] md:z-40 md:flex md:h-[calc(100vh-73px)] md:w-64 md:items-stretch md:justify-start md:gap-2 md:overflow-y-auto md:border-r md:border-t-0 md:border-stone-200 md:bg-white md:p-4 md:pt-5 md:text-sm [&>a]:whitespace-nowrap [&>a]:px-3 [&>a]:py-2.5 [&>button]:whitespace-nowrap [&>button]:px-3 [&>button]:py-2.5`}
         >
           <Link href="/" className={navLinkClass('/')}>
             Annonces

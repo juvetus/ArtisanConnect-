@@ -145,7 +145,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <LanguageProvider>
           <AuthProvider>
             <Header />
-            <div>
+            <div className="md:ml-64">
               <EmailVerificationBanner />
               <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
               <Footer />
