@@ -63,6 +63,9 @@ export class ServicesService {
     if (!service) {
       throw new NotFoundException('Service not found');
     }
+    if (service.status === 'approved') {
+      throw new BadRequestException('Ce service est déjà approuvé');
+    }
 
     service.status = 'pending_validation';
     const savedService = await this.servicesRepository.save(service);
@@ -385,12 +388,13 @@ export class ServicesService {
   }
 
   async getValidationHistory(skip = 0, take = 50) {
-    return this.validationHistoryRepository.find({
+    const history = await this.validationHistoryRepository.find({
       relations: { service: true, admin: true },
       order: { createdAt: 'DESC' },
       skip,
       take,
     });
+    return history.filter((entry) => entry.previousStatus !== entry.newStatus);
   }
 
   private recordValidationHistory(
