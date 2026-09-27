@@ -394,7 +394,14 @@ export class ServicesService {
       skip,
       take,
     });
-    return history.filter((entry) => entry.previousStatus !== entry.newStatus);
+    const seen = new Set<string>();
+    return history.filter((entry) => {
+      if (entry.previousStatus === entry.newStatus) return false;
+      const key = `${entry.serviceId}:${entry.action}:${entry.newStatus}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }
 
   private recordValidationHistory(
