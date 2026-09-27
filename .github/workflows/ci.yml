@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, master, develop]
+    branches: [main, master, develop, staging]
   pull_request:
-    branches: [main, master, develop]
+    branches: [main, master, develop, staging]
 
 permissions:
   contents: read
@@ -45,6 +45,7 @@ jobs:
       JWT_SECRET: ci-only-secret
       FRONTEND_URL: http://localhost:3000
       ORANGE_MONEY_MODE: mock
+      SMTP_ENABLED: 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -66,7 +67,7 @@ jobs:
         run: npm test
 
       - name: E2E tests
-        run: npm run test:e2e
+        run: npm run test:e2e -- --run --no-file-parallelism
 
       - name: Build
         run: npm run build
