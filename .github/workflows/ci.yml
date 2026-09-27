@@ -36,6 +36,7 @@ jobs:
         working-directory: backend
     env:
       NODE_ENV: development
+      DEMO_MODE: 'false'
       DB_HOST: localhost
       DB_PORT: 5432
       DB_USERNAME: artisan
