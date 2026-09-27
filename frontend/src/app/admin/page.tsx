@@ -1099,73 +1099,73 @@ function AdminSubscriptions({ subscriptions, promotionCodes, onAction }: { subsc
   });
 
   const statusLabels: Record<AdminSubscription['status'], string> = {
-    pending: 'En attente',
-    active: 'Active',
-    failed: 'Échec',
-    cancelled: 'Annulée',
+    pending: english ? 'Pending' : 'En attente',
+    active: english ? 'Active' : 'Active',
+    failed: english ? 'Failed' : 'Échec',
+    cancelled: english ? 'Cancelled' : 'Annulée',
   };
 
   return (
     <section className="space-y-6 rounded-lg border border-stone-200 bg-white p-5">
       <div className="rounded-md border border-amber-200 bg-amber-50 p-4">
-        <h2 className="font-semibold text-stone-900">Codes promotionnels</h2>
-        <p className="mt-1 text-sm text-stone-600">Créez des remises de 10 % à 100 % pour les abonnements.</p>
+        <h2 className="font-semibold text-stone-900">{english ? 'Promo codes' : 'Codes promotionnels'}</h2>
+        <p className="mt-1 text-sm text-stone-600">{english ? 'Create discounts from 10% to 100% for subscriptions.' : 'Créez des remises de 10 % à 100 % pour les abonnements.'}</p>
         <form className="mt-3 grid gap-3 md:grid-cols-[1fr_130px_150px_150px_auto]" onSubmit={(event) => { event.preventDefault(); void onAction(async () => { await api.adminCreatePromotionCode({ code: promotionCode, discountPercent: Number(discountPercent), expiresAt: expiresAt || null, maxUses: maxUses ? Number(maxUses) : null, allowedPlanSlugs: allowedPlanSlugs.length ? allowedPlanSlugs : null }); setPromotionCode(''); setDiscountPercent('10'); setExpiresAt(''); setMaxUses(''); setAllowedPlanSlugs([]); }); }}>
-          <input required value={promotionCode} onChange={(event) => setPromotionCode(event.target.value.toUpperCase())} pattern="[A-Za-z0-9_-]{3,40}" placeholder="Ex : PILOTE2026" className="rounded-md border border-stone-300 px-3 py-2 text-sm uppercase" />
-          <input required type="number" min="10" max="100" step="1" value={discountPercent} onChange={(event) => setDiscountPercent(event.target.value)} placeholder="Remise %" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
+          <input required value={promotionCode} onChange={(event) => setPromotionCode(event.target.value.toUpperCase())} pattern="[A-Za-z0-9_-]{3,40}" placeholder={english ? 'E.g. PILOTE2026' : 'Ex : PILOTE2026'} className="rounded-md border border-stone-300 px-3 py-2 text-sm uppercase" />
+          <input required type="number" min="10" max="100" step="1" value={discountPercent} onChange={(event) => setDiscountPercent(event.target.value)} placeholder={english ? 'Discount %' : 'Remise %'} className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
           <input type="date" value={expiresAt} onChange={(event) => setExpiresAt(event.target.value)} className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
-          <input type="number" min="1" value={maxUses} onChange={(event) => setMaxUses(event.target.value)} placeholder="Utilisations max" className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
-          <button type="submit" className="rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-white hover:bg-amber-800">Créer le code</button>
-          <fieldset className="md:col-span-5 rounded-md border border-amber-200 bg-white p-3"><legend className="px-1 text-xs font-semibold uppercase tracking-wide text-stone-500">Plans autorisés</legend><div className="flex flex-wrap gap-3">{PROMOTION_PLAN_OPTIONS.map(([slug, label]) => <label key={slug} className="flex items-center gap-2 text-sm text-stone-700"><input type="checkbox" checked={allowedPlanSlugs.includes(slug)} onChange={() => setAllowedPlanSlugs((current) => current.includes(slug) ? current.filter((item) => item !== slug) : [...current, slug])} />{label}</label>)}<span className="text-xs text-stone-500">Aucun choix = tous les plans</span></div></fieldset>
+          <input type="number" min="1" value={maxUses} onChange={(event) => setMaxUses(event.target.value)} placeholder={english ? 'Max uses' : 'Utilisations max'} className="rounded-md border border-stone-300 px-3 py-2 text-sm" />
+          <button type="submit" className="rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-white hover:bg-amber-800">{english ? 'Create code' : 'Créer le code'}</button>
+          <fieldset className="md:col-span-5 rounded-md border border-amber-200 bg-white p-3"><legend className="px-1 text-xs font-semibold uppercase tracking-wide text-stone-500">{english ? 'Allowed plans' : 'Plans autorisés'}</legend><div className="flex flex-wrap gap-3">{PROMOTION_PLAN_OPTIONS.map(([slug, label]) => <label key={slug} className="flex items-center gap-2 text-sm text-stone-700"><input type="checkbox" checked={allowedPlanSlugs.includes(slug)} onChange={() => setAllowedPlanSlugs((current) => current.includes(slug) ? current.filter((item) => item !== slug) : [...current, slug])} />{label}</label>)}<span className="text-xs text-stone-500">{english ? 'No selection = all plans' : 'Aucun choix = tous les plans'}</span></div></fieldset>
         </form>
-        {promotionCodes.length ? <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[800px] text-left text-sm"><thead className="border-b border-amber-200 text-xs uppercase tracking-wide text-stone-500"><tr><th className="px-2 py-2">Code</th><th className="px-2 py-2">Remise</th><th className="px-2 py-2">Plans</th><th className="px-2 py-2">Expiration</th><th className="px-2 py-2">Utilisations</th><th className="px-2 py-2">État</th><th className="px-2 py-2" /></tr></thead><tbody>{promotionCodes.map((promo) => <tr key={promo.id} className="border-b border-amber-100 last:border-0"><td className="px-2 py-2 font-semibold">{promo.code}</td><td className="px-2 py-2">{promo.discountPercent}%</td><td className="px-2 py-2">{promo.allowedPlanSlugs?.length ? promo.allowedPlanSlugs.join(', ') : 'Tous'}</td><td className="px-2 py-2">{promo.expiresAt ? new Date(promo.expiresAt).toLocaleDateString('fr-FR') : 'Sans expiration'}</td><td className="px-2 py-2">{promo.usedCount}{promo.maxUses ? ` / ${promo.maxUses}` : ''}</td><td className="px-2 py-2">{promo.active ? 'Actif' : 'Désactivé'}</td><td className="px-2 py-2 text-right"><button type="button" onClick={() => void onAction(() => api.adminSetPromotionCodeActive(promo.id, !promo.active))} className="text-xs font-medium text-amber-800 underline">{promo.active ? 'Désactiver' : 'Activer'}</button></td></tr>)}</tbody></table></div> : <p className="mt-3 text-sm text-stone-500">Aucun code créé.</p>}
+        {promotionCodes.length ? <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[800px] text-left text-sm"><thead className="border-b border-amber-200 text-xs uppercase tracking-wide text-stone-500"><tr><th className="px-2 py-2">{english ? 'Code' : 'Code'}</th><th className="px-2 py-2">{english ? 'Discount' : 'Remise'}</th><th className="px-2 py-2">{english ? 'Plans' : 'Plans'}</th><th className="px-2 py-2">{english ? 'Expiration' : 'Expiration'}</th><th className="px-2 py-2">{english ? 'Uses' : 'Utilisations'}</th><th className="px-2 py-2">{english ? 'Status' : 'État'}</th><th className="px-2 py-2" /></tr></thead><tbody>{promotionCodes.map((promo) => <tr key={promo.id} className="border-b border-amber-100 last:border-0"><td className="px-2 py-2 font-semibold">{promo.code}</td><td className="px-2 py-2">{promo.discountPercent}%</td><td className="px-2 py-2">{promo.allowedPlanSlugs?.length ? promo.allowedPlanSlugs.join(', ') : english ? 'All' : 'Tous'}</td><td className="px-2 py-2">{promo.expiresAt ? new Date(promo.expiresAt).toLocaleDateString(english ? 'en-GB' : 'fr-FR') : english ? 'No expiry' : 'Sans expiration'}</td><td className="px-2 py-2">{promo.usedCount}{promo.maxUses ? ` / ${promo.maxUses}` : ''}</td><td className="px-2 py-2">{promo.active ? (english ? 'Active' : 'Actif') : (english ? 'Disabled' : 'Désactivé')}</td><td className="px-2 py-2 text-right"><button type="button" onClick={() => void onAction(() => api.adminSetPromotionCodeActive(promo.id, !promo.active))} className="text-xs font-medium text-amber-800 underline">{promo.active ? (english ? 'Disable' : 'Désactiver') : (english ? 'Enable' : 'Activer')}</button></td></tr>)}</tbody></table></div> : <p className="mt-3 text-sm text-stone-500">{english ? 'No code created yet.' : 'Aucun code créé.'}</p>}
       </div>
       <div>
-        <h2 className="font-semibold">Gestion des abonnements ({filteredSubscriptions.length}/{subscriptions.length})</h2>
-        <p className="mt-1 text-sm text-stone-600">Suivez les plans souscrits, les paiements et les dates d’expiration.</p>
+        <h2 className="font-semibold">{english ? 'Subscription management' : 'Gestion des abonnements'} ({filteredSubscriptions.length}/{subscriptions.length})</h2>
+        <p className="mt-1 text-sm text-stone-600">{english ? 'Track subscribed plans, payments and expiry dates.' : 'Suivez les plans souscrits, les paiements et les dates d’expiration.'}</p>
       </div>
       <div className="grid gap-3 md:grid-cols-[1fr_220px]">
         <input
           value={search}
           onChange={(event) => { setSearch(event.target.value); setPage(0); }}
-          placeholder="Artisan, e-mail, plan ou référence..."
+          placeholder={english ? 'Artisan, email, plan or reference...' : 'Artisan, e-mail, plan ou référence...'}
           className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
         />
         <select value={status} onChange={(event) => { setStatus(event.target.value as AdminSubscription['status'] | 'all'); setPage(0); }} className="rounded-md border border-stone-300 px-3 py-2 text-sm">
-          <option value="all">Tous les statuts</option>
+          <option value="all">{english ? 'All statuses' : 'Tous les statuts'}</option>
           {Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
       </div>
       {!filteredSubscriptions.length ? (
-        <p className="rounded-md bg-stone-50 p-4 text-sm text-stone-600">Aucun abonnement ne correspond à votre recherche.</p>
+        <p className="rounded-md bg-stone-50 p-4 text-sm text-stone-600">{english ? 'No subscription matches your search.' : 'Aucun abonnement ne correspond à votre recherche.'}</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[820px] text-left text-sm">
             <thead className="border-b border-stone-200 text-xs uppercase tracking-wide text-stone-500">
               <tr>
-                <th className="px-3 py-3">Artisan</th>
-                <th className="px-3 py-3">Plan</th>
-                <th className="px-3 py-3">Montant</th>
-                <th className="px-3 py-3">Statut</th>
-                <th className="px-3 py-3">Expiration</th>
-                <th className="px-3 py-3">Paiement</th>
+                <th className="px-3 py-3">{english ? 'Artisan' : 'Artisan'}</th>
+                <th className="px-3 py-3">{english ? 'Plan' : 'Plan'}</th>
+                <th className="px-3 py-3">{english ? 'Amount' : 'Montant'}</th>
+                <th className="px-3 py-3">{english ? 'Status' : 'Statut'}</th>
+                <th className="px-3 py-3">{english ? 'Expiry' : 'Expiration'}</th>
+                <th className="px-3 py-3">{english ? 'Payment' : 'Paiement'}</th>
               </tr>
             </thead>
             <tbody>
               {filteredSubscriptions.slice(page * 10, (page + 1) * 10).map((subscription) => (
                 <tr key={subscription.id} className="border-b border-stone-100 last:border-0">
                   <td className="px-3 py-3">
-                    <p className="font-medium text-stone-900">{subscription.user?.name ?? 'Utilisateur supprimé'}</p>
+                    <p className="font-medium text-stone-900">{subscription.user?.name ?? (english ? 'Deleted user' : 'Utilisateur supprimé')}</p>
                     <p className="text-xs text-stone-500">{subscription.user?.email ?? '—'}</p>
                   </td>
-                  <td className="px-3 py-3 text-stone-700">{subscription.plan?.name ?? 'Plan supprimé'}</td>
+                  <td className="px-3 py-3 text-stone-700">{subscription.plan?.name ?? (english ? 'Deleted plan' : 'Plan supprimé')}</td>
                   <td className="px-3 py-3 font-medium text-stone-900">{formatXAF(subscription.amount)}</td>
                   <td className="px-3 py-3">
                     <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${subscription.status === 'active' ? 'bg-emerald-100 text-emerald-700' : subscription.status === 'failed' ? 'bg-red-100 text-red-700' : 'bg-stone-100 text-stone-700'}`}>
                       {statusLabels[subscription.status]}
                     </span>
                   </td>
-                  <td className="px-3 py-3 text-stone-600">{subscription.endDate ? new Date(subscription.endDate).toLocaleDateString('fr-FR') : '—'}</td>
+                  <td className="px-3 py-3 text-stone-600">{subscription.endDate ? new Date(subscription.endDate).toLocaleDateString(english ? 'en-GB' : 'fr-FR') : '—'}</td>
                   <td className="px-3 py-3 text-xs text-stone-500">{subscription.paymentReference ?? subscription.provider}</td>
                 </tr>
               ))}
@@ -1205,20 +1205,20 @@ function AdminOrders({
   return (
     <section className="space-y-4 rounded-lg border border-stone-200 bg-white p-5">
       <div>
-        <h2 className="font-semibold">Gestion des commandes ({filteredOrders.length}/{orders.length})</h2>
-        <p className="mt-1 text-sm text-stone-600">Recherchez une commande, consultez tous ses détails, annulez-la ou enregistrez un remboursement.</p>
+        <h2 className="font-semibold">{english ? 'Order management' : 'Gestion des commandes'} ({filteredOrders.length}/{orders.length})</h2>
+        <p className="mt-1 text-sm text-stone-600">{english ? 'Search for an order, review all details, cancel it, or record a refund.' : 'Recherchez une commande, consultez tous ses détails, annulez-la ou enregistrez un remboursement.'}</p>
       </div>
       <div className="grid gap-3 md:grid-cols-[1fr_220px]">
-        <input value={search} onChange={(event) => { setSearch(event.target.value); setPage(0); }} placeholder="ID, client, vendeur, article, e-mail..." className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600" />
+        <input value={search} onChange={(event) => { setSearch(event.target.value); setPage(0); }} placeholder={english ? 'ID, customer, seller, item, email...' : 'ID, client, vendeur, article, e-mail...'} className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600" />
         <select value={status} onChange={(event) => { setStatus(event.target.value as Order['status'] | 'all'); setPage(0); }} className="rounded-md border border-stone-300 px-3 py-2 text-sm">
-          <option value="all">Tous les statuts</option>
-          <option value="pending">En attente</option>
-          <option value="confirmed">Confirmées</option>
-          <option value="completed">Terminées</option>
-          <option value="cancelled">Annulées</option>
+          <option value="all">{english ? 'All statuses' : 'Tous les statuts'}</option>
+          <option value="pending">{english ? 'Pending' : 'En attente'}</option>
+          <option value="confirmed">{english ? 'Confirmed' : 'Confirmées'}</option>
+          <option value="completed">{english ? 'Completed' : 'Terminées'}</option>
+          <option value="cancelled">{english ? 'Cancelled' : 'Annulées'}</option>
         </select>
       </div>
-      {!filteredOrders.length ? <p className="rounded-md bg-stone-50 p-4 text-sm text-stone-600">Aucune commande ne correspond à votre recherche.</p> : (
+      {!filteredOrders.length ? <p className="rounded-md bg-stone-50 p-4 text-sm text-stone-600">{english ? 'No order matches your search.' : 'Aucune commande ne correspond à votre recherche.'}</p> : (
         <div className="divide-y divide-stone-100">
           {filteredOrders.slice(page * 10, (page + 1) * 10).map((order) => {
             const isExpanded = expanded === order.id;
@@ -1228,30 +1228,30 @@ function AdminOrders({
               <article key={order.id} className="py-4 first:pt-0 last:pb-0">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="font-medium">{order.listing?.title ?? 'Annonce supprimée'}</p>
-                    <p className="text-sm text-stone-600">{order.buyer?.name ?? 'Client'} → {order.seller?.name ?? 'Vendeur'} · {formatXAF(order.totalPrice)}</p>
-                    <p className="text-xs text-stone-500">Réf. {order.id} · {new Date(order.createdAt).toLocaleString('fr-FR')}</p>
+                    <p className="font-medium">{order.listing?.title ?? (english ? 'Deleted listing' : 'Annonce supprimée')}</p>
+                    <p className="text-sm text-stone-600">{order.buyer?.name ?? (english ? 'Customer' : 'Client')} → {order.seller?.name ?? (english ? 'Seller' : 'Vendeur')} · {formatXAF(order.totalPrice)}</p>
+                    <p className="text-xs text-stone-500">{english ? 'Ref.' : 'Réf.'} {order.id} · {new Date(order.createdAt).toLocaleString(english ? 'en-GB' : 'fr-FR')}</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <StatusBadge status={order.status} />
                     <button onClick={() => setExpanded(isExpanded ? null : order.id)} className="rounded-md border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50">
-                      {isExpanded ? 'Réduire' : 'Voir les détails'}
+                      {isExpanded ? (english ? 'Collapse' : 'Réduire') : (english ? 'View details' : 'Voir les détails')}
                     </button>
                   </div>
                 </div>
                 {isExpanded ? (
                   <div className="mt-4 grid gap-3 rounded-md bg-stone-50 p-4 text-sm text-stone-700 sm:grid-cols-2">
-                    <p><strong>Client :</strong> {order.buyer?.name} · {order.buyer?.email}</p>
-                    <p><strong>Vendeur :</strong> {order.seller?.name} · {order.seller?.email}</p>
-                    <p><strong>Quantité :</strong> {order.quantity}</p>
-                    <p><strong>Paiement :</strong> {order.paymentMethod} · {order.payment?.status ?? 'non créé'}</p>
-                    <p><strong>Livraison :</strong> {order.deliveryMethod === 'workshop' ? "Retrait à l'atelier" : order.deliveryMethod === 'home' ? 'Livraison à domicile' : `Transporteur${order.deliveryAddress ? ` · ${order.deliveryAddress}` : ''}`}</p>
-                    {order.deliveryMethod === 'carrier' ? <p><strong>Suivi :</strong> {order.deliveryStatus}{order.deliveryTrackingId ? ` · ${order.deliveryTrackingId}` : ''}</p> : null}
-                    {order.cancellationReason ? <p className="sm:col-span-2"><strong>Motif :</strong> {order.cancellationReason}</p> : null}
+                    <p><strong>{english ? 'Customer' : 'Client'} :</strong> {order.buyer?.name} · {order.buyer?.email}</p>
+                    <p><strong>{english ? 'Seller' : 'Vendeur'} :</strong> {order.seller?.name} · {order.seller?.email}</p>
+                    <p><strong>{english ? 'Quantity' : 'Quantité'} :</strong> {order.quantity}</p>
+                    <p><strong>{english ? 'Payment' : 'Paiement'} :</strong> {order.paymentMethod} · {order.payment?.status ?? (english ? 'not created' : 'non créé')}</p>
+                    <p><strong>{english ? 'Delivery' : 'Livraison'} :</strong> {order.deliveryMethod === 'workshop' ? (english ? 'Pickup at the workshop' : "Retrait à l'atelier") : order.deliveryMethod === 'home' ? (english ? 'Home delivery' : 'Livraison à domicile') : `${english ? 'Carrier' : 'Transporteur'}${order.deliveryAddress ? ` · ${order.deliveryAddress}` : ''}`}</p>
+                    {order.deliveryMethod === 'carrier' ? <p><strong>{english ? 'Tracking' : 'Suivi'} :</strong> {order.deliveryStatus}{order.deliveryTrackingId ? ` · ${order.deliveryTrackingId}` : ''}</p> : null}
+                    {order.cancellationReason ? <p className="sm:col-span-2"><strong>{english ? 'Reason' : 'Motif'} :</strong> {order.cancellationReason}</p> : null}
                     <div className="flex flex-wrap gap-2 sm:col-span-2">
-                      {canManage && canCancel ? <button onClick={() => { if (window.confirm('Annuler cette commande et restituer le stock ?')) void onCancel(order.id); }} className="rounded-md bg-red-600 px-3 py-2 text-xs font-medium text-white hover:bg-red-700">Annuler la commande</button> : null}
-                      {canManage && canRefund ? <button onClick={() => { if (window.confirm('Enregistrer le remboursement de ce paiement ?')) void onRefund(order.id); }} className="rounded-md bg-amber-700 px-3 py-2 text-xs font-medium text-white hover:bg-amber-800">Rembourser</button> : null}
-                      {(!canManage || (!canCancel && !canRefund)) ? <span className="text-xs text-stone-500">Lecture seule.</span> : null}
+                      {canManage && canCancel ? <button onClick={() => { if (window.confirm(english ? 'Cancel this order and restock inventory?' : 'Annuler cette commande et restituer le stock ?')) void onCancel(order.id); }} className="rounded-md bg-red-600 px-3 py-2 text-xs font-medium text-white hover:bg-red-700">{english ? 'Cancel order' : 'Annuler la commande'}</button> : null}
+                      {canManage && canRefund ? <button onClick={() => { if (window.confirm(english ? 'Record the refund for this payment?' : 'Enregistrer le remboursement de ce paiement ?')) void onRefund(order.id); }} className="rounded-md bg-amber-700 px-3 py-2 text-xs font-medium text-white hover:bg-amber-800">{english ? 'Refund' : 'Rembourser'}</button> : null}
+                      {(!canManage || (!canCancel && !canRefund)) ? <span className="text-xs text-stone-500">{english ? 'Read-only.' : 'Lecture seule.'}</span> : null}
                     </div>
                   </div>
                 ) : null}
