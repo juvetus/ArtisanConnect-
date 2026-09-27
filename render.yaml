@@ -191,6 +191,12 @@ services:
         sync: false
       - key: SMTP_FROM
         value: ArtisanConnect <admin@artisanconnectcm.info>
+      - key: PHONE_OTP_MODE
+        value: brevo
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_SMS_SENDER
+        sync: false
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY
