@@ -7,6 +7,7 @@ import { UsersService } from '../users/users.service.js';
 import { EmailService } from '../email/email.service.js';
 import type { User } from '../../entities/user.entity.js';
 import { isDemoMode } from '../../demo-mode.js';
+import { SmsService } from '../sms/sms.service.js';
 
 @Injectable()
 export class AuthService {
@@ -16,6 +17,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private emailService: EmailService,
+    private smsService: SmsService,
     private config: ConfigService,
   ) {}
 
@@ -137,8 +139,13 @@ export class AuthService {
   private async sendPhoneVerificationForUser(userId: string, phone: string) {
     const code = String(Math.floor(100000 + Math.random() * 900000));
     await this.usersService.setPhoneVerification(userId, createHash('sha256').update(code).digest('hex'), new Date(Date.now() + 10 * 60 * 1000));
-    this.logger.log(`Phone OTP for ${phone}: ${code}`);
-    return this.config.get('PHONE_OTP_MODE', 'mock') === 'mock' && this.config.get('NODE_ENV') !== 'production' ? code : undefined;
+    const otpMode = this.config.get('PHONE_OTP_MODE', 'mock');
+    if (otpMode === 'mock' && this.config.get('NODE_ENV') !== 'production') {
+      this.logger.log(`Phone OTP for ${phone}: ${code}`);
+      return code;
+    }
+    await this.smsService.sendOtp(phone, code);
+    return undefined;
   }
 
   async verifyPhone(phone: string, code: string) {
