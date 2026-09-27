@@ -50,6 +50,7 @@ export const CATEGORIES: Category[] = [
   { value: 'jouets', labelFr: 'Jouets & articles enfants', labelEn: 'Toys & kids items', icon: '🧸', type: 'product' },
   { value: 'accessoires_auto_moto', labelFr: 'Accessoires auto & moto', labelEn: 'Auto & motorbike accessories', icon: '🛞', type: 'product' },
   { value: 'produits_importes', labelFr: 'Produits importés & divers', labelEn: 'Imported products & sundry', icon: '🛍️', type: 'product' },
+  { value: 'autres_produits', labelFr: 'Autres produits', labelEn: 'Other products', icon: '📦', type: 'product' },
 
   // Services
   { value: 'couture', labelFr: 'Couture sur mesure', labelEn: 'Custom tailoring & sewing', icon: '✂️', type: 'service' },
@@ -94,6 +95,19 @@ export const CATEGORIES: Category[] = [
   { value: 'evenementiel', labelFr: 'Organisation d’événements', labelEn: 'Event planning & logistics', icon: '🎉', type: 'service' },
   { value: 'sonorisation', labelFr: 'Animation & sonorisation', labelEn: 'Sound & audio animation', icon: '🎤', type: 'service' },
   { value: 'maquillage', labelFr: 'Maquillage professionnel', labelEn: 'Professional makeup artistry', icon: '💄', type: 'service' },
+  { value: 'serrurerie', labelFr: 'Serrurerie & ouverture de porte', labelEn: 'Locksmith & emergency door opening', icon: '🔑', type: 'service' },
+  { value: 'electromenager', labelFr: 'Réparation électroménager', labelEn: 'Home appliance repair', icon: '🔌', type: 'service' },
+  { value: 'depannage_informatique', labelFr: 'Dépannage informatique', labelEn: 'Computer troubleshooting', icon: '🖥️', type: 'service' },
+  { value: 'installation_internet', labelFr: 'Internet, antennes & réseaux domestiques', labelEn: 'Internet, antenna & home network setup', icon: '📡', type: 'service' },
+  { value: 'videosurveillance', labelFr: 'Vidéosurveillance & alarmes', labelEn: 'CCTV & alarm systems', icon: '📹', type: 'service' },
+  { value: 'demenagement', labelFr: 'Déménagement & manutention', labelEn: 'Moving & handling', icon: '📦', type: 'service' },
+  { value: 'montage_meubles', labelFr: 'Montage de meubles', labelEn: 'Furniture assembly', icon: '🪛', type: 'service' },
+  { value: 'cuisine_a_domicile', labelFr: 'Cuisine à domicile', labelEn: 'Home cooking', icon: '🍳', type: 'service' },
+  { value: 'garde_enfants', labelFr: 'Garde d’enfants', labelEn: 'Childcare', icon: '🧸', type: 'service' },
+  { value: 'aide_a_domicile', labelFr: 'Aide à domicile', labelEn: 'Home assistance', icon: '🏠', type: 'service' },
+  { value: 'repassage', labelFr: 'Repassage à domicile', labelEn: 'Home ironing', icon: '👔', type: 'service' },
+  { value: 'maintenance_groupes_electrogenes', labelFr: 'Maintenance groupes électrogènes', labelEn: 'Generator maintenance', icon: '⚡', type: 'service' },
+  { value: 'autres_services', labelFr: 'Autres services', labelEn: 'Other services', icon: '🧰', type: 'service' },
 ];
 
 const BY_VALUE = new Map(CATEGORIES.map((c) => [c.value, c]));
