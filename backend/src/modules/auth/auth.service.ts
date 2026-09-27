@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
@@ -196,7 +196,10 @@ export class AuthService {
       return { success: true, message: 'Votre adresse email est déjà vérifiée.' };
     }
 
-    await this.sendVerificationEmailForUser(user);
+    const sent = await this.sendVerificationEmailForUser(user);
+    if (!sent) {
+      throw new ServiceUnavailableException('L’envoi de l’e-mail est indisponible. Vérifiez la configuration SMTP du staging.');
+    }
 
     return {
       success: true,
