@@ -8,10 +8,13 @@ import { useAuth } from '@/lib/auth-context';
 import type { ServiceOrder, ServicePayment, ServiceQuote, ServiceReview } from '@/lib/types';
 import { whatsappHref } from '@/lib/whatsapp';
 import { CARRIER_SIMULATION_MODE, MOBILE_MONEY_TEST_MODE } from '@/lib/pilot-capabilities';
+import { useLanguage } from '@/lib/language-context';
 
 export default function ServiceOrderQuotePage() {
   const params = useParams<{ id: string }>();
   const { user, ready } = useAuth();
+  const { language } = useLanguage();
+  const english = language === 'en';
   const [order, setOrder] = useState<ServiceOrder | null>(null);
   const [quote, setQuote] = useState<ServiceQuote | null>(null);
   const [payments, setPayments] = useState<ServicePayment[]>([]);
@@ -139,8 +142,8 @@ export default function ServiceOrderQuotePage() {
     }
   };
 
-  if (!ready || !user) return <p className="text-stone-600">Connectez-vous pour consulter cette demande.</p>;
-  if (loading) return <p className="text-stone-600">Chargement...</p>;
+  if (!ready || !user) return <p className="text-stone-600">{english ? 'Log in to view this request.' : 'Connectez-vous pour consulter cette demande.'}</p>;
+  if (loading) return <p className="text-stone-600">{english ? 'Loading...' : 'Chargement...'}</p>;
   if (!order) {
     return (
       <div className="mx-auto max-w-2xl space-y-4">
@@ -167,12 +170,12 @@ export default function ServiceOrderQuotePage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <Link href="/" className="text-sm font-medium text-amber-700">← Accueil</Link>
+      <Link href="/" className="text-sm font-medium text-amber-700">← {english ? 'Home' : 'Accueil'}</Link>
       <header className="rounded-lg border border-stone-200 bg-white p-6">
-        <p className="text-sm uppercase tracking-wide text-amber-700">Demande de service</p>
+        <p className="text-sm uppercase tracking-wide text-amber-700">{english ? 'Service request' : 'Demande de service'}</p>
         <h1 className="mt-1 text-2xl font-semibold text-stone-900">{order.service?.title}</h1>
-        <p className="mt-2 text-sm text-stone-600">Statut : {order.status}</p>
-        <p className="mt-1 text-sm text-stone-600">Livraison : {order.deliveryMethod === 'home' ? `À domicile${order.deliveryAddress ? ` - ${order.deliveryAddress}` : ''}` : order.deliveryMethod === 'carrier' ? (CARRIER_SIMULATION_MODE ? 'Transporteur (simulation)' : 'Par transporteur') : 'Retrait à l’atelier'}</p>
+        <p className="mt-2 text-sm text-stone-600">{english ? 'Status' : 'Statut'} : {order.status}</p>
+        <p className="mt-1 text-sm text-stone-600">{english ? 'Delivery' : 'Livraison'} : {order.deliveryMethod === 'home' ? `${english ? 'Home delivery' : 'À domicile'}${order.deliveryAddress ? ` - ${order.deliveryAddress}` : ''}` : order.deliveryMethod === 'carrier' ? (CARRIER_SIMULATION_MODE ? (english ? 'Carrier (simulation)' : 'Transporteur (simulation)') : (english ? 'Carrier delivery' : 'Par transporteur')) : (english ? 'Workshop pickup' : 'Retrait à l’atelier')}</p>
         {order.deliveryMethod === 'carrier' && CARRIER_SIMULATION_MODE ? <p role="note" className="mt-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Aucune course réelle n’est réservée. Confirmez directement avec l’artisan le lieu, le coût et la remise.</p> : null}
         <p className="mt-4 whitespace-pre-wrap text-stone-700">{order.projectObjective}</p>
         <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -180,7 +183,7 @@ export default function ServiceOrderQuotePage() {
             href={`/messages?to=${user.id === order.clientId ? order.artisanId : order.clientId}&serviceOrderId=${order.id}`}
             className="rounded-md border border-amber-700 px-4 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50"
           >
-            Ouvrir la messagerie de la commande
+            {english ? 'Open order messages' : 'Ouvrir la messagerie de la commande'}
           </Link>
           {counterpartWhatsapp ? (
             <a
@@ -189,17 +192,17 @@ export default function ServiceOrderQuotePage() {
               rel="noreferrer"
               className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
             >
-              {isClient ? 'Contacter l’artisan sur WhatsApp' : 'Contacter le client sur WhatsApp'}
+              {isClient ? (english ? 'Contact artisan on WhatsApp' : 'Contacter l’artisan sur WhatsApp') : (english ? 'Contact client on WhatsApp' : 'Contacter le client sur WhatsApp')}
             </a>
           ) : (
             <span className="text-sm text-stone-500">
-              {isClient ? 'L’artisan n’a pas renseigné de numéro WhatsApp.' : 'Le client n’a pas renseigné de numéro WhatsApp.'}
+              {isClient ? (english ? 'The artisan has not provided a WhatsApp number.' : 'L’artisan n’a pas renseigné de numéro WhatsApp.') : (english ? 'The client has not provided a WhatsApp number.' : 'Le client n’a pas renseigné de numéro WhatsApp.')}
             </span>
           )}
         </div>
         <div className="mt-3 flex flex-wrap gap-3">
-          <button onClick={() => void api.downloadServiceOrderPdf(order.id)} className="text-sm font-medium text-stone-700 underline">Télécharger la commande PDF</button>
-          {quote ? <button onClick={() => void api.downloadServiceQuotePdf(order.id)} className="text-sm font-medium text-stone-700 underline">Télécharger le devis PDF</button> : null}
+          <button onClick={() => void api.downloadServiceOrderPdf(order.id)} className="text-sm font-medium text-stone-700 underline">{english ? 'Download order PDF' : 'Télécharger la commande PDF'}</button>
+          {quote ? <button onClick={() => void api.downloadServiceQuotePdf(order.id)} className="text-sm font-medium text-stone-700 underline">{english ? 'Download quote PDF' : 'Télécharger le devis PDF'}</button> : null}
         </div>
       </header>
 
