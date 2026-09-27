@@ -19,7 +19,8 @@ import { whatsappHref } from '@/lib/whatsapp';
 
 export default function DashboardPage() {
   const { user, ready } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const english = language === 'en';
   const router = useRouter();
   const isArtisan = user?.role === 'artisan';
 
@@ -345,22 +346,22 @@ export default function DashboardPage() {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const activeOrders = sortedOrders.filter(isActiveOrder);
   const finishedOrders = sortedOrders.filter((order) => !isActiveOrder(order));
-  const formatDateTime = (value: string) => new Date(value).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
+  const formatDateTime = (value: string) => new Date(value).toLocaleString(english ? 'en-US' : 'fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
   const elapsed = (value: string) => {
     const minutes = Math.max(0, Math.round((now - new Date(value).getTime()) / 60000));
-    if (minutes < 60) return `il y a ${minutes} min`;
+    if (minutes < 60) return english ? `${minutes} min ago` : `il y a ${minutes} min`;
     const hours = Math.round(minutes / 60);
-    return hours < 24 ? `il y a ${hours} h` : `il y a ${Math.round(hours / 24)} j`;
+    return hours < 24 ? (english ? `${hours} h ago` : `il y a ${hours} h`) : (english ? `${Math.round(hours / 24)} d ago` : `il y a ${Math.round(hours / 24)} j`);
   };
   const serviceStatusLabel: Record<string, string> = {
-    pending_admin_validation: 'En validation',
-    details_requested: 'Détails demandés',
-    sent_to_artisan: 'Nouvelle demande',
-    quote_pending: 'Devis envoyé',
-    accepted: 'Devis accepté',
-    in_progress: 'En cours',
-    delivered: 'Livré, en attente du client',
-    disputed: 'Litige',
+    pending_admin_validation: english ? 'Admin validation' : 'En validation',
+    details_requested: english ? 'Details requested' : 'Détails demandés',
+    sent_to_artisan: english ? 'New request' : 'Nouvelle demande',
+    quote_pending: english ? 'Quote sent' : 'Devis envoyé',
+    accepted: english ? 'Quote accepted' : 'Devis accepté',
+    in_progress: english ? 'In progress' : 'En cours',
+    delivered: english ? 'Delivered, client confirmation pending' : 'Livré, en attente du client',
+    disputed: english ? 'Dispute' : 'Litige',
   };
   const quotesSent = serviceOrders.filter((order: { status?: string }) => ['quote_pending', 'accepted', 'in_progress', 'delivered', 'completed', 'disputed'].includes(order.status ?? '')).length;
   const responseRate = requestStats.requestsReceived > 0 ? Math.round((requestStats.responsesSent / requestStats.requestsReceived) * 100) : 0;
@@ -430,37 +431,37 @@ export default function DashboardPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="flex items-center gap-2 text-xl font-semibold text-red-900">
               <span className="relative flex h-3 w-3"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" /><span className="relative inline-flex h-3 w-3 rounded-full bg-red-600" /></span>
-              À traiter ({activeOrders.length + activeServiceOrders.length})
+              {english ? `To process (${activeOrders.length + activeServiceOrders.length})` : `À traiter (${activeOrders.length + activeServiceOrders.length})`}
             </h2>
-            <p className="text-sm text-red-800">Ces commandes restent affichées jusqu’à leur finalisation.</p>
+            <p className="text-sm text-red-800">{english ? 'These orders remain visible until completed.' : 'Ces commandes restent affichées jusqu’à leur finalisation.'}</p>
           </div>
           <ul className="mt-4 grid gap-3 lg:grid-cols-2">
             {activeOrders.map((order) => (
               <li key={order.id} className="rounded-lg border border-red-200 bg-white p-4">
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <span className="rounded-full bg-red-600 px-2.5 py-0.5 text-xs font-semibold uppercase text-white">Commande produit</span>
+                  <span className="rounded-full bg-red-600 px-2.5 py-0.5 text-xs font-semibold uppercase text-white">{english ? 'Product order' : 'Commande produit'}</span>
                   <StatusBadge status={order.status} />
                 </div>
-                <p className="mt-2 text-lg font-semibold text-stone-950">{order.listing?.title ?? 'Annonce supprimée'}</p>
+                <p className="mt-2 text-lg font-semibold text-stone-950">{order.listing?.title ?? (english ? 'Listing removed' : 'Annonce supprimée')}</p>
                 <p className="text-sm text-stone-700">{order.quantity} × · {order.buyer?.name ?? 'Client'} · <strong>{formatXAF(order.totalPrice)}</strong></p>
-                <p className="mt-1 text-sm text-stone-600">{[order.buyer?.phone, order.buyer?.email, order.buyer?.location].filter(Boolean).join(' · ') || 'Aucune coordonnée renseignée'}</p>
-                {buyerWhatsApp(order) ? <a href={buyerWhatsApp(order) ?? undefined} target="_blank" rel="noreferrer" className="mt-1 inline-block text-sm font-medium text-green-700 underline">Contacter l’acheteur sur WhatsApp</a> : null}
+                <p className="mt-1 text-sm text-stone-600">{[order.buyer?.phone, order.buyer?.email, order.buyer?.location].filter(Boolean).join(' · ') || (english ? 'No contact details provided' : 'Aucune coordonnée renseignée')}</p>
+                {buyerWhatsApp(order) ? <a href={buyerWhatsApp(order) ?? undefined} target="_blank" rel="noreferrer" className="mt-1 inline-block text-sm font-medium text-green-700 underline">{english ? 'Contact buyer on WhatsApp' : 'Contacter l’acheteur sur WhatsApp'}</a> : null}
                 <p className="mt-1 text-base font-medium text-red-800">{formatDateTime(order.createdAt)} · {elapsed(order.createdAt)}</p>
-                <a href={`#order-${order.id}`} className="mt-3 inline-block rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">Traiter la commande</a>
+                <a href={`#order-${order.id}`} className="mt-3 inline-block rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">{english ? 'Process order' : 'Traiter la commande'}</a>
               </li>
             ))}
             {activeServiceOrders.map((order) => (
               <li key={order.id} className="rounded-lg border border-red-200 bg-white p-4">
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <span className="rounded-full bg-amber-700 px-2.5 py-0.5 text-xs font-semibold uppercase text-white">Demande de service</span>
+                  <span className="rounded-full bg-amber-700 px-2.5 py-0.5 text-xs font-semibold uppercase text-white">{english ? 'Service request' : 'Demande de service'}</span>
                   <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-medium text-stone-700">{serviceStatusLabel[order.status] ?? order.status}</span>
                 </div>
                 <p className="mt-2 text-lg font-semibold text-stone-950">{order.service?.title ?? 'Service'}</p>
                 <p className="text-sm text-stone-700">{order.client?.name ?? 'Client'}{order.budgetMax ? ` · Budget : ${formatXAF(order.budgetMax)}` : ''}</p>
-                <p className="mt-1 text-sm text-stone-600">{[order.client?.phone, order.client?.email, order.client?.location].filter(Boolean).join(' · ') || 'Aucune coordonnée renseignée'}</p>
-                {serviceClientWhatsApp(order) ? <a href={serviceClientWhatsApp(order) ?? undefined} target="_blank" rel="noreferrer" className="mt-1 inline-block text-sm font-medium text-green-700 underline">Contacter le client sur WhatsApp</a> : null}
+                <p className="mt-1 text-sm text-stone-600">{[order.client?.phone, order.client?.email, order.client?.location].filter(Boolean).join(' · ') || (english ? 'No contact details provided' : 'Aucune coordonnée renseignée')}</p>
+                {serviceClientWhatsApp(order) ? <a href={serviceClientWhatsApp(order) ?? undefined} target="_blank" rel="noreferrer" className="mt-1 inline-block text-sm font-medium text-green-700 underline">{english ? 'Contact client on WhatsApp' : 'Contacter le client sur WhatsApp'}</a> : null}
                 <p className="mt-1 text-base font-medium text-red-800">{formatDateTime(order.createdAt)} · {elapsed(order.createdAt)}</p>
-                <Link href={`/service-orders/${order.id}`} className="mt-3 inline-block rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">Traiter la demande</Link>
+                <Link href={`/service-orders/${order.id}`} className="mt-3 inline-block rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800">{english ? 'Process request' : 'Traiter la demande'}</Link>
               </li>
             ))}
           </ul>
@@ -488,15 +489,15 @@ export default function DashboardPage() {
           {[
             { label: t('dashboard_my_listings'), value: listings.length },
             { label: t('dashboard_orders_received'), value: orders.length },
-            { label: 'Encaissé / Revenue', value: formatXAF(revenue) },
-            { label: 'Demandes reçues', value: requestStats.requestsReceived },
-            { label: 'Réponses envoyées', value: requestStats.responsesSent },
-            { label: 'Devis envoyés', value: quotesSent },
-            { label: 'Taux de réponse', value: `${responseRate}%` },
-            { label: 'Délai moyen de réponse', value: averageResponseLabel },
-            { label: 'Vues boutique', value: totalShopMetrics.views },
-            { label: 'Contacts WhatsApp', value: totalShopMetrics.whatsappContactClicks },
-            { label: 'Partages boutique', value: totalShopMetrics.whatsappShareClicks },
+            { label: english ? 'Revenue' : 'Encaissé / Revenue', value: formatXAF(revenue) },
+            { label: english ? 'Requests received' : 'Demandes reçues', value: requestStats.requestsReceived },
+            { label: english ? 'Responses sent' : 'Réponses envoyées', value: requestStats.responsesSent },
+            { label: english ? 'Quotes sent' : 'Devis envoyés', value: quotesSent },
+            { label: english ? 'Response rate' : 'Taux de réponse', value: `${responseRate}%` },
+            { label: english ? 'Average response time' : 'Délai moyen de réponse', value: averageResponseLabel },
+            { label: english ? 'Shop views' : 'Vues boutique', value: totalShopMetrics.views },
+            { label: english ? 'WhatsApp contacts' : 'Contacts WhatsApp', value: totalShopMetrics.whatsappContactClicks },
+            { label: english ? 'Shop shares' : 'Partages boutique', value: totalShopMetrics.whatsappShareClicks },
           ].map((stat) => (
             <div key={stat.label} className="rounded-lg border border-stone-200 bg-white p-4">
               <p className="text-sm text-stone-600">{stat.label}</p>
