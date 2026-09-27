@@ -27,7 +27,7 @@ export const LEGAL_DOCUMENTS: Record<LegalDocumentId, Record<Language, LegalDocu
       sections: [
         {
           title: 'Éditeur du service',
-          paragraphs: ['ArtisanConnect est exploité par [DÉNOMINATION JURIDIQUE COMPLÈTE], [FORME JURIDIQUE], immatriculée au [REGISTRE ET NUMÉRO], identifiant fiscal [NIU / IDENTIFIANT À CONFIRMER].', 'Siège social : [ADRESSE COMPLÈTE, VILLE, PAYS]. Responsable de publication : [NOM ET FONCTION]. Contact : [ADRESSE E-MAIL DE CONTACT OFFICIELLE].'],
+          paragraphs: ['Nom commercial prévu : ArtisanConnect. Entité exploitante prévue : Tekou Digital. La forme juridique envisagée est une SARL ou une SAS, à confirmer lors de la création prévue le 15 octobre 2026. Immatriculation, identifiant fiscal et adresse officielle : [À COMPLÉTER APRÈS CRÉATION].', 'Responsable de publication : [NOM ET FONCTION]. Contact juridique officiel : [ADRESSE E-MAIL À CONFIRMER].'],
         },
         {
           title: 'Hébergement et prestataires techniques',
@@ -45,7 +45,7 @@ export const LEGAL_DOCUMENTS: Record<LegalDocumentId, Record<Language, LegalDocu
       sections: [
         {
           title: 'Service operator',
-          paragraphs: ['ArtisanConnect is operated by [FULL LEGAL NAME], [LEGAL FORM], registered with [REGISTER AND NUMBER], tax identification [TAX ID TO CONFIRM].', 'Registered office: [FULL ADDRESS, CITY, COUNTRY]. Publication director: [NAME AND ROLE]. Contact: [OFFICIAL CONTACT EMAIL].'],
+          paragraphs: ['Planned trade name: ArtisanConnect. Planned operating entity: Tekou Digital. The intended legal form is SARL or SAS, to be confirmed when the company is created on October 15, 2026. Registration, tax identification and official address: [TO BE COMPLETED AFTER CREATION].', 'Publication director: [NAME AND ROLE]. Official legal contact: [EMAIL ADDRESS TO CONFIRM].'],
         },
         {
           title: 'Hosting and technical providers',
@@ -65,7 +65,7 @@ export const LEGAL_DOCUMENTS: Record<LegalDocumentId, Record<Language, LegalDocu
       sections: [
         {
           title: 'Responsable du traitement',
-          paragraphs: ['Responsable : [DÉNOMINATION JURIDIQUE ET ADRESSE DE L’EXPLOITANT À COMPLÉTER]. Contact pour les questions relatives aux données : [E-MAIL DÉDIÉ À COMPLÉTER].'],
+          paragraphs: ['Responsable projet annoncé : Tekou Digital, nom commercial ArtisanConnect. La forme juridique et l’adresse de l’exploitant seront confirmées après la création prévue le 15 octobre 2026. Contact pour les questions relatives aux données : [E-MAIL DÉDIÉ À COMPLÉTER].'],
         },
         {
           title: 'Données traitées',
@@ -108,7 +108,7 @@ export const LEGAL_DOCUMENTS: Record<LegalDocumentId, Record<Language, LegalDocu
       sections: [
         {
           title: 'Data controller',
-          paragraphs: ['Controller: [LEGAL NAME AND ADDRESS OF THE OPERATOR TO BE COMPLETED]. Contact for data questions: [DEDICATED EMAIL TO BE COMPLETED].'],
+          paragraphs: ['Planned project operator: Tekou Digital, trading as ArtisanConnect. The legal form and operator address will be confirmed after the planned company creation on October 15, 2026. Contact for data questions: [DEDICATED EMAIL TO BE COMPLETED].'],
         },
         {
           title: 'Data processed',

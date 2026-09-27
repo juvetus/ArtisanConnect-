@@ -30,6 +30,8 @@ La plateforme traite des coordonnées, des messages, des dossiers KYC et des pai
 
 **État au 27 septembre 2026 :** les routes de brouillon bilingues `/mentions-legales`, `/confidentialite` et `/conditions` sont créées et reliées au pied de page. Elles ne sont pas prêtes à publier : l’identité juridique, les coordonnées officielles, les durées de conservation, les règles de vente/remboursement et la validation juridique restent à fournir.
 
+**Informations de projet communiquées :** entité exploitante envisagée **Tekou Digital**, nom commercial **ArtisanConnect**, création prévue le **15 octobre 2026**. La forme juridique reste à choisir entre SARL et SAS; ces informations ne doivent pas encore être présentées comme une immatriculation définitive.
+
 **À faire avant toute publication définitive :**
 - [ ] Renseigner la dénomination juridique complète et la forme de l’entité exploitante.
 - [ ] Renseigner les numéros d’immatriculation et d’identification applicables (registre, NIU ou équivalent).
