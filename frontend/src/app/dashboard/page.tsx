@@ -342,7 +342,7 @@ export default function DashboardPage() {
   const isActiveOrder = (order: Order) => order.status === 'pending' || order.status === 'confirmed';
   const sortedOrders = [...orders].sort((a, b) => Number(isActiveOrder(b)) - Number(isActiveOrder(a)) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const activeServiceOrders = serviceOrders
-    .filter((order) => !['completed', 'cancelled', 'rejected'].includes(order.status))
+    .filter((order) => ['sent_to_artisan', 'quote_pending', 'accepted', 'in_progress', 'delivered', 'disputed'].includes(order.status))
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const activeOrders = sortedOrders.filter(isActiveOrder);
   const finishedOrders = sortedOrders.filter((order) => !isActiveOrder(order));
