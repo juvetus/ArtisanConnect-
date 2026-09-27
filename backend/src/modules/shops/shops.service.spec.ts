@@ -70,6 +70,7 @@ describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
         id: 'shop-contact',
         sellerId: 'seller-contact',
         status: 'active',
+        isDemo: false,
         type: 'artisan',
         kycDocuments: [],
         identityVerified: false,
@@ -85,6 +86,7 @@ describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
         id: 'shop-no-contact',
         sellerId: 'seller-no-contact',
         status: 'active',
+        isDemo: false,
         type: 'artisan',
         kycDocuments: [],
         identityVerified: false,
@@ -114,6 +116,33 @@ describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
     expect(withContact?.whatsappPhone).toBe('+237699000001');
     expect(withoutContact?.whatsappPhone).toBeNull();
     expect(withContact).not.toHaveProperty('phone');
+  });
+
+  it('exclut les boutiques démo et non classées de l’annuaire du mode réel', async () => {
+    const originalDemoMode = process.env.DEMO_MODE;
+    process.env.DEMO_MODE = 'false';
+    mockShopsRepo.find = vi.fn().mockResolvedValue([
+      { id: 'shop-real', sellerId: 'seller-real', status: 'active', isDemo: false, type: 'artisan', kycDocuments: [], identityVerified: false, successfulSales: 0, name: 'Atelier réel', description: 'Atelier confirmé', city: 'Douala', category: 'menuiserie', seller: { id: 'seller-real', name: 'Awa', whatsappPhone: '+237699000001', verifiedPhone: true }, createdAt: new Date() },
+      { id: 'shop-demo', sellerId: 'seller-demo', status: 'active', isDemo: true, type: 'artisan', kycDocuments: [], identityVerified: false, successfulSales: 0, name: 'Atelier démo', description: 'Exemple', city: 'Douala', category: 'menuiserie', seller: { id: 'seller-demo', name: 'Demo', whatsappPhone: null, verifiedPhone: false }, createdAt: new Date() },
+      { id: 'shop-unclassified', sellerId: 'seller-old', status: 'active', isDemo: null, type: 'artisan', kycDocuments: [], identityVerified: false, successfulSales: 0, name: 'Ancienne boutique', description: 'À vérifier', city: 'Douala', category: 'menuiserie', seller: { id: 'seller-old', name: 'Ancien', whatsappPhone: null, verifiedPhone: false }, createdAt: new Date() },
+    ]);
+    mockListingsRepo.find = vi.fn().mockResolvedValue([]);
+    const queryBuilder = {
+      select: vi.fn().mockReturnThis(),
+      addSelect: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      groupBy: vi.fn().mockReturnThis(),
+      getRawMany: vi.fn().mockResolvedValue([]),
+    };
+    mockServiceReviewsRepo.createQueryBuilder = vi.fn().mockReturnValue(queryBuilder);
+
+    try {
+      const result = await service.findPublicDirectory();
+      expect(result.map((shop) => shop.id)).toEqual(['shop-real']);
+    } finally {
+      if (originalDemoMode === undefined) delete process.env.DEMO_MODE;
+      else process.env.DEMO_MODE = originalDemoMode;
+    }
   });
 
   it('doit créer une boutique de type artisan avec le statut PENDING et notifier les admins', async () => {

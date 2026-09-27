@@ -32,9 +32,13 @@ export default function ArtisanServiceOrdersPage() {
     rejected: language === 'en' ? 'Rejected' : 'Refusée',
   };
 
+  const fetchOrders = async () => {
+    return await api.getArtisanServiceOrders() as ServiceOrder[];
+  };
+
   const loadOrders = async () => {
     try {
-      setOrders((await api.getArtisanServiceOrders()) as ServiceOrder[]);
+      setOrders(await fetchOrders());
     } catch {
       setNotice(english ? 'Could not load your requests.' : 'Impossible de charger vos demandes.');
     } finally {
@@ -43,8 +47,14 @@ export default function ArtisanServiceOrdersPage() {
   };
 
   useEffect(() => {
-    if (ready && user?.role === 'artisan') void loadOrders();
-  }, [ready, user]);
+    if (!ready || user?.role !== 'artisan') return;
+    let active = true;
+    void fetchOrders()
+      .then((data) => { if (active) setOrders(data); })
+      .catch(() => { if (active) setNotice(english ? 'Could not load your requests.' : 'Impossible de charger vos demandes.'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [ready, user, english]);
 
   const run = async (action: () => Promise<unknown>) => {
     try {

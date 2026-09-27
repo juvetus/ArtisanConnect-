@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { api } from '@/lib/api';
@@ -431,7 +432,7 @@ export default function ServicesPage() {
               <input id="service-images" type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif" disabled={uploadingImages || serviceImages.length >= 5} onChange={handleServiceImages} className="mt-1 block w-full rounded-md border border-amber-300 bg-amber-50 p-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-amber-700 file:px-3 file:py-2 file:font-medium file:text-white" />
               <p className="mt-1 text-xs text-stone-500">Montrez vos réalisations : JPEG, PNG, WebP ou GIF, 5 Mo maximum par photo.</p>
               {serviceImages.length ? <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
-                {serviceImages.map((url, index) => <div key={`${url}-${index}`} className="relative"><img src={url} alt={`Réalisation ${index + 1}`} className="aspect-square w-full rounded-md object-cover" /><button type="button" onClick={() => setServiceImages((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="absolute right-1 top-1 rounded-full bg-stone-900/80 px-2 py-1 text-xs text-white" aria-label={`Supprimer la photo ${index + 1}`}>×</button></div>)}
+                {serviceImages.map((url, index) => <div key={`${url}-${index}`} className="relative"><Image src={url} alt={`Réalisation ${index + 1}`} width={600} height={600} unoptimized className="aspect-square w-full rounded-md object-cover" /><button type="button" onClick={() => setServiceImages((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="absolute right-1 top-1 rounded-full bg-stone-900/80 px-2 py-1 text-xs text-white" aria-label={`Supprimer la photo ${index + 1}`}>×</button></div>)}
               </div> : null}
             </div>
 

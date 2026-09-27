@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, MoreThan, IsNull, Repository } from 'typeorm';
 import { AiImageGeneration, PromotionCode, PromotionRedemption, Subscription, SubscriptionPlan } from '../../entities/index.js';
 import { MomoService } from '../momo/momo.service.js';
+import { isDemoMode } from '../../demo-mode.js';
 
 /** Limites de l'offre gratuite, à ajuster après le pilote. */
 export const FREE_PLAN_LISTING_LIMIT = 3;
@@ -188,6 +189,7 @@ export class SubscriptionsService {
         manager.create(Subscription, {
           userId,
           planId: plan.id,
+          isDemo: isDemoMode(),
           status: 'pending',
           amount,
           currency: plan.currency,

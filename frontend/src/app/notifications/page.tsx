@@ -1,8 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
@@ -13,6 +12,9 @@ export default function NotificationsPage() {
   const { user, ready } = useAuth();
   const { t, language } = useLanguage();
   const router = useRouter();
+  const [page, setPage] = useState(0);
+  const [search, setSearch] = useState('');
+  const pageSize = 10;
 
   const typeLabels: Record<NotificationItem['type'], string> = {
     new_order: language === 'en' ? '🛒 Order' : '🛒 Commande',
@@ -23,8 +25,9 @@ export default function NotificationsPage() {
     general: language === 'en' ? '🔔 Info' : '🔔 Info',
   };
 
-  const { data, isLoading, mutate } = useSWR(user ? 'notifications' : null, () =>
-    api.notifications(),
+  const activeSearch = user?.role === 'admin' ? search.trim() : '';
+  const { data, isLoading, mutate } = useSWR(user ? ['notifications', user.id, page, activeSearch] : null, () =>
+    api.notifications(page * pageSize, pageSize, activeSearch),
     { refreshInterval: 10000, revalidateOnFocus: true },
   );
 
@@ -57,9 +60,22 @@ export default function NotificationsPage() {
         )}
       </div>
 
+      {user.role === 'admin' ? (
+        <label className="block text-sm font-medium text-stone-700">
+          Rechercher dans les notifications
+          <input
+            type="search"
+            value={search}
+            onChange={(event) => { setSearch(event.target.value); setPage(0); }}
+            placeholder="Titre ou contenu"
+            className="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-amber-600 sm:max-w-xl"
+          />
+        </label>
+      ) : null}
+
       {data.items.length === 0 ? (
         <p className="rounded-lg border border-stone-200 bg-white p-8 text-center text-stone-600">
-          {t('notifications_empty')}
+          {activeSearch ? 'Aucune notification ne correspond à cette recherche.' : t('notifications_empty')}
         </p>
       ) : (
         <ul className="space-y-3">
@@ -97,6 +113,15 @@ export default function NotificationsPage() {
           ))}
         </ul>
       )}
+      {data.total > pageSize ? (
+        <nav aria-label="Pagination des notifications" className="flex items-center justify-between border-t border-stone-200 pt-4">
+          <p className="text-sm text-stone-600">{page * pageSize + 1}–{Math.min((page + 1) * pageSize, data.total)} sur {data.total}</p>
+          <div className="flex gap-2">
+            <button type="button" disabled={page === 0 || isLoading} onClick={() => setPage((current) => Math.max(0, current - 1))} className="rounded-md border border-stone-300 px-3 py-1.5 text-sm text-stone-700 disabled:opacity-50">Précédent</button>
+            <button type="button" disabled={(page + 1) * pageSize >= data.total || isLoading} onClick={() => setPage((current) => current + 1)} className="rounded-md border border-stone-300 px-3 py-1.5 text-sm text-stone-700 disabled:opacity-50">Suivant</button>
+          </div>
+        </nav>
+      ) : null}
     </div>
   );
 }

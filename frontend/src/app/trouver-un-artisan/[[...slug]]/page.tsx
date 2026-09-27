@@ -12,6 +12,8 @@ import { DirectorySectionLabel } from '@/components/DirectorySectionLabel';
 import { DirectoryNoResultsAction } from '@/components/DirectoryNoResultsAction';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://artisanconnectcm.info';
+const MIN_INDEXABLE_ARTISANS = 2;
+const MIN_INDEXABLE_OFFERS = 2;
 
 type PageProps = {
   params: Promise<{ slug?: string[] }>;
@@ -40,6 +42,16 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   const placeLabel = neighborhoodSlug ? `${labelFromSlug(neighborhoodSlug)}, ${cityLabel ?? 'Cameroun'}` : cityLabel;
   const title = buildTitle(category, placeLabel);
   const canonicalPath = `/trouver-un-artisan${[category, citySlug].filter(Boolean).map((part) => `/${part}`).join('')}`;
+  let quality = { artisans: 0, offers: 0 };
+  if (!neighborhoodSlug && typeof query.q !== 'string') {
+    try {
+      const results = await api.publicArtisans({ take: 48, category, city: cityLabel });
+      quality = { artisans: results.length, offers: results.reduce((sum, artisan) => sum + (artisan.offerCount ?? 0), 0) };
+    } catch {
+      quality = { artisans: 0, offers: 0 };
+    }
+  }
+  const indexable = quality.artisans >= MIN_INDEXABLE_ARTISANS && quality.offers >= MIN_INDEXABLE_OFFERS;
 
   return {
     title,
@@ -47,7 +59,7 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
     alternates: { canonical: `${siteUrl}${canonicalPath}` },
     openGraph: { title, url: `${siteUrl}${canonicalPath}`, type: 'website' },
     // Les combinaisons filtrées ne doivent pas diluer l'indexation des pages canoniques.
-    robots: neighborhoodSlug || typeof query.q === 'string' ? { index: false, follow: true } : { index: true, follow: true },
+    robots: neighborhoodSlug || typeof query.q === 'string' || !indexable ? { index: false, follow: true } : { index: true, follow: true },
   };
 }
 

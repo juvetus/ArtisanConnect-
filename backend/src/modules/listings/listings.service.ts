@@ -2,6 +2,8 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, MoreThan, Repository } from 'typeorm';
 import { Listing } from '../../entities/index.js';
+import { isDemoMode } from '../../demo-mode.js';
+import { isListingCategoryAllowed } from './listing-category-policy.js';
 
 /** Valeurs par défaut conservées pour les appels internes qui ne fournissent pas de politique. */
 export const SPONSORING_DAYS = 7;
@@ -24,20 +26,23 @@ export class ListingsService {
   ) {}
 
   async create(listing: Partial<Listing>): Promise<Listing> {
-    const newListing = this.listingsRepository.create(listing);
+    if (!isListingCategoryAllowed(listing.type, listing.category)) {
+      throw new BadRequestException('La catégorie doit correspondre au type de l’offre.');
+    }
+    const newListing = this.listingsRepository.create({ ...listing, isDemo: isDemoMode() });
     return this.listingsRepository.save(newListing);
   }
 
   async findById(id: string): Promise<Listing | null> {
     return this.listingsRepository.findOne({
-      where: { id },
+      where: { id, ...(isDemoMode() ? {} : { isDemo: false }) },
       relations: { seller: true, shop: true },
     });
   }
 
   async findByCategory(category: string, skip = 0, take = 20): Promise<[Listing[], number]> {
     return this.listingsRepository.findAndCount({
-      where: { category, status: 'active' },
+      where: { category, status: 'active', ...(isDemoMode() ? {} : { isDemo: false }) },
       relations: { seller: true, shop: true },
       skip,
       take,
@@ -46,7 +51,7 @@ export class ListingsService {
 
   async findByType(type: 'product' | 'service', skip = 0, take = 20): Promise<[Listing[], number]> {
     return this.listingsRepository.findAndCount({
-      where: { type, status: 'active' },
+      where: { type, status: 'active', ...(isDemoMode() ? {} : { isDemo: false }) },
       relations: { seller: true, shop: true },
       skip,
       take,
@@ -55,7 +60,7 @@ export class ListingsService {
 
   async findBySeller(sellerId: string): Promise<Listing[]> {
     return this.listingsRepository.find({
-      where: { sellerId },
+      where: { sellerId, ...(isDemoMode() ? {} : { isDemo: false }) },
       relations: { seller: true, shop: true },
     });
   }
@@ -63,7 +68,13 @@ export class ListingsService {
   async update(id: string, updateData: Partial<Listing>): Promise<Listing | null> {
     const listing = await this.listingsRepository.findOne({ where: { id } });
     if (!listing) return null;
-    Object.assign(listing, updateData);
+    const nextType = updateData.type !== undefined ? updateData.type : listing.type;
+    const nextCategory = updateData.category !== undefined ? updateData.category : listing.category;
+    if (!isListingCategoryAllowed(nextType, nextCategory)) {
+      throw new BadRequestException('La catégorie doit correspondre au type de l’offre.');
+    }
+    const { isDemo: _ignoredDemoFlag, ...safeUpdateData } = updateData;
+    Object.assign(listing, safeUpdateData);
     await this.listingsRepository.save(listing);
     return this.findById(id);
   }
@@ -74,7 +85,7 @@ export class ListingsService {
 
   async findAll(skip = 0, take = 20): Promise<[Listing[], number]> {
     return this.listingsRepository.findAndCount({
-      where: { status: 'active' },
+      where: { status: 'active', ...(isDemoMode() ? {} : { isDemo: false }) },
       relations: { seller: true, shop: true },
       order: { createdAt: 'DESC' },
       skip,
@@ -136,6 +147,8 @@ export class ListingsService {
       .leftJoinAndSelect('listing.seller', 'seller')
       .leftJoinAndSelect('listing.shop', 'shop')
       .where('listing.status = :status', { status: 'active' });
+
+    if (!isDemoMode()) builder.andWhere('listing.isDemo = :isDemo', { isDemo: false });
 
     const query = normalizeSearchValue(filters.q);
     if (query) {

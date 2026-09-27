@@ -10,6 +10,7 @@ import { ServiceValidationHistory, type ServiceValidationAction } from '../../en
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service.js';
 import { MoreThan } from 'typeorm';
+import { isDemoMode } from '../../demo-mode.js';
 
 /** Recherche insensible aux accents sans dépendre de l'extension Postgres `unaccent`. */
 function unaccent(column: string): string {
@@ -49,6 +50,7 @@ export class ServicesService {
       ...data,
       artisan: { id: artisanId } as User,
       status: 'draft',
+      isDemo: isDemoMode(),
     });
     return this.servicesRepository.save(service);
   }
@@ -84,7 +86,7 @@ export class ServicesService {
 
   async getServiceById(serviceId: string) {
     const service = await this.servicesRepository.findOne({
-      where: { id: serviceId },
+      where: { id: serviceId, ...(isDemoMode() ? {} : { isDemo: false }) },
       relations: { artisan: true, validatedBy: true },
     });
 
@@ -154,6 +156,8 @@ export class ServicesService {
       .leftJoinAndSelect('service.artisan', 'artisan')
       .where('service.status = :status', { status: 'approved' });
 
+    if (!isDemoMode()) builder.andWhere('service.isDemo = :isDemo', { isDemo: false });
+
     const query = normalizeSearchValue(filters.q);
     if (query) {
       builder.andWhere(
@@ -221,6 +225,8 @@ export class ServicesService {
       .where('service.status = :status', { status: 'approved' })
       .leftJoinAndSelect('service.artisan', 'artisan');
 
+    if (!isDemoMode()) qb = qb.andWhere('service.isDemo = :isDemo', { isDemo: false });
+
     if (query) {
       qb = qb.andWhere(
         '(service.title ILIKE :query OR service.description ILIKE :query OR service.tags ILIKE :query)',
@@ -237,7 +243,7 @@ export class ServicesService {
 
   async getServicesByCategory(category: string) {
     return this.servicesRepository.find({
-      where: { status: 'approved', category },
+      where: { status: 'approved', category, ...(isDemoMode() ? {} : { isDemo: false }) },
       relations: { artisan: true },
       order: { createdAt: 'DESC' },
     });

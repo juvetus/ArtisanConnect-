@@ -10,6 +10,8 @@ import { useAuth } from '@/lib/auth-context';
 import type { Service } from '@/lib/types';
 import { Pagination } from '@/components/Pagination';
 import { categoryLabel, SERVICE_CATEGORIES } from '@/lib/categories';
+import { DemoBadge } from '@/components/DemoBadge';
+import { isDemoContent } from '@/lib/demo-mode';
 import { formatXAF } from '@/lib/format';
 import { resolveMediaUrl } from '@/lib/media';
 
@@ -148,6 +150,7 @@ export default function ServicesCatalogPage() {
       {!isLoading && !displayedServices?.length ? <p className="rounded-lg border border-stone-200 bg-stone-50 p-6 text-stone-600">{t('services_empty')}</p> : null}
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
         {displayedServices?.map((service) => {
+          const isDemo = isDemoContent(service.id, service.isDemo);
           const isWoman = service.artisan?.gender === 'female';
           const isCoop = service.artisan?.gender === 'cooperative';
           const imageUrl = service.fileUrls?.[0];
@@ -155,8 +158,9 @@ export default function ServicesCatalogPage() {
           const quoteHref = `/customer-requests?category=${encodeURIComponent(service.category)}${service.artisan?.location ? `&city=${encodeURIComponent(service.artisan.location)}` : ''}`;
           return (
             <article key={service.id} className="relative flex flex-col overflow-hidden rounded-lg border border-stone-200 bg-white shadow-xs">
+              {isDemo ? <DemoBadge className="absolute right-2 top-2 z-10 shadow" /> : null}
               <div className="relative aspect-[4/3] bg-stone-100">
-                {imageUrl ? <img src={resolveMediaUrl(imageUrl)} alt={service.title} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-sm font-medium text-stone-500">{categoryLabel(service.category)}</div>}
+                {imageUrl ? <Image src={resolveMediaUrl(imageUrl)} alt={service.title} fill unoptimized sizes="(max-width: 768px) 100vw, 33vw" className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-sm font-medium text-stone-500">{categoryLabel(service.category)}</div>}
               </div>
               <div className="flex flex-1 flex-col p-5">
               {service.sponsoredUntil && new Date(service.sponsoredUntil) > new Date() ? <span className="mb-2 inline-block self-start rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">★ Mis en avant</span> : null}
@@ -179,7 +183,11 @@ export default function ServicesCatalogPage() {
                 <p className="mt-2 text-sm text-stone-600">{service.averageRating ? `★ ${service.averageRating}/5` : t('service_no_rating')} <span className="text-stone-400">{t('service_reviews_count', { count: service.reviewCount ?? 0 })}</span></p>
                 <p className="mt-2 truncate text-xs text-stone-500">{service.artisan?.name ?? (english ? 'Local artisan' : 'Artisan local')}{service.artisan?.location ? ` · ${service.artisan.location}` : ''}</p>
               </div>
-              <div className={`mt-5 grid gap-2 ${user?.role === 'artisan' ? 'grid-cols-1' : 'grid-cols-2'}`}><Link href={`/services/${service.id}`} className="rounded-md bg-amber-700 px-3 py-2 text-center text-sm font-medium text-white hover:bg-amber-800">{english ? 'View service' : 'Voir le service'}</Link>{user?.role !== 'artisan' ? <Link href={quoteHref} className="rounded-md border border-amber-300 px-3 py-2 text-center text-sm font-medium text-amber-800 hover:bg-amber-50">{english ? 'Request a quote' : 'Demander un devis'}</Link> : null}</div>
+              <div className={`mt-5 grid gap-2 ${user?.role === 'artisan' || isDemo ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                <Link href={`/services/${service.id}`} className="rounded-md bg-amber-700 px-3 py-2 text-center text-sm font-medium text-white hover:bg-amber-800">{english ? 'View service' : 'Voir le service'}</Link>
+                {user?.role !== 'artisan' && !isDemo ? <Link href={quoteHref} className="rounded-md border border-amber-300 px-3 py-2 text-center text-sm font-medium text-amber-800 hover:bg-amber-50">{english ? 'Request a quote' : 'Demander un devis'}</Link> : null}
+                {isDemo ? <p className="text-center text-xs text-stone-500">{english ? 'Demo offer, requests are disabled.' : 'Offre de démonstration, demandes désactivées.'}</p> : null}
+              </div>
               </div>
             </article>
           );

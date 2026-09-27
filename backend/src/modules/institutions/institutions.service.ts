@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { ArtisanFormalization, InstitutionalProgram, InstitutionalResource, Listing, Order, ProgramApplication, User } from '../../entities/index.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
+import { isDemoMode } from '../../demo-mode.js';
 
 type ResourceType = 'training' | 'guide' | 'template';
 type ProgramType = 'training' | 'support' | 'funding' | 'grant';
@@ -22,11 +23,11 @@ export class InstitutionsService {
   ) {}
 
   async listResources() {
-    return this.resources.find({ where: { published: true }, relations: { institution: true }, order: { createdAt: 'DESC' } });
+    return this.resources.find({ where: { published: true, ...(isDemoMode() ? {} : { isDemo: false }) }, relations: { institution: true }, order: { createdAt: 'DESC' } });
   }
 
   async listPrograms() {
-    return this.programs.find({ where: { status: 'active' }, relations: { institution: true }, order: { createdAt: 'DESC' } });
+    return this.programs.find({ where: { status: 'active', ...(isDemoMode() ? {} : { isDemo: false }) }, relations: { institution: true }, order: { createdAt: 'DESC' } });
   }
 
   async listMyResources(institutionId: string) {
@@ -38,12 +39,12 @@ export class InstitutionsService {
   }
 
   async createResource(userId: string, data: { title: string; description: string; type: ResourceType; theme: string; contentUrl?: string; imageUrls?: string[]; videoUrls?: string[]; pdfUrls?: string[] }) {
-    const resource = this.resources.create({ ...data, institution: { id: userId } as User, published: true });
+    const resource = this.resources.create({ ...data, institution: { id: userId } as User, published: true, isDemo: isDemoMode() });
     return this.resources.save(resource);
   }
 
   async createProgram(userId: string, data: { title: string; description: string; type: ProgramType; eligibility?: string; budget?: number; interventionZone?: string; startDate?: string; endDate?: string; objectives?: string; targetBeneficiaries?: string; impactIndicators?: string[]; imageUrls?: string[]; videoUrls?: string[]; pdfUrls?: string[] }) {
-    const program = this.programs.create({ ...data, institution: { id: userId } as User, status: 'active' });
+    const program = this.programs.create({ ...data, institution: { id: userId } as User, status: 'active', isDemo: isDemoMode() });
     return this.programs.save(program);
   }
 
@@ -143,13 +144,14 @@ export class InstitutionsService {
   }
 
   async dashboard(institutionId: string) {
-    const totalArtisans = await this.users.count({ where: { role: 'artisan' } });
+    const realOnly = isDemoMode() ? {} : { isDemo: false as const };
+    const totalArtisans = await this.users.count({ where: { role: 'artisan', ...realOnly } });
 
     // 1. Femmes artisanes (exclut les coopératives)
     const womenArtisanRows = await this.users
       .createQueryBuilder('u')
       .leftJoin('u.shops', 's')
-      .where("u.role = 'artisan'")
+      .where(`u.role = 'artisan'${isDemoMode() ? '' : ' AND u.isDemo = false'}`)
       .andWhere("(u.gender = 'female' OR s.isWomenLed = true)")
       .select('DISTINCT u.id', 'id')
       .getRawMany();
@@ -158,7 +160,7 @@ export class InstitutionsService {
     const cooperativeRows = await this.users
       .createQueryBuilder('u')
       .leftJoin('u.shops', 's')
-      .where("u.role = 'artisan'")
+      .where(`u.role = 'artisan'${isDemoMode() ? '' : ' AND u.isDemo = false'}`)
       .andWhere("(u.gender = 'cooperative' OR s.isCooperative = true)")
       .select('DISTINCT u.id', 'id')
       .getRawMany();
@@ -213,7 +215,8 @@ export class InstitutionsService {
   }
 
   async listArtisans() {
-    return this.users.find({ where: { role: 'artisan' }, select: { id: true, name: true, email: true, location: true, verifiedEmail: true }, order: { createdAt: 'DESC' } });
+    const realOnly = isDemoMode() ? {} : { isDemo: false as const };
+    return this.users.find({ where: { role: 'artisan', ...realOnly }, select: { id: true, name: true, email: true, location: true, verifiedEmail: true }, order: { createdAt: 'DESC' } });
   }
 
   async listFormalizations(institutionId?: string) {

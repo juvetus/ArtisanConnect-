@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { MOBILE_MONEY_TEST_MODE } from '@/lib/pilot-capabilities';
+import { trackEvent } from '@/lib/analytics';
 
 export default function PaymentPage() {
   return (
@@ -22,7 +24,8 @@ function PaymentPageContent() {
   const { user, ready } = useAuth();
   const [plans, setPlans] = useState<Array<{ id: string; name: string; price: number; currency: string; durationDays: number; description?: string | null }>>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<string>('');
-  const [payerPhone, setPayerPhone] = useState('');
+  const [payerPhone, setPayerPhone] = useState<string | null>(null);
+  const currentPayerPhone = payerPhone ?? user?.phone ?? '';
   const [promotionCode, setPromotionCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -45,7 +48,6 @@ function PaymentPageContent() {
       }
     }).catch(() => setError('Impossible de charger les plans d’abonnement.'));
 
-    setPayerPhone(user.phone || '');
   }, [ready, requestedPlan, router, user]);
 
   const handlePay = async () => {
@@ -58,15 +60,18 @@ function PaymentPageContent() {
     setMessage('');
 
     try {
-      const result = await api.createSubscription(selectedPlanId, payerPhone, promotionCode.trim() || undefined);
+      const result = await api.createSubscription(selectedPlanId, currentPayerPhone, promotionCode.trim() || undefined);
+      trackEvent('subscription_created', { targetId: selectedPlanId, label: plans.find((plan) => plan.id === selectedPlanId)?.name });
       if (result.redirectUrl) {
         window.location.assign(result.redirectUrl);
         return;
       }
 
       setSuccess(true);
-      setMessage(result.status === 'active'
-        ? `Votre abonnement est actif${result.discountPercent ? ` avec une remise de ${result.discountPercent} %` : ''}.`
+      setMessage(MOBILE_MONEY_TEST_MODE
+        ? 'Parcours Mobile Money de test terminé. Aucune somme réelle n’a été encaissée.'
+        : result.status === 'active'
+          ? `Votre abonnement est actif${result.discountPercent ? ` avec une remise de ${result.discountPercent} %` : ''}.`
         : `Paiement initié${result.discountPercent ? ` avec une remise de ${result.discountPercent} %` : ''}. Référence : ${result.paymentReference || 'en attente de confirmation MoMo'}.`);
       if (result.paymentReference) {
         router.push(`/payment/callback?type=subscription&referenceId=${encodeURIComponent(result.paymentReference)}`);
@@ -125,9 +130,11 @@ function PaymentPageContent() {
         </div>
 
         <div className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-6 shadow-sm">
-          <p className="text-sm font-medium text-amber-700 uppercase tracking-[0.18em]">Paiement sécurisé</p>
+          <p className="text-sm font-medium text-amber-700 uppercase tracking-[0.18em]">{MOBILE_MONEY_TEST_MODE ? 'Mode test' : 'Paiement'}</p>
           <h3 className="mt-3 text-2xl font-semibold text-stone-900">Payer avec MoMo</h3>
-          <p className="mt-2 text-sm text-stone-600">Vous serez redirigé vers la procédure de paiement ou confirmé en mode sandbox selon la configuration actuelle.</p>
+          <p role="note" className="mt-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+            {MOBILE_MONEY_TEST_MODE ? 'Sandbox/mock : aucune somme réelle ne sera encaissée. N’effectuez pas de transfert réel à la suite de ce test.' : 'Suivez les instructions de paiement et vérifiez la confirmation avant de considérer la transaction comme réglée.'}
+          </p>
 
           <label htmlFor="payerPhone" className="mt-5 block text-sm font-medium text-stone-800">
             Numéro MoMo
@@ -135,7 +142,7 @@ function PaymentPageContent() {
           <input
             id="payerPhone"
             type="tel"
-            value={payerPhone}
+            value={currentPayerPhone}
             onChange={(event) => setPayerPhone(event.target.value)}
             placeholder="Ex: 237699000000"
             className="mt-2 w-full rounded-md border border-stone-200 px-3 py-2 text-sm outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-100"
@@ -168,7 +175,7 @@ function PaymentPageContent() {
 
           {success && (
             <div className="mt-5 rounded-md border border-stone-200 bg-white px-3 py-2 text-sm text-stone-600">
-              Paiement lancé avec succès. Vous pouvez retourner au dashboard ou vérifier votre statut d’abonnement.
+              {MOBILE_MONEY_TEST_MODE ? 'Parcours de test terminé; aucun paiement réel n’a été encaissé.' : 'Paiement lancé. Vérifiez son statut avant de considérer votre abonnement comme réglé.'}
             </div>
           )}
         </div>

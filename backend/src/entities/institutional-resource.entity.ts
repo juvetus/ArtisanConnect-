@@ -38,6 +38,9 @@ export class InstitutionalResource {
   @Column({ default: true })
   published: boolean;
 
+  @Column({ type: 'boolean', nullable: true })
+  isDemo: boolean | null;
+
 
 
 

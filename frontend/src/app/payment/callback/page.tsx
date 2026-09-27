@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { MOBILE_MONEY_TEST_MODE } from '@/lib/pilot-capabilities';
 
 function PaymentCallbackContent() {
   const router = useRouter();
@@ -14,8 +15,8 @@ function PaymentCallbackContent() {
   const referenceId = searchParams.get('referenceId') || searchParams.get('externalId') || '';
   const externalId = searchParams.get('externalId') || '';
   const orderId = searchParams.get('orderId') || (externalId.startsWith('ORDER-') ? externalId.slice('ORDER-'.length) : '');
-  const [status, setStatus] = useState<'loading' | 'success' | 'pending' | 'failed'>('loading');
-  const [message, setMessage] = useState('Vérification du paiement en cours...');
+  const [status, setStatus] = useState<'loading' | 'success' | 'pending' | 'failed'>(() => referenceId ? 'loading' : 'failed');
+  const [message, setMessage] = useState(() => referenceId ? 'Vérification du paiement en cours...' : 'Référence de paiement absente.');
 
   useEffect(() => {
     if (!ready) return;
@@ -23,11 +24,7 @@ function PaymentCallbackContent() {
       router.push('/login');
       return;
     }
-    if (!referenceId) {
-      setStatus('failed');
-      setMessage('Référence de paiement absente.');
-      return;
-    }
+    if (!referenceId) return;
 
     const verifyPayment = async () => {
       try {
@@ -35,7 +32,7 @@ function PaymentCallbackContent() {
           const subscription = await api.confirmSubscriptionPayment(referenceId);
           setStatus(subscription.status === 'active' ? 'success' : subscription.status === 'failed' ? 'failed' : 'pending');
           setMessage(subscription.status === 'active'
-            ? 'Votre abonnement est actif.'
+            ? MOBILE_MONEY_TEST_MODE ? 'Validation de test réussie. Aucun paiement réel n’a été encaissé.' : 'Votre abonnement est actif.'
             : subscription.status === 'failed'
               ? 'Le paiement de votre abonnement a échoué.'
               : 'Votre paiement est encore en attente de confirmation MoMo.');
@@ -47,13 +44,13 @@ function PaymentCallbackContent() {
           const payment = await api.confirmMomoPayment(orderId);
           if (payment.status === 'confirmed' || payment.status === 'captured') {
             setStatus('success');
-            setMessage('Paiement confirmé par MoMo et commande mise à jour.');
+            setMessage(MOBILE_MONEY_TEST_MODE ? 'Parcours MoMo de test confirmé; aucune somme réelle n’a été encaissée.' : 'Paiement MoMo confirmé et commande mise à jour.');
             return;
           }
         }
         setStatus(result.status === 'SUCCESS' ? 'success' : result.status === 'FAILED' || result.status === 'EXPIRED' ? 'failed' : 'pending');
         setMessage(result.status === 'SUCCESS'
-          ? 'Paiement confirmé par MoMo.'
+          ? MOBILE_MONEY_TEST_MODE ? 'Résultat de test MoMo confirmé; aucun paiement réel n’a été encaissé.' : 'Paiement confirmé par MoMo.'
           : result.status === 'FAILED' || result.status === 'EXPIRED'
             ? 'Le paiement MoMo a échoué ou expiré.'
             : 'Paiement en attente de confirmation MoMo.');
@@ -76,7 +73,7 @@ function PaymentCallbackContent() {
     <div className="mx-auto max-w-2xl px-4 py-12">
       <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">Retour MoMo</p>
-        <h1 className="mt-2 text-3xl font-semibold text-stone-900">Confirmation du paiement</h1>
+        <h1 className="mt-2 text-3xl font-semibold text-stone-900">{MOBILE_MONEY_TEST_MODE ? 'Résultat du parcours de paiement test' : 'Confirmation du paiement'}</h1>
         <div className={`mt-6 rounded-md border px-4 py-3 text-sm ${badgeClass}`}>
           {message}
         </div>

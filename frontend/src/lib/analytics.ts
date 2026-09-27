@@ -6,7 +6,11 @@ export type TrackedEvent =
   | 'artisan_profile_view'
   | 'listing_view'
   | 'whatsapp_click'
-  | 'quote_form_opened';
+  | 'quote_form_opened'
+  | 'order_created'
+  | 'pricing_view'
+  | 'plan_cta_clicked'
+  | 'subscription_created';
 
 /** Identifiant aléatoire de navigateur : sert à compter les visiteurs, pas à les identifier. */
 function sessionId(): string | null {

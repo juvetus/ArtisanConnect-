@@ -1,9 +1,33 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useMemo, useSyncExternalStore } from 'react';
 import { type Language, type TranslationKey, getTranslation } from './i18n';
 
 const LANG_STORAGE_KEY = 'artisan-connect-lang';
+const LANGUAGE_CHANGE_EVENT = 'artisan-connect-language-change';
+
+function subscribeToLanguage(onChange: () => void) {
+  window.addEventListener('storage', onChange);
+  window.addEventListener(LANGUAGE_CHANGE_EVENT, onChange);
+  return () => {
+    window.removeEventListener('storage', onChange);
+    window.removeEventListener(LANGUAGE_CHANGE_EVENT, onChange);
+  };
+}
+
+function getLanguageSnapshot(): Language {
+  try {
+    const stored = localStorage.getItem(LANG_STORAGE_KEY);
+    if (stored === 'fr' || stored === 'en') return stored;
+  } catch {
+    // localStorage may be unavailable in restricted browser contexts.
+  }
+  return navigator.language?.slice(0, 2) === 'en' ? 'en' : 'fr';
+}
+
+function getServerLanguageSnapshot(): Language {
+  return 'fr';
+}
 
 interface LanguageContextValue {
   language: Language;
@@ -14,32 +38,15 @@ interface LanguageContextValue {
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>('fr');
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(LANG_STORAGE_KEY) as Language | null;
-      if (stored === 'fr' || stored === 'en') {
-        setLanguageState(stored);
-      } else {
-        // Détecter la langue du navigateur si en anglais
-        const browserLang = navigator.language?.slice(0, 2);
-        if (browserLang === 'en') {
-          setLanguageState('en');
-        }
-      }
-    } catch {
-      // localStorage non disponible au SSR
-    }
-  }, []);
+  const language = useSyncExternalStore(subscribeToLanguage, getLanguageSnapshot, getServerLanguageSnapshot);
 
   const setLanguage = (lang: Language) => {
-    setLanguageState(lang);
     try {
       localStorage.setItem(LANG_STORAGE_KEY, lang);
       document.documentElement.lang = lang;
+      window.dispatchEvent(new Event(LANGUAGE_CHANGE_EVENT));
     } catch {
-      // Ignore
+      // Language still follows the browser snapshot when storage is unavailable.
     }
   };
 

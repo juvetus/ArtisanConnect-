@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { api } from '@/lib/api';
-import Link from 'next/link';
 import type { ServiceValidationHistory } from '@/lib/types';
 
 interface DashboardStats {
@@ -65,6 +65,24 @@ export default function AdminServicesPage() {
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [history, setHistory] = useState<ServiceValidationHistory[]>([]);
 
+  const fetchStats = async () => Promise.all([
+    api.getServiceDashboardStats() as Promise<DashboardStats>,
+    api.getServiceValidationHistory() as Promise<ServiceValidationHistory[]>,
+  ]);
+
+  const loadStats = async () => {
+    try {
+      setLoading(true);
+      const [data, validationHistory] = await fetchStats();
+      setStats(data);
+      setHistory(validationHistory);
+    } catch {
+      setNotice({ type: 'error', message: 'Erreur lors du chargement des statistiques' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (ready && (!user || user.role !== 'admin')) {
       router.push('/');
@@ -72,23 +90,20 @@ export default function AdminServicesPage() {
   }, [ready, user, router]);
 
   useEffect(() => {
-    if (ready && user?.role === 'admin') {
-      loadStats();
-    }
+    if (!ready || user?.role !== 'admin') return;
+    let active = true;
+    void fetchStats()
+      .then(([data, validationHistory]) => {
+        if (!active) return;
+        setStats(data);
+        setHistory(validationHistory);
+      })
+      .catch(() => {
+        if (active) setNotice({ type: 'error', message: 'Erreur lors du chargement des statistiques' });
+      })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, [ready, user, tab]);
-
-  const loadStats = async () => {
-    try {
-      setLoading(true);
-      const data = await api.getServiceDashboardStats() as DashboardStats;
-      setStats(data);
-      setHistory((await api.getServiceValidationHistory()) as ServiceValidationHistory[]);
-    } catch (error) {
-      setNotice({ type: 'error', message: 'Erreur lors du chargement des statistiques' });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleViewService = async (serviceId: string) => {
     try {
@@ -97,7 +112,7 @@ export default function AdminServicesPage() {
       setShowDetailModal(true);
       setFeedback('');
       setAction(null);
-    } catch (error) {
+    } catch {
       setNotice({ type: 'error', message: 'Erreur lors du chargement du service' });
     }
   };
@@ -110,7 +125,7 @@ export default function AdminServicesPage() {
       setNotice({ type: 'success', message: 'Service approuvé avec succès' });
       setShowDetailModal(false);
       loadStats();
-    } catch (error) {
+    } catch {
       setNotice({ type: 'error', message: 'Erreur lors de l\'approbation' });
     } finally {
       setSubmitting(false);
@@ -128,7 +143,7 @@ export default function AdminServicesPage() {
       setNotice({ type: 'success', message: 'Service rejeté avec succès' });
       setShowDetailModal(false);
       loadStats();
-    } catch (error) {
+    } catch {
       setNotice({ type: 'error', message: 'Erreur lors du refus' });
     } finally {
       setSubmitting(false);
@@ -146,7 +161,7 @@ export default function AdminServicesPage() {
       setNotice({ type: 'success', message: 'Demande de révision envoyée avec succès' });
       setShowDetailModal(false);
       loadStats();
-    } catch (error) {
+    } catch {
       setNotice({ type: 'error', message: 'Erreur lors de la demande de révision' });
     } finally {
       setSubmitting(false);
@@ -162,7 +177,7 @@ export default function AdminServicesPage() {
       link.download = `services-${new Date().toISOString().slice(0, 10)}.csv`;
       link.click();
       URL.revokeObjectURL(url);
-    } catch (error) {
+    } catch {
       setNotice({ type: 'error', message: 'Erreur lors de l\'export CSV' });
     }
   };
@@ -598,7 +613,7 @@ export default function AdminServicesPage() {
                       return (
                         <div key={i} className="flex flex-col items-center rounded-md border border-stone-200 bg-stone-50 p-2 text-center">
                           {isImg ? (
-                            <img src={fullUrl} alt={`Preuve ${i + 1}`} className="h-20 w-full object-cover rounded mb-2" />
+                            <Image src={fullUrl} alt={`Preuve ${i + 1}`} width={320} height={100} unoptimized className="mb-2 h-20 w-full rounded object-cover" />
                           ) : (
                             <div className="flex h-20 w-full items-center justify-center text-3xl text-stone-400">📄</div>
                           )}

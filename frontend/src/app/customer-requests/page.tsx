@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, Suspense, useState } from 'react';
+import { FormEvent, Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
@@ -10,6 +10,8 @@ import { whatsappHref } from '@/lib/whatsapp';
 import { trackEvent } from '@/lib/analytics';
 import { CUSTOMER_REQUEST_STATUS_LABELS } from '@/lib/types';
 import { useLanguage } from '@/lib/language-context';
+import { DEMO_MODE } from '@/lib/demo-mode';
+import { DemoBadge } from '@/components/DemoBadge';
 
 export default function CustomerRequestsPage() {
   return (
@@ -40,6 +42,23 @@ function CustomerRequestsContent() {
   const [saving, setSaving] = useState(false);
   const [suggestingRequest, setSuggestingRequest] = useState(false);
   const [payment, setPayment] = useState<Record<string, { method: 'momo' | 'cash'; phone: string }>>({});
+
+  useEffect(() => {
+    if (user?.role === 'client') {
+      trackEvent('quote_form_opened');
+    }
+  }, [user?.role]);
+
+  if (DEMO_MODE) {
+    return (
+      <div role="status" className="mx-auto max-w-3xl space-y-4 rounded-lg border border-amber-200 bg-amber-50 p-6 text-amber-950">
+        <DemoBadge />
+        <h1 className="text-2xl font-semibold">{english ? 'Demo marketplace' : 'Marketplace de démonstration'}</h1>
+        <p className="text-sm">{english ? 'All products and services shown are examples. Quote requests are disabled until real offers are available.' : 'Les produits et services affichés sont des exemples. Les demandes de devis sont désactivées jusqu’à la publication d’offres réelles.'}</p>
+        <Link href="/services" className="inline-flex rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-900">{english ? 'Browse demo services' : 'Voir les services de démonstration'}</Link>
+      </div>
+    );
+  }
 
   const runPayment = async (action: () => Promise<unknown>, success: string) => {
     try {
@@ -165,7 +184,6 @@ function CustomerRequestsContent() {
           setNotice('Demande publiée, mais les photos n’ont pas pu être envoyées.');
         }
       }
-      trackEvent('quote_form_opened', { label: category, city });
       setDescription('');
       setBudgetMin('');
       setBudgetMax('');

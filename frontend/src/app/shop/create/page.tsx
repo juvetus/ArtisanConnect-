@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { useEffect, useState } from 'react';
+import { startTransition, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
@@ -42,13 +42,12 @@ export default function CreateShopPage() {
 
   useEffect(() => {
     if (ready && !user) router.push('/login');
-    if (user?.gender === 'female') {
-      setIsWomenLed(true);
-    }
-    if (user?.gender === 'cooperative') {
-      setIsCooperative(true);
-    }
-    if (user?.whatsappPhone || user?.phone) setWhatsappPhone(user.whatsappPhone ?? user.phone ?? '');
+    if (!user) return;
+    startTransition(() => {
+      setIsWomenLed(user.gender === 'female');
+      setIsCooperative(user.gender === 'cooperative');
+      if (user.whatsappPhone || user.phone) setWhatsappPhone(user.whatsappPhone ?? user.phone ?? '');
+    });
   }, [ready, user, router]);
 
   const requiredDocs = SHOP_REQUIRED_DOCS[type];

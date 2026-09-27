@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import { isDemoMode } from '../../demo-mode.js';
 import { ServiceOrder, type ServiceOrderStatus } from '../../entities/service-order.entity.js';
 import { Service } from '../../entities/service.entity.js';
 import { ServiceQuote } from '../../entities/service-quote.entity.js';
@@ -43,6 +44,9 @@ export class ServiceOrdersService {
     clientConfirmed: boolean;
     termsAccepted: boolean;
   }) {
+    if (isDemoMode()) {
+      throw new ForbiddenException('Les demandes de service sont désactivées en mode démonstration');
+    }
     if (!data.projectObjective?.trim() || data.projectObjective.trim().length < 50) {
       throw new BadRequestException('Le besoin doit contenir au moins 50 caractères');
     }
@@ -61,6 +65,7 @@ export class ServiceOrdersService {
       relations: { artisan: true },
     });
     if (!service) throw new NotFoundException('Service approuvé introuvable');
+    if (service.isDemo) throw new ForbiddenException('Ce service de démonstration ne peut pas recevoir de demande');
     if (service.artisan.id === clientId) {
       throw new ForbiddenException('Vous ne pouvez pas commander votre propre service');
     }
@@ -100,6 +105,7 @@ export class ServiceOrdersService {
         deliveryLongitude: data.deliveryMethod !== 'workshop' ? data.deliveryLongitude ?? null : null,
         fileUrls: data.fileUrls ?? [],
         status: 'pending_admin_validation',
+        isDemo: isDemoMode(),
         clientConfirmed: data.clientConfirmed,
         termsAccepted: data.termsAccepted,
       });

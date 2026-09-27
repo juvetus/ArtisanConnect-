@@ -6,7 +6,11 @@ export type AnalyticsEventType =
   | 'artisan_profile_view'
   | 'listing_view'
   | 'whatsapp_click'
-  | 'quote_form_opened';
+  | 'quote_form_opened'
+  | 'order_created'
+  | 'pricing_view'
+  | 'plan_cta_clicked'
+  | 'subscription_created';
 
 /** Évènements d'usage anonymes servant à mesurer le tunnel visiteur → demande. */
 @Entity('analytics_events')
@@ -15,8 +19,11 @@ export class AnalyticsEvent {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ type: 'varchar' })
   type: AnalyticsEventType;
+
+  @Column({ type: 'boolean', nullable: true })
+  isDemo: boolean | null;
 
   /** Identifiant aléatoire de navigateur : permet de compter les visiteurs sans les identifier. */
   @Column({ type: 'varchar', length: 64 })

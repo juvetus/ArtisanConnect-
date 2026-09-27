@@ -1,6 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, Repository } from 'typeorm';
+import { isDemoMode } from '../../demo-mode.js';
 import { CustomerRequest, Listing, Service, ServiceReview, Shop, User } from '../../entities/index.js';
 import type { ContactPreference } from '../../entities/customer-request.entity.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
@@ -92,6 +93,9 @@ export class CustomerRequestsService {
   ) {}
 
   async create(clientId: string, data: { category: string; city: string; neighborhood?: string; description: string; budgetMin?: number; budgetMax?: number; requestedDate?: string; contactPreference?: ContactPreference; contactPhone?: string }) {
+    if (isDemoMode()) {
+      throw new ForbiddenException('La publication de demandes est désactivée en mode démonstration');
+    }
     if (!data.category?.trim() || !data.city?.trim() || !data.description?.trim() || data.description.trim().length < 20) {
       throw new BadRequestException('La catégorie, la ville et une description de 20 caractères sont requises');
     }
@@ -112,6 +116,7 @@ export class CustomerRequestsService {
       contactPhone: contactPreference === 'platform' ? null : data.contactPhone!.trim(),
       fileUrls: [],
       status: 'new',
+      isDemo: isDemoMode(),
       contactedArtisanIds: [],
       responses: [],
     }));
@@ -157,8 +162,8 @@ export class CustomerRequestsService {
     const artisanIds = artisans.map((artisan) => artisan.id);
     const [shops, listings, services, premiumIds, reviews] = await Promise.all([
       this.shops.find({ where: { sellerId: In(artisanIds), status: 'active' } }),
-      this.listings.find({ where: { sellerId: In(artisanIds), status: 'active' } }),
-      this.services.find({ where: { status: 'approved' }, relations: { artisan: true } }),
+      this.listings.find({ where: { sellerId: In(artisanIds), status: 'active', ...(isDemoMode() ? {} : { isDemo: false }) } }),
+      this.services.find({ where: { status: 'approved', ...(isDemoMode() ? {} : { isDemo: false }) }, relations: { artisan: true } }),
       this.subscriptions.findPremiumUserIds(artisanIds),
       this.serviceReviews.find({ where: { recipientId: In(artisanIds), verified: true } }),
     ]);
@@ -257,8 +262,8 @@ export class CustomerRequestsService {
     const artisan = await this.users.findOne({ where: { id: artisanId } });
     const [shops, listings, services, reviews] = await Promise.all([
       this.shops.find({ where: { sellerId: artisanId, status: 'active' } }),
-      this.listings.find({ where: { sellerId: artisanId, status: 'active' } }),
-      this.services.find({ where: { artisan: { id: artisanId }, status: 'approved' } }),
+      this.listings.find({ where: { sellerId: artisanId, status: 'active', ...(isDemoMode() ? {} : { isDemo: false }) } }),
+      this.services.find({ where: { artisan: { id: artisanId }, status: 'approved', ...(isDemoMode() ? {} : { isDemo: false }) } }),
       this.serviceReviews.find({ where: { recipientId: artisanId, verified: true } }),
     ]);
     const context = {

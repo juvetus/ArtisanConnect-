@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect } from 'react';
 import { useLanguage } from '@/lib/language-context';
 import { formatXAF } from '@/lib/format';
+import { trackEvent } from '@/lib/analytics';
 
 export type PricingPlan = {
   id: string;
@@ -27,6 +29,7 @@ const ENGLISH_PLANS: Record<string, { name: string; description: string; feature
 export function PricingContent({ plans }: { plans: PricingPlan[] }) {
   const { language } = useLanguage();
   const english = language === 'en';
+  useEffect(() => { trackEvent('pricing_view'); }, []);
   const recommendedPlan = plans.find((plan) => plan.slug === 'local-plus') ?? plans[1] ?? plans[0];
   const comparisonRows: ReadonlyArray<readonly [string, readonly string[]]> = english
     ? [
@@ -60,7 +63,7 @@ export function PricingContent({ plans }: { plans: PricingPlan[] }) {
     feature: 'Feature',
     faq: 'Frequently asked questions',
     question1: 'Do I have to pay to receive requests?', answer1: 'No. You can receive quote requests with the Starter plan. Paid plans mainly increase visibility and response speed.',
-    question2: 'How is payment made?', answer2: 'Payment is made by Mobile Money from your artisan account, according to the selected plan and validity period.',
+    question2: 'How is payment made?', answer2: 'Mobile Money subscription flows are currently sandbox/mock for pilot testing; do not treat a test confirmation as a real payment. Check the notice in the payment flow.',
     question3: 'What happens if I change plans?', answer3: 'Your plan is replaced and the new validity period is calculated from the payment made.',
     question4: 'Is there a commission on sales?', answer4: 'Yes, 5% on orders paid through the platform, regardless of the selected plan.',
     findTitle: 'Looking for an artisan?', findText: 'For clients, everything is free: searching, quote requests and connecting with artisans.', find: 'Find an artisan', quote: 'Request a quote',
@@ -77,7 +80,7 @@ export function PricingContent({ plans }: { plans: PricingPlan[] }) {
     feature: 'Fonctionnalité',
     faq: 'Questions fréquentes',
     question1: 'Dois-je payer pour recevoir des demandes ?', answer1: 'Non. Les demandes de devis peuvent être reçues même avec le plan Starter. Le plan payant sert surtout à gagner plus de visibilité et de rapidité.',
-    question2: 'Comment se fait le paiement ?', answer2: 'Le paiement s’effectue par Mobile Money depuis votre espace artisan, selon le plan choisi et la durée de validité.',
+    question2: 'Comment se fait le paiement ?', answer2: 'Les parcours Mobile Money des abonnements sont actuellement en sandbox/mock pour les tests du pilote. Une confirmation de test ne correspond pas à un paiement réel; lisez l’avertissement affiché dans le parcours.',
     question3: 'Que se passe-t-il si je change de plan ?', answer3: 'Votre plan est remplacé et la nouvelle validité est recalculée selon le paiement effectué.',
     question4: 'Y a-t-il une commission sur les ventes ?', answer4: 'Oui, 5 % sur les commandes payées via la plateforme, quel que soit le plan choisi.',
     findTitle: 'Vous cherchez plutôt un artisan ?', findText: 'Côté client, tout est gratuit : recherche, demandes de devis et mise en relation.', find: 'Trouver un artisan', quote: 'Demander un devis',
@@ -101,7 +104,7 @@ export function PricingContent({ plans }: { plans: PricingPlan[] }) {
               <p className="mt-3 text-3xl font-semibold text-stone-900">{isFree ? '0 FCFA' : formatXAF(Number(plan.price))}{!isFree ? <span className="text-base font-normal text-stone-600"> / {plan.durationDays} {copy.days}</span> : null}</p>
               <p className="mt-2 text-sm text-stone-600">{localized?.description ?? (plan.description || copy.adapted)}</p>
               <ul className="mt-5 flex-1 space-y-2 text-sm text-stone-700">{(localized?.features ?? plan.features).map((feature) => <li key={feature} className="flex gap-2"><span aria-hidden className="text-emerald-600">✔</span><span>{feature}</span></li>)}</ul>
-              <Link href={isFree ? '/register' : `/payment?type=subscription&plan=${encodeURIComponent(plan.id)}`} className={`mt-6 rounded-md px-5 py-3 text-center text-sm font-semibold transition ${isRecommended ? 'bg-amber-700 text-white hover:bg-amber-800' : 'border border-stone-300 bg-white text-stone-800 hover:bg-stone-50'}`}>{isFree ? copy.create : `${copy.choose} ${localized?.name ?? plan.name}`}</Link>
+              <Link onClick={() => trackEvent('plan_cta_clicked', { label: plan.slug, targetId: plan.id })} href={isFree ? '/register' : `/payment?type=subscription&plan=${encodeURIComponent(plan.id)}`} className={`mt-6 rounded-md px-5 py-3 text-center text-sm font-semibold transition ${isRecommended ? 'bg-amber-700 text-white hover:bg-amber-800' : 'border border-stone-300 bg-white text-stone-800 hover:bg-stone-50'}`}>{isFree ? copy.create : `${copy.choose} ${localized?.name ?? plan.name}`}</Link>
             </article>
           );
         })}

@@ -1,16 +1,17 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { categoryLabel } from '@/lib/categories';
 import { formatXAF } from '@/lib/format';
 import { useLanguage } from '@/lib/language-context';
 import { resolveMediaUrl } from '@/lib/media';
 import { DemoBadge } from '@/components/DemoBadge';
+import { isDemoContent } from '@/lib/demo-mode';
 import type { Listing } from '@/lib/types';
 
 export function ListingCard({ listing }: { listing: Listing }) {
   const { t, language } = useLanguage();
-  const isDemo = listing.id.startsWith('demo-');
+  const isDemo = isDemoContent(listing.id, listing.isDemo);
   const isSponsored = Boolean(listing.sponsoredUntil && new Date(listing.sponsoredUntil) > new Date());
-  const href = isDemo ? '/contact' : `/listings/${listing.id}`;
   const isWoman = Boolean(
     listing.shop?.isWomenLed ||
     listing.seller?.gender === 'female',
@@ -25,11 +26,8 @@ export function ListingCard({ listing }: { listing: Listing }) {
   const location = [listing.shop?.neighborhood, listing.shop?.city].filter(Boolean).join(', ');
 
   return (
-    <Link
-      href={href}
-      aria-label={isOutOfStock ? `${listing.title} — ${french ? 'Rupture de stock' : 'Out of stock'}` : undefined}
-      className={`group relative flex h-full flex-col overflow-hidden rounded-lg border border-stone-200 bg-white transition hover:border-amber-600 hover:shadow-md ${isOutOfStock ? 'grayscale opacity-65' : ''}`}
-    >
+    <article className={`group relative flex h-full flex-col overflow-hidden rounded-lg border border-stone-200 bg-white transition hover:border-amber-600 hover:shadow-md ${isOutOfStock ? 'grayscale opacity-65' : ''}`}>
+      {!isDemo && <Link href={`/listings/${listing.id}`} aria-label={isOutOfStock ? `${listing.title} — ${french ? 'Rupture de stock' : 'Out of stock'}` : listing.title} className="absolute inset-0 z-[5]" />}
       {isDemo && <DemoBadge className="absolute right-2 top-2 z-10 shadow" />}
       {!isDemo && isSponsored && (
         <span
@@ -51,9 +49,12 @@ export function ListingCard({ listing }: { listing: Listing }) {
       )}
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-stone-100 text-4xl">
         {(listing.imageUrls?.[0] || listing.imageUrl) ? (
-          <img
+          <Image
             src={resolveMediaUrl(listing.imageUrls?.[0] || listing.imageUrl || '')}
             alt={listing.title}
+            fill
+            unoptimized
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="h-full w-full object-contain object-center transition duration-300 group-hover:scale-[1.02]"
           />
         ) : <span className="text-sm font-medium text-stone-500">{categoryLabel(listing.category)}</span>}
@@ -75,9 +76,11 @@ export function ListingCard({ listing }: { listing: Listing }) {
             <p className="text-lg font-bold text-stone-950">{formatXAF(listing.price)}</p>
             <p className="max-w-48 truncate text-xs text-stone-500">{listing.seller?.name ?? t('listing_local_seller')}{location ? ` · ${location}` : ''}</p>
           </div>
-          <span className="text-xs font-medium text-amber-800">{t('listing_view_details')} →</span>
+          <span className="text-xs font-medium text-amber-800">
+            {isDemo ? t('demo_offer_unavailable') : `${t('listing_view_details')} →`}
+          </span>
         </div>
       </div>
-    </Link>
+    </article>
   );
 }

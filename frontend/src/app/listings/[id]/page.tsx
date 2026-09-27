@@ -1,21 +1,27 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { useLanguage } from '@/lib/language-context';
 import { ReportButton } from '@/components/ReportButton';
 import { trackEvent } from '@/lib/analytics';
 import { categoryLabel } from '@/lib/categories';
 import { formatXAF } from '@/lib/format';
+import { isDemoContent } from '@/lib/demo-mode';
+import { CARRIER_SIMULATION_MODE, MOBILE_MONEY_TEST_MODE } from '@/lib/pilot-capabilities';
 import { resolveMediaUrl } from '@/lib/media';
 import { whatsappHref } from '@/lib/whatsapp';
+import { DemoBadge } from '@/components/DemoBadge';
 
 export default function ListingPage() {
   const { id } = useParams<{ id: string }>();
   const { user, ready } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
 
   const { data: listing, isLoading } = useSWR(['listing', id], ([, listingId]) =>
@@ -89,6 +95,7 @@ export default function ListingPage() {
         deliveryMethod,
         deliveryAddress: deliveryMethod !== 'workshop' ? deliveryAddress : undefined,
       });
+      trackEvent('order_created', { targetId: listing.id, label: listing.category, city: listing.shop?.city ?? undefined });
       if (paymentMethod === 'momo') {
         const payment = await api.initiateMomoPayment(order.id, payerPhone);
         if (payment.redirectUrl) {
@@ -128,6 +135,7 @@ export default function ListingPage() {
     );
 
   const isOwnListing = user?.id === listing.sellerId;
+  const isDemoOffer = isDemoContent(listing.id, listing.isDemo);
   const total = Number(listing.price) * quantity;
   const acceptedPayments = listing.acceptedPaymentMethods?.length ? listing.acceptedPaymentMethods : ['cash', 'momo', 'orange_money'] as const;
   const acceptedDeliveries = listing.deliveryMethods?.length ? listing.deliveryMethods : ['workshop', 'home', 'carrier'] as const;
@@ -141,14 +149,14 @@ export default function ListingPage() {
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
       <div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {images.length ? images.map((image, index) => <button key={image} type="button" onClick={() => setZoomIndex(index)} className="group relative overflow-hidden rounded-lg bg-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-600"><img src={resolveMediaUrl(image)} alt={`${listing.title} ${index + 1}`} className="aspect-square w-full object-cover transition duration-200 group-hover:scale-105" /><span className="absolute bottom-2 right-2 rounded-md bg-stone-900/75 px-2 py-1 text-xs text-white">Agrandir</span></button>) : <div className="col-span-full flex h-64 items-center justify-center rounded-lg bg-stone-100 text-sm font-medium text-stone-500">{categoryLabel(listing.category)}</div>}
+          {images.length ? images.map((image, index) => <button key={image} type="button" onClick={() => setZoomIndex(index)} className="group relative overflow-hidden rounded-lg bg-stone-100 focus:outline-none focus:ring-2 focus:ring-amber-600"><Image src={resolveMediaUrl(image)} alt={`${listing.title} ${index + 1}`} fill unoptimized sizes="(max-width: 640px) 50vw, 33vw" className="aspect-square w-full object-cover transition duration-200 group-hover:scale-105" /><span className="absolute bottom-2 right-2 rounded-md bg-stone-900/75 px-2 py-1 text-xs text-white">Agrandir</span></button>) : <div className="col-span-full flex h-64 items-center justify-center rounded-lg bg-stone-100 text-sm font-medium text-stone-500">{categoryLabel(listing.category)}</div>}
         </div>
 
         {zoomIndex !== null && images[zoomIndex] ? (
           <div role="dialog" aria-modal="true" aria-label="Aperçu agrandi" className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setZoomIndex(null)}>
             <div className="relative flex max-h-[90vh] max-w-6xl items-center gap-3" onClick={(event) => event.stopPropagation()}>
               <button type="button" aria-label="Image précédente" onClick={() => setZoomIndex((index) => index === null ? null : (index - 1 + images.length) % images.length)} className="rounded-full bg-white/90 px-4 py-3 text-xl text-stone-900 shadow">‹</button>
-              <img src={resolveMediaUrl(images[zoomIndex])} alt={`${listing.title} agrandie`} className="max-h-[85vh] max-w-[80vw] rounded-lg object-contain shadow-2xl" />
+              <Image src={resolveMediaUrl(images[zoomIndex])} alt={`${listing.title} agrandie`} width={1600} height={1200} unoptimized className="h-auto max-h-[85vh] max-w-[80vw] rounded-lg object-contain shadow-2xl" />
               <button type="button" aria-label="Image suivante" onClick={() => setZoomIndex((index) => index === null ? null : (index + 1) % images.length)} className="rounded-full bg-white/90 px-4 py-3 text-xl text-stone-900 shadow">›</button>
               <button type="button" aria-label="Fermer" onClick={() => setZoomIndex(null)} className="absolute -right-2 -top-12 rounded-full bg-white px-3 py-1 text-xl text-stone-900 shadow">×</button>
             </div>
@@ -158,6 +166,7 @@ export default function ListingPage() {
         <span className="mt-6 inline-block text-xs uppercase tracking-wide text-stone-500">
           {categoryLabel(listing.category)} · {listing.type === 'service' ? 'Service' : 'Produit'}
         </span>
+        {isDemoOffer ? <div className="mt-3"><DemoBadge /></div> : null}
         <h1 className="mt-1 text-2xl font-semibold">{listing.title}</h1>
         <p className="mt-4 whitespace-pre-line text-stone-700">{listing.description}</p>
 
@@ -173,7 +182,7 @@ export default function ListingPage() {
                 ? `⭐ ${rating.average}/5 (${rating.count} avis)`
                 : 'Pas encore d’avis'}
             </p>
-            {user && !isOwnListing && (
+            {user && !isOwnListing && !isDemoOffer && (
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 <Link href={`/messages?to=${listing.sellerId}`} className="text-sm text-amber-700 underline">
                   Contacter l&apos;artisan par message
@@ -181,15 +190,22 @@ export default function ListingPage() {
                 {sellerWhatsapp ? <a href={sellerWhatsapp} target="_blank" rel="noreferrer" onClick={() => trackEvent('whatsapp_click', { targetId: listing.id, label: listing.category, city: listing.shop?.city ?? undefined })} className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700">WhatsApp</a> : null}
               </div>
             )}
-            <a href={shareWhatsapp} target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-md border border-green-600 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-50">
+            {!isDemoOffer ? <a href={shareWhatsapp} target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-md border border-green-600 px-3 py-1.5 text-sm font-medium text-green-700 hover:bg-green-50">
               Partager sur WhatsApp
-            </a>
-            {!isOwnListing ? <ReportButton targetType="listing" targetId={listing.id} label="Signaler cette annonce" /> : null}
+            </a> : null}
+            {!isOwnListing && !isDemoOffer ? <ReportButton targetType="listing" targetId={listing.id} label="Signaler cette annonce" /> : null}
           </div>
         )}
       </div>
 
       <aside className="h-fit rounded-lg border border-stone-200 bg-white p-6">
+        {isDemoOffer ? (
+          <div role="status" className="space-y-3 rounded-md bg-amber-50 p-4 text-sm text-amber-900">
+            <DemoBadge />
+            <p>Cette fiche, son prix et son stock sont présentés à titre de démonstration. La commande n’est pas disponible.</p>
+          </div>
+        ) : (
+          <>
         <p className="text-3xl font-semibold">{formatXAF(listing.price)}</p>
         <p className="mt-1 text-sm text-stone-600">
           {listing.stock > 0 ? `${listing.stock} disponible(s)` : 'Rupture de stock'}
@@ -251,8 +267,8 @@ export default function ListingPage() {
                   onChange={() => setPaymentMethod('momo')}
                 />
                 <span>
-                  <strong>Payer avec MoMo</strong>
-                  <span className="block text-xs text-stone-500">Demande de paiement envoyée sur votre téléphone</span>
+                  <strong>{MOBILE_MONEY_TEST_MODE ? 'MoMo — test/sandbox' : 'Payer avec MoMo'}</strong>
+                  <span className="block text-xs text-stone-500">{MOBILE_MONEY_TEST_MODE ? 'Aucune somme réelle ne sera encaissée par ce parcours.' : 'Suivez les instructions affichées pour autoriser le paiement.'}</span>
                 </span>
               </label>}
               {acceptedPayments.includes('orange_money') && <label className="flex cursor-pointer items-center gap-3 rounded-md border border-stone-200 p-3 text-sm hover:border-orange-500">
@@ -264,8 +280,8 @@ export default function ListingPage() {
                   onChange={() => setPaymentMethod('orange_money')}
                 />
                 <span>
-                  <strong>Orange Money</strong>
-                  <span className="block text-xs text-stone-500">Mode test local activé</span>
+                  <strong>{MOBILE_MONEY_TEST_MODE ? 'Orange Money — test' : 'Orange Money'}</strong>
+                  <span className="block text-xs text-stone-500">{MOBILE_MONEY_TEST_MODE ? 'Mode simulé : aucun paiement réel.' : 'Suivez les instructions affichées pour autoriser le paiement.'}</span>
                 </span>
               </label>}
             </fieldset>
@@ -323,8 +339,8 @@ export default function ListingPage() {
                   onChange={() => setDeliveryMethod('carrier')}
                 />
                 <span>
-                  <strong>Transporteur</strong>
-                  <span className="block text-xs text-stone-500">Livraison suivie par un transporteur partenaire</span>
+                  <strong>{CARRIER_SIMULATION_MODE ? 'Transporteur — simulation' : 'Transporteur'}</strong>
+                  <span className="block text-xs text-stone-500">{CARRIER_SIMULATION_MODE ? 'Aucune course réelle n’est réservée par cette option.' : 'Suivi fourni par le transporteur sélectionné.'}</span>
                 </span>
               </label>}
             </fieldset>
@@ -365,11 +381,10 @@ export default function ListingPage() {
 
         <div className="mt-4 rounded-md bg-amber-50 p-3 text-sm text-amber-900">
           {paymentMethod === 'cash'
-            ? "Paiement en espèces à la remise. L'artisan confirmera la réception du règlement."
-            : paymentMethod === 'momo'
-              ? "Vous recevrez une demande de validation MoMo. Le paiement sera confirmé par webhook sécurisé."
-              : "Orange Money reste disponible en mode test local."}
+            ? t('cash_handover_notice')
+            : MOBILE_MONEY_TEST_MODE ? t('payment_test_mode_notice') : t('payment_live_notice')}
         </div>
+        {deliveryMethod === 'carrier' && CARRIER_SIMULATION_MODE ? <p role="note" className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{t('carrier_simulation_notice')}</p> : null}
 
         {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
 
@@ -385,6 +400,8 @@ export default function ListingPage() {
           >
             {ordering ? 'Commande en cours…' : user ? 'Commander' : 'Se connecter pour commander'}
           </button>
+        )}
+          </>
         )}
       </aside>
     </div>

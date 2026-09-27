@@ -23,6 +23,7 @@ describe('MoMo webhooks (e2e)', () => {
   beforeAll(async () => {
     process.env.MOMO_WEBHOOK_SECRET = webhookSecret;
     process.env.MOMO_MODE = 'mock';
+    process.env.SMTP_ENABLED = 'false';
     process.env.DB_SYNCHRONIZE = 'true';
     process.env.DB_RETRY_ATTEMPTS = '1';
     process.env.DB_RETRY_DELAY = '100';
@@ -120,6 +121,7 @@ describe('MoMo webhooks (e2e)', () => {
     const plan = await dataSource.getRepository(SubscriptionPlan).save(
       dataSource.getRepository(SubscriptionPlan).create({
         name: 'Premium e2e',
+        slug: `premium-e2e-${randomUUID()}`,
         price: 5000,
         currency: 'XAF',
         durationDays: 30,

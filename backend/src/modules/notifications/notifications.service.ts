@@ -93,13 +93,20 @@ export class NotificationsService {
     })));
   }
 
-  async findByRecipient(recipientId: string, skip = 0, take = 30): Promise<[Notification[], number]> {
-    return this.notificationsRepository.findAndCount({
-      where: { recipientId },
-      order: { createdAt: 'DESC' },
-      skip,
-      take,
-    });
+  async findByRecipient(recipientId: string, skip = 0, take = 30, search = ''): Promise<[Notification[], number]> {
+    const query = this.notificationsRepository.createQueryBuilder('notification')
+      .where('notification.recipientId = :recipientId', { recipientId });
+    const normalizedSearch = search.trim();
+    if (normalizedSearch) {
+      query.andWhere('(notification.title ILIKE :search OR notification.content ILIKE :search)', {
+        search: `%${normalizedSearch}%`,
+      });
+    }
+    return query
+      .orderBy('notification.createdAt', 'DESC')
+      .skip(Math.max(0, skip))
+      .take(Math.min(100, Math.max(1, take)))
+      .getManyAndCount();
   }
 
   async unreadCount(recipientId: string): Promise<number> {

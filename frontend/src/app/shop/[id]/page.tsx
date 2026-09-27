@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { api } from '@/lib/api';
+import type { Listing, Review, Service, ServiceReview, Shop } from '@/lib/types';
 import { formatXAF } from '@/lib/format';
 import { categoryLabel } from '@/lib/categories';
 import { resolveMediaUrl } from '@/lib/media';
@@ -17,31 +19,40 @@ type ResponseHistory = {
   lastResponseAt: string | null;
 };
 
+type PublicShop = Shop & {
+  priceRange?: { min: number; max: number } | null;
+  averageDelayDays?: number | null;
+  memberSince?: string | null;
+  services?: Service[];
+};
+
+type PublicShopData = { shop: PublicShop; listings: Listing[]; services?: Service[] };
+
 export default async function ShopPublicPage({ params }: { params: Promise<{ id: string }> }) {
-  let data: { shop: any; listings: any[] } | null = null;
-  let serviceReviews: any = null;
-  let productReviews: any = null;
+  let data: PublicShopData | null = null;
+  let serviceReviews: [ServiceReview[], number] | null = null;
+  let productReviews: [Review[], number] | null = null;
   let responseHistory: ResponseHistory | null = null;
   let ratingData: { average: number | null; count: number } = { average: null, count: 0 };
   try {
     const { id } = await params;
     const publicData = await api.shopPublic(id);
-    data = Array.isArray(publicData) ? publicData[0] : publicData;
+    data = publicData;
     if (data?.shop?.sellerId) {
       [serviceReviews, productReviews, ratingData, responseHistory] = await Promise.all([
         api.getArtisanServiceReviews(data.shop.sellerId),
         api.sellerReviews(data.shop.sellerId),
         api.getArtisanServiceRating(data.shop.sellerId),
         api.getArtisanResponseHistory(data.shop.sellerId),
-      ]) as [any, any, { average: number | null; count: number }, ResponseHistory];
+      ]) as [[ServiceReview[], number], [Review[], number], { average: number | null; count: number }, ResponseHistory];
     }
   } catch {
     // do nothing; will handle with notFound
   }
   if (!data || !data.shop) return notFound();
   const { shop, listings } = data;
-  const services: any[] = (data as any).services ?? [];
-  const reviews: any[] = [...(serviceReviews?.[0] ?? []), ...(productReviews?.[0] ?? [])].sort(
+  const services = data.services ?? [];
+  const reviews = [...(serviceReviews?.[0] ?? []), ...(productReviews?.[0] ?? [])].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
   const shopWhatsapp = whatsappHref(shop.seller?.whatsappPhone ?? shop.seller?.phone, `Bonjour ${shop.seller?.name ?? shop.name}, je souhaite découvrir vos créations sur ArtisanConnect.`);
@@ -66,6 +77,7 @@ export default async function ShopPublicPage({ params }: { params: Promise<{ id:
         averageRating={ratingData.average}
         ratingCount={ratingData.count}
         verificationLevel={shop.verification?.level ?? 'none'}
+        verificationState={shop.verification}
         shopWhatsapp={shopWhatsapp}
         shareShopWhatsapp={shareShopWhatsapp}
         qrCodeUrl={qrCodeUrl}
@@ -120,7 +132,7 @@ export default async function ShopPublicPage({ params }: { params: Promise<{ id:
                 <span className="text-sm font-semibold text-amber-700">
                   {service.priceMin && service.priceMax
                     ? `${formatXAF(service.priceMin)} – ${formatXAF(service.priceMax)}`
-                    : formatXAF(service.price)}
+                    : service.price !== undefined ? formatXAF(service.price) : 'Sur devis'}
                 </span>
               </li>
             ))}
@@ -174,9 +186,12 @@ export default async function ShopPublicPage({ params }: { params: Promise<{ id:
                 >
                   <div className="relative flex h-48 w-full shrink-0 items-center justify-center overflow-hidden bg-stone-100 text-3xl">
                     {listing.imageUrl ? (
-                      <img
+                      <Image
                         src={resolveMediaUrl(listing.imageUrl)}
                         alt={listing.title}
+                        fill
+                        unoptimized
+                        sizes="(max-width: 640px) 100vw, 33vw"
                         className="h-full w-full object-cover object-center transition duration-300 group-hover:scale-105"
                       />
                     ) : <span className="text-sm font-medium text-stone-500">{categoryLabel(listing.category)}</span>}

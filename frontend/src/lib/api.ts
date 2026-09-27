@@ -1,4 +1,4 @@
-import type { AdminOverview, AdminSubscription, AnalyticsFunnel, ArtisanFormalization, AuthSession, CustomerRequestStatus, InstitutionDashboard, InstitutionalProgram, InstitutionalResource, Listing, Message, NotificationItem, NotificationsResponse, Order, Paginated, Payment, ProgramApplication, ProgramApplicationStatus, ProgramType, PublicArtisan, Report, ReportReason, ReportStatus, ReportTargetType, ResourceType, Review, Role, Service, Shop, ShopType, Thread, User } from './types';
+import type { AdminOverview, AdminSubscription, AnalyticsFunnel, ArtisanFormalization, AuthSession, CustomerRequestStatus, InstitutionDashboard, InstitutionalProgram, InstitutionalResource, Listing, Message, NotificationsResponse, Order, Paginated, Payment, ProgramApplication, ProgramApplicationStatus, ProgramType, PublicArtisan, Report, ReportReason, ReportStatus, ReportTargetType, ResourceType, Review, Role, Service, ServiceReview, Shop, ShopType, Thread, User } from './types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
@@ -338,8 +338,7 @@ export const api = {
     request<{ label: string; count: number; neighborhoods: { label: string; count: number }[] }[]>('/shops/public/locations'),
 
   shopPublic: async (id: string) => {
-    const data = await request<{ shop: Shop; listings: Listing[] } | [{ shop: Shop; listings: Listing[] }]>(`/shops/${id}/public`);
-    return Array.isArray(data) ? data[0] : data;
+    return request<{ shop: Shop & { priceRange?: { min: number; max: number } | null; averageDelayDays?: number | null; memberSince?: string | null }; listings: Listing[]; services?: Service[] }>(`/shops/${id}/public`);
   },
 
   /** Annuaire public d'artisans (boutiques actives) utilisé sur l'accueil et la recherche. */
@@ -490,8 +489,8 @@ export const api = {
 
   // --- Notifications ---
 
-  notifications: (skip = 0, take = 30) =>
-    request<NotificationsResponse>(`/notifications?skip=${skip}&take=${take}`),
+  notifications: (skip = 0, take = 30, search = '') =>
+    request<NotificationsResponse>(`/notifications?skip=${skip}&take=${take}&q=${encodeURIComponent(search)}`),
 
   notificationsUnread: () => request<{ unreadCount: number }>('/notifications/unread'),
 
@@ -681,7 +680,7 @@ export const api = {
 
     getMyServiceReview: (orderId: string) => request(`/service-reviews/order/${orderId}`),
 
-    getArtisanServiceReviews: (artisanId: string) => request(`/service-reviews/recipient/${artisanId}`),
+    getArtisanServiceReviews: (artisanId: string) => request<Paginated<ServiceReview>>(`/service-reviews/recipient/${artisanId}`),
 
     getArtisanServiceRating: (artisanId: string) => request(`/service-reviews/recipient-rating/${artisanId}`),
   };

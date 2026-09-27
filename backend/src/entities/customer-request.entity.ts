@@ -46,6 +46,9 @@ export class CustomerRequest {
   @Column({ type: 'varchar', default: 'new' })
   status: CustomerRequestStatus;
 
+  @Column({ type: 'boolean', nullable: true })
+  isDemo: boolean | null;
+
   @Column('simple-array', { nullable: true })
   contactedArtisanIds: string[];
 

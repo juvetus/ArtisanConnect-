@@ -48,6 +48,9 @@ export class Service {
   @Column({ type: 'text', nullable: true })
   validationFeedback: string | null;
 
+  @Column({ default: false })
+  isDemo: boolean;
+
   @ManyToOne(() => User, { nullable: false })
   artisan: Relation<User>;
 

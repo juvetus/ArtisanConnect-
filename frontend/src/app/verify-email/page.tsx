@@ -13,20 +13,16 @@ function VerifyEmailContent() {
   const { user, updateUser } = useAuth();
   const { t } = useLanguage();
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => Boolean(token));
   const [success, setSuccess] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(() => token ? null : t('email_verification_error'));
 
   const [resendEmail, setResendEmail] = useState('');
   const [resending, setResending] = useState(false);
   const [resendMessage, setResendMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!token) {
-      setLoading(false);
-      setErrorMessage(t('email_verification_error'));
-      return;
-    }
+    if (!token) return;
 
     let isMounted = true;
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { ApiError, api } from '@/lib/api';
@@ -178,7 +179,7 @@ function ProfileForm({ user }: { user: User }) {
         <div>
           <label htmlFor="profile-avatar" className="block text-sm font-medium text-stone-700">{t('profile_photo')}</label>
           <div className="mt-2 flex items-center gap-4">
-            {avatarUrl ? <img src={avatarUrl} alt={t('profile_photo_alt')} className="h-20 w-20 rounded-full object-cover" /> : <div className="flex h-20 w-20 items-center justify-center rounded-full bg-amber-100 text-2xl font-semibold text-amber-800" aria-hidden>{name.charAt(0).toUpperCase()}</div>}
+            {avatarUrl ? <Image src={avatarUrl} alt={t('profile_photo_alt', { name })} width={80} height={80} unoptimized className="h-20 w-20 rounded-full object-cover" /> : <div className="flex h-20 w-20 items-center justify-center rounded-full bg-amber-100 text-2xl font-semibold text-amber-800" aria-hidden>{name.charAt(0).toUpperCase()}</div>}
             <div>
               <input id="profile-avatar" type="file" accept="image/jpeg,image/png,image/webp" disabled={uploadingAvatar} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadAvatar(file); }} className="block w-full text-sm text-stone-600 file:mr-3 file:rounded-md file:border-0 file:bg-amber-700 file:px-3 file:py-2 file:font-medium file:text-white hover:file:bg-amber-800" />
               <p className="mt-1 text-xs text-stone-500">{t('profile_photo_help')}</p>

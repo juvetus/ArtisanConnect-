@@ -11,6 +11,7 @@ import type { VerificationLevel } from './verification.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { StorageService } from '../storage/storage.service.js';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service.js';
+import { isDemoMode } from '../../demo-mode.js';
 
 /** Nombre de ventes réussies pour débloquer les badges vendeur. */
 const VERIFIED_BADGE_THRESHOLD = 3;
@@ -93,7 +94,7 @@ export class ShopsService {
     const fallbackNumber = data.mobileMoneyNumber;
     const momoNumber = data.momoNumber ? this.normalizeCameroonPhoneNumber(data.momoNumber) : fallbackNumber ? this.normalizeCameroonPhoneNumber(fallbackNumber) : null;
     const orangeMoneyNumber = data.orangeMoneyNumber ? this.normalizeCameroonPhoneNumber(data.orangeMoneyNumber) : fallbackNumber ? this.normalizeCameroonPhoneNumber(fallbackNumber) : null;
-    const shop = this.shopsRepository.create({ ...data, mobileMoneyNumber: momoNumber ?? orangeMoneyNumber!, momoNumber, orangeMoneyNumber, mobileMoneyProvider: provider, deliveryMethods: data.deliveryMethods?.length ? data.deliveryMethods : [data.deliveryMode ?? 'workshop'], sellerId, status });
+    const shop = this.shopsRepository.create({ ...data, mobileMoneyNumber: momoNumber ?? orangeMoneyNumber!, momoNumber, orangeMoneyNumber, mobileMoneyProvider: provider, deliveryMethods: data.deliveryMethods?.length ? data.deliveryMethods : [data.deliveryMode ?? 'workshop'], sellerId, status, isDemo: isDemoMode() });
     const savedShop = await this.shopsRepository.save(shop);
 
     // Si la boutique artisan nécessite une validation manuelle, notifier tous les admins
@@ -193,9 +194,10 @@ export class ShopsService {
       relations: { seller: true },
     });
     if (!shop) return null;
+    if (!isDemoMode() && shop.isDemo !== false) return null;
     const [listings, services, rating] = await Promise.all([
-      this.listingsRepository.find({ where: { shopId: id, status: 'active' }, order: { createdAt: 'DESC' } }),
-      this.servicesRepository.find({ where: { artisan: { id: shop.sellerId }, status: 'approved' }, relations: { artisan: true } }),
+      this.listingsRepository.find({ where: { shopId: id, status: 'active', ...(isDemoMode() ? {} : { isDemo: false }) }, order: { createdAt: 'DESC' } }),
+      this.servicesRepository.find({ where: { artisan: { id: shop.sellerId }, status: 'approved', ...(isDemoMode() ? {} : { isDemo: false }) }, relations: { artisan: true } }),
       this.getSellerRating(shop.sellerId),
     ]);
 
@@ -277,6 +279,7 @@ export class ShopsService {
     const wantedQuery = normalizeSearchValue(options.q);
 
     const candidates = shops.filter((shop) => {
+      if (!isDemoMode() && shop.isDemo !== false) return false;
       if (wantedCategory && normalizeSearchValue(shop.category) !== wantedCategory) return false;
       if (wantedCity && !normalizeSearchValue(shop.city).includes(wantedCity)) return false;
       if (wantedNeighborhood && !normalizeSearchValue(shop.neighborhood).includes(wantedNeighborhood)) return false;
@@ -307,15 +310,26 @@ export class ShopsService {
       ]),
     );
 
-    const listings = await this.listingsRepository.find({
-      where: { shopId: In(candidates.map((shop) => shop.id)), status: 'active' },
-      order: { createdAt: 'DESC' },
-    });
+    const [listings, services] = await Promise.all([
+      this.listingsRepository.find({
+        where: { shopId: In(candidates.map((shop) => shop.id)), status: 'active', ...(isDemoMode() ? {} : { isDemo: false }) },
+        order: { createdAt: 'DESC' },
+      }),
+      this.servicesRepository.find({
+        where: { artisan: { id: In(sellerIds) }, status: 'approved', ...(isDemoMode() ? {} : { isDemo: false }) },
+      }),
+    ]);
     const coverByShop = new Map<string, string>();
+    const offerCountBySeller = new Map<string, number>();
     for (const listing of listings) {
+      offerCountBySeller.set(listing.sellerId, (offerCountBySeller.get(listing.sellerId) ?? 0) + 1);
       if (listing.shopId && listing.imageUrl && !coverByShop.has(listing.shopId)) {
         coverByShop.set(listing.shopId, listing.imageUrl);
       }
+    }
+    for (const service of services) {
+      const sellerId = service.artisan?.id;
+      if (sellerId) offerCountBySeller.set(sellerId, (offerCountBySeller.get(sellerId) ?? 0) + 1);
     }
 
     const minRating = Number(options.minRating) || 0;
@@ -351,6 +365,7 @@ export class ShopsService {
             avatarUrl: shop.seller?.avatarUrl ?? null,
             verifiedPhone: Boolean(shop.seller?.verifiedPhone),
           },
+          offerCount: offerCountBySeller.get(shop.sellerId) ?? 0,
         };
       })
       .filter((item) => {
@@ -380,6 +395,7 @@ export class ShopsService {
     const cities = new Map<string, { label: string; count: number; neighborhoods: Map<string, { label: string; count: number }> }>();
 
     for (const shop of shops) {
+      if (!isDemoMode() && shop.isDemo !== false) continue;
       const cityKey = normalizeSearchValue(shop.city);
       if (!cityKey) continue;
       const city = cities.get(cityKey) ?? { label: shop.city!.trim(), count: 0, neighborhoods: new Map() };

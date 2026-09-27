@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import { trackEvent } from '@/lib/analytics';
 import { VerificationBadge } from '@/components/VerificationBadge';
-import type { VerificationLevel } from '@/lib/types';
+import { useLanguage } from '@/lib/language-context';
+import type { VerificationLevel, VerificationState } from '@/lib/types';
 
 export function ShopPublicCard({
   shopId,
@@ -15,6 +16,7 @@ export function ShopPublicCard({
   averageRating,
   ratingCount,
   verificationLevel,
+  verificationState,
   shopWhatsapp,
   shareShopWhatsapp,
   qrCodeUrl,
@@ -28,13 +30,21 @@ export function ShopPublicCard({
   averageRating: number | null;
   ratingCount: number;
   verificationLevel: VerificationLevel;
+  verificationState?: VerificationState;
   shopWhatsapp: string | null;
   shareShopWhatsapp: string;
   qrCodeUrl: string;
   city?: string | null;
   quoteHref: string;
 }) {
+  const { t } = useLanguage();
   const [metrics, setMetrics] = useState({ views: 0, whatsappContactClicks: 0, whatsappShareClicks: 0 });
+  const verificationSteps = [
+    { label: 'verification_step_phone', description: 'verification_step_phone_desc', done: verificationState?.steps.phone ?? false },
+    { label: 'verification_step_profile', description: 'verification_step_profile_desc', done: verificationState?.steps.profile ?? false },
+    { label: 'verification_step_identity', description: 'verification_step_identity_desc', done: verificationState?.steps.identity ?? false },
+    { label: 'verification_step_recommended', description: 'verification_step_recommended_desc', done: verificationState?.steps.recommended ?? false },
+  ] as const;
 
   useEffect(() => {
     trackEvent('artisan_profile_view', { targetId: shopId, label: shopName, city: city ?? undefined });
@@ -46,7 +56,7 @@ export function ShopPublicCard({
     void api.incrementShopMetric(shopId, 'views', 1)
       .then((data) => setMetrics(data))
       .catch(() => undefined);
-  }, [shopId]);
+  }, [shopId, shopName, city]);
 
   return (
     <section className="mb-8 rounded-lg border border-stone-200 bg-white p-6">
@@ -57,10 +67,26 @@ export function ShopPublicCard({
         <span>{averageRating ? `★ ${averageRating}/5` : 'Pas encore noté'} ({ratingCount} avis)</span>
         <VerificationBadge level={verificationLevel} />
       </div>
+      <details className="mt-3 rounded-md border border-stone-200 bg-stone-50 px-3 py-2">
+        <summary className="cursor-pointer text-sm font-medium text-stone-800">{t('verification_explainer_title')}</summary>
+        <ul className="mt-3 space-y-3 text-sm">
+          {verificationSteps.map((step) => (
+            <li key={step.label} className="grid gap-1 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-3">
+              <div>
+                <p className="font-medium text-stone-900">{t(step.label)}</p>
+                <p className="mt-0.5 leading-5 text-stone-600">{t(step.description)}</p>
+              </div>
+              <span className={`text-xs font-medium ${step.done ? 'text-emerald-800' : 'text-stone-500'}`}>
+                {step.done ? t('verification_step_done') : t('verification_step_pending')}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 border-t border-stone-200 pt-3 text-xs leading-5 text-stone-600">{t('verification_disclaimer')}</p>
+      </details>
       <div className="mt-5 flex flex-wrap items-center gap-3">
         <Link
           href={quoteHref}
-          onClick={() => trackEvent('quote_form_opened', { targetId: shopId, label: shopName, city: city ?? undefined })}
           className="rounded-md bg-amber-700 px-5 py-3 text-base font-semibold text-white hover:bg-amber-800"
         >
           Demander un devis

@@ -19,6 +19,7 @@ describe('Orange Money callback (e2e)', () => {
 
   beforeAll(async () => {
     process.env.ORANGE_MONEY_MODE = 'mock';
+    process.env.SMTP_ENABLED = 'false';
     process.env.DB_SYNCHRONIZE = 'true';
     process.env.DB_RETRY_ATTEMPTS = '1';
     process.env.DB_RETRY_DELAY = '100';

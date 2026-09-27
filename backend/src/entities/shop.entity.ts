@@ -86,6 +86,9 @@ export class Shop {
   @Column('enum', { enum: ['pending', 'active', 'rejected', 'suspended'], default: 'pending' })
   status: ShopStatus;
 
+  @Column({ type: 'boolean', nullable: true })
+  isDemo: boolean | null;
+
   @Column({ nullable: true, type: 'text' })
   rejectionReason: string | null;
 

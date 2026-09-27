@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { api } from '@/lib/api';
@@ -912,9 +913,12 @@ function ShopsAdmin({
                                       <span className="mt-1 text-[10px] font-medium">Vidéo</span>
                                     </div>
                                   ) : (
-                                    <img
+                                    <Image
                                       src={fileUrl}
                                       alt={labelText}
+                                      fill
+                                      unoptimized
+                                      sizes="144px"
                                       className="h-full w-full object-cover transition duration-200 group-hover:scale-105"
                                       onError={(e) => {
                                         (e.target as HTMLElement).style.display = 'none';
@@ -998,7 +1002,7 @@ function ShopsAdmin({
               {activeDoc.url.toLowerCase().endsWith('.mp4') || activeDoc.url.toLowerCase().endsWith('.mov') || activeDoc.label.toLowerCase().includes('vidéo') ? (
                 <video src={activeDoc.url} controls className="max-h-[65vh] w-auto rounded shadow-sm" autoPlay />
               ) : (
-                <img src={activeDoc.url} alt={activeDoc.label} className="max-h-[65vh] w-auto object-contain rounded shadow-sm" />
+                <Image src={activeDoc.url} alt={activeDoc.label} width={1400} height={1000} unoptimized className="h-auto max-h-[65vh] w-auto rounded object-contain shadow-sm" />
               )}
             </div>
           </div>

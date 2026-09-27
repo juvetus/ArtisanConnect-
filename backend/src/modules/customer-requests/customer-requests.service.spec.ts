@@ -79,6 +79,23 @@ describe('CustomerRequestsService', () => {
     );
   });
 
+  it('bloque la publication d’une demande en mode démonstration avant toute écriture', async () => {
+    const originalDemoMode = process.env.DEMO_MODE;
+    process.env.DEMO_MODE = 'true';
+
+    try {
+      await expect(service.create('client-1', {
+        category: 'menuiserie',
+        city: 'Douala',
+        description: 'Je souhaite faire fabriquer une table pour mon salon.',
+      })).rejects.toBeInstanceOf(ForbiddenException);
+      expect(requests.save).not.toHaveBeenCalled();
+    } finally {
+      if (originalDemoMode === undefined) delete process.env.DEMO_MODE;
+      else process.env.DEMO_MODE = originalDemoMode;
+    }
+  });
+
   it('encaisse le prix convenu après livraison, puis clôture la demande', async () => {
     const request = {
       id: 'request-1',
