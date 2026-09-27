@@ -6,7 +6,7 @@ const PRODUCT_CATEGORIES = new Set([
   'art_mural', 'instruments_traditionnels', 'alimentation_locale', 'plats_prepares', 'fruits_legumes',
   'epices_condiments', 'boissons_locales', 'vetements_seconde_main', 'chaussures_accessoires',
   'cosmetiques_beaute', 'telephones_accessoires', 'electronique_occasion', 'articles_maison',
-  'materiaux_construction', 'fournitures_scolaires', 'jouets', 'accessoires_auto_moto', 'produits_importes',
+  'materiaux_construction', 'fournitures_scolaires', 'jouets', 'accessoires_auto_moto', 'produits_importes', 'autres_produits',
 ]);
 
 const SERVICE_CATEGORIES = new Set([
@@ -16,7 +16,9 @@ const SERVICE_CATEGORIES = new Set([
   'nettoyage', 'blanchisserie', 'jardinage', 'securite', 'nuisibles', 'architecture', 'renovation',
   'aluminium_vitrerie', 'solaire', 'forage', 'livraison', 'transport', 'vulcanisation', 'graphisme',
   'marketing_digital', 'redaction_traduction', 'impression', 'formation', 'evenementiel', 'sonorisation',
-  'maquillage',
+  'maquillage', 'serrurerie', 'electromenager', 'depannage_informatique', 'installation_internet', 'videosurveillance',
+  'demenagement', 'montage_meubles', 'cuisine_a_domicile', 'garde_enfants', 'aide_a_domicile', 'repassage',
+  'maintenance_groupes_electrogenes', 'autres_services',
 ]);
 
 export function isListingCategoryAllowed(type: unknown, category: unknown): boolean {
