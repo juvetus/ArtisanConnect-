@@ -190,7 +190,7 @@ services:
       - key: SMTP_PASSWORD
         sync: false
       - key: SMTP_FROM
-        sync: false
+        value: ArtisanConnect <admin@artisanconnectcm.info>
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY
