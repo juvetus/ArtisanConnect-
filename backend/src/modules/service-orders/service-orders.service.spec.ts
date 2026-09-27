@@ -1,4 +1,4 @@
-import { ConflictException, ForbiddenException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ServiceOrdersService } from './service-orders.service.js';
 
 describe('ServiceOrdersService', () => {
@@ -89,5 +89,69 @@ describe('ServiceOrdersService', () => {
       relatedId: 'order-1',
       title: 'Nouvelle demande pour votre service',
     }));
+  });
+
+  it('renvoie une demande complétée dans la file de validation admin', async () => {
+    const order = {
+      id: 'order-1',
+      clientId: 'client-1',
+      status: 'details_requested',
+      projectObjective: 'Ancienne description suffisamment longue pour dépasser cinquante caractères.',
+      options: {},
+      inspirationLinks: null,
+      budgetMin: null,
+      budgetMax: null,
+      requestedDate: null,
+      deliveryMethod: 'workshop',
+      deliveryAddress: null,
+      deliveryLatitude: null,
+      deliveryLongitude: null,
+      adminFeedback: 'Préciser les dimensions',
+      service: { title: 'Confection sur mesure' },
+    };
+    orders.findOne.mockResolvedValue(order);
+    orders.save.mockImplementation(async (value) => value);
+    users.find.mockResolvedValue([{ id: 'admin-1' }]);
+
+    const result = await service.resubmitDetails('client-1', 'order-1', {
+      projectObjective: 'Nouvelle description suffisamment longue pour dépasser les cinquante caractères demandés.',
+      deliveryMethod: 'workshop',
+      budgetMin: 10000,
+      budgetMax: 20000,
+      options: { requestedFeatures: ['Tissu doublé'] },
+    });
+
+    expect(orders.findOne).toHaveBeenCalledWith({
+      where: { id: 'order-1', clientId: 'client-1', status: 'details_requested' },
+      relations: { service: true },
+    });
+    expect(result).toMatchObject({
+      status: 'pending_admin_validation',
+      projectObjective: 'Nouvelle description suffisamment longue pour dépasser les cinquante caractères demandés.',
+      budgetMin: 10000,
+      budgetMax: 20000,
+      adminFeedback: null,
+    });
+    expect(notifications.notify).toHaveBeenCalledWith(expect.objectContaining({
+      recipientId: 'admin-1',
+      relatedId: 'order-1',
+      title: 'Demande de service modifiée à revalider',
+    }));
+    expect(notifications.notify).toHaveBeenCalledWith(expect.objectContaining({
+      recipientId: 'client-1',
+      relatedId: 'order-1',
+      title: 'Votre demande modifiée a été envoyée',
+      link: '/service-orders/order-1',
+    }));
+  });
+
+  it('refuse de republier une demande qui n’est pas en attente de précisions pour ce client', async () => {
+    orders.findOne.mockResolvedValue(null);
+
+    await expect(service.resubmitDetails('other-client', 'order-1', {
+      projectObjective: 'Nouvelle description suffisamment longue pour dépasser les cinquante caractères demandés.',
+      deliveryMethod: 'workshop',
+    })).rejects.toBeInstanceOf(NotFoundException);
+    expect(orders.save).not.toHaveBeenCalled();
   });
 });

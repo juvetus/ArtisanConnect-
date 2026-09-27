@@ -8,7 +8,7 @@ import { api } from '@/lib/api';
 import { DemoBadge } from '@/components/DemoBadge';
 import { ListingCard } from '@/components/ListingCard';
 import { Pagination } from '@/components/Pagination';
-import { CATEGORIES, PRODUCT_CATEGORIES, SERVICE_CATEGORIES, categoryLabel } from '@/lib/categories';
+import { CATEGORIES, PRODUCT_CATEGORIES, SERVICE_CATEGORIES, categoryGroups, categoryLabel } from '@/lib/categories';
 import { demoArtisans, demoListings, demoServices } from '@/lib/demo-content';
 import { DEMO_MODE, isDemoContent } from '@/lib/demo-mode';
 import { useLanguage } from '@/lib/language-context';
@@ -16,7 +16,8 @@ import type { Service } from '@/lib/types';
 import { trackEvent } from '@/lib/analytics';
 
 export default function HomePage() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const english = language === 'en';
   const [filters, setFilters] = useState<{ q?: string; category?: string }>({});
   const [audienceFilter, setAudienceFilter] = useState<'all' | 'women' | 'cooperatives'>('all');
   const [listingPage, setListingPage] = useState(0);
@@ -255,26 +256,29 @@ export default function HomePage() {
 
         {showCategories &&
           [
-            { title: t('filter_crafts'), items: PRODUCT_CATEGORIES },
-            { title: t('filter_services'), items: SERVICE_CATEGORIES },
-          ].map((group) => (
-            <div key={group.title}>
+            { title: t('filter_crafts'), groups: categoryGroups(PRODUCT_CATEGORIES) },
+            { title: t('filter_services'), groups: categoryGroups(SERVICE_CATEGORIES) },
+          ].map((section) => (
+            <div key={section.title}>
               <p className="mb-2 text-xs font-medium uppercase tracking-wide text-stone-500">
-                {group.title}
+                {section.title}
               </p>
-              <div className="flex flex-wrap gap-2">
-                {group.items.map((c) => (
-                  <button
-                    key={c.value}
-                    onClick={() => selectCategory(c.value)}
-                    className={`rounded-full border px-4 py-1.5 text-sm ${
-                      filters.category === c.value
-                        ? 'border-amber-700 bg-amber-700 text-white'
-                        : 'border-stone-300 bg-white hover:border-amber-600'
-                    }`}
-                  >
-                    {categoryLabel(c.value)}
-                  </button>
+              <div className="space-y-3">
+                {section.groups.map((group) => (
+                  <div key={group.key}>
+                    <p className="mb-1 text-xs font-medium text-stone-500">{english ? group.labelEn : group.labelFr}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {group.categories.map((category) => (
+                        <button
+                          key={category.value}
+                          onClick={() => selectCategory(category.value)}
+                          className={`rounded-full border px-4 py-1.5 text-sm ${filters.category === category.value ? 'border-amber-700 bg-amber-700 text-white' : 'border-stone-300 bg-white hover:border-amber-600'}`}
+                        >
+                          {categoryLabel(category.value, language)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>

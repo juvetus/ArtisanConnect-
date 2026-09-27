@@ -31,11 +31,30 @@ export default function ServiceOrderQuotePage() {
   const [response, setResponse] = useState('');
   const [deliveryFeedback, setDeliveryFeedback] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [revisionObjective, setRevisionObjective] = useState('');
+  const [revisionOptions, setRevisionOptions] = useState('');
+  const [revisionInspirationLinks, setRevisionInspirationLinks] = useState('');
+  const [revisionBudgetMin, setRevisionBudgetMin] = useState('');
+  const [revisionBudgetMax, setRevisionBudgetMax] = useState('');
+  const [revisionDate, setRevisionDate] = useState('');
+  const [revisionDeliveryMethod, setRevisionDeliveryMethod] = useState<'home' | 'workshop' | 'carrier'>('workshop');
+  const [revisionAddress, setRevisionAddress] = useState('');
+  const [revisionFiles, setRevisionFiles] = useState<File[]>([]);
 
   const load = async () => {
     try {
       const orderData = await api.getServiceOrder(params.id);
-      setOrder(orderData as ServiceOrder);
+      const loadedOrder = orderData as ServiceOrder;
+      setOrder(loadedOrder);
+      setRevisionObjective(loadedOrder.projectObjective);
+      const requestedFeatures = loadedOrder.options?.requestedFeatures;
+      setRevisionOptions(Array.isArray(requestedFeatures) ? requestedFeatures.filter((item): item is string => typeof item === 'string').join(', ') : '');
+      setRevisionInspirationLinks(loadedOrder.inspirationLinks ?? '');
+      setRevisionBudgetMin(loadedOrder.budgetMin == null ? '' : String(loadedOrder.budgetMin));
+      setRevisionBudgetMax(loadedOrder.budgetMax == null ? '' : String(loadedOrder.budgetMax));
+      setRevisionDate(loadedOrder.requestedDate ? new Date(loadedOrder.requestedDate).toISOString().slice(0, 10) : '');
+      setRevisionDeliveryMethod(loadedOrder.deliveryMethod);
+      setRevisionAddress(loadedOrder.deliveryAddress ?? '');
       try {
         const quoteData = await api.getServiceQuote(params.id);
         setQuote((quoteData as ServiceQuote | null) || null);
@@ -84,6 +103,36 @@ export default function ServiceOrderQuotePage() {
       await load();
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Impossible d’envoyer le devis.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const resubmitDetails = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    try {
+      setSubmitting(true);
+      setNotice('');
+      if (revisionFiles.length) {
+        await api.uploadServiceOrderFiles(params.id, revisionFiles);
+        setRevisionFiles([]);
+      }
+      await api.resubmitServiceOrderDetails(params.id, {
+        projectObjective: revisionObjective,
+        options: revisionOptions.trim()
+          ? { requestedFeatures: revisionOptions.split(',').map((item) => item.trim()).filter(Boolean) }
+          : {},
+        inspirationLinks: revisionInspirationLinks || undefined,
+        budgetMin: revisionBudgetMin ? Number(revisionBudgetMin) : undefined,
+        budgetMax: revisionBudgetMax ? Number(revisionBudgetMax) : undefined,
+        requestedDate: revisionDate || undefined,
+        deliveryMethod: revisionDeliveryMethod,
+        deliveryAddress: revisionDeliveryMethod === 'workshop' ? undefined : revisionAddress,
+      });
+      setNotice(english ? 'Your updated request was sent for admin review.' : 'Votre demande modifiée a été envoyée pour une nouvelle validation.');
+      await load();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : (english ? 'Could not resubmit your request.' : 'Impossible de renvoyer votre demande.'));
     } finally {
       setSubmitting(false);
     }
@@ -207,6 +256,47 @@ export default function ServiceOrderQuotePage() {
       </header>
 
       {notice ? <p className="rounded-md bg-stone-100 px-4 py-3 text-sm text-stone-700">{notice}</p> : null}
+
+      {isClient && order.status === 'details_requested' ? (
+        <section className="space-y-5 rounded-lg border border-orange-200 bg-orange-50 p-6">
+          <div>
+            <h2 className="text-xl font-semibold text-stone-900">{english ? 'Admin requested changes' : 'Précisions demandées par l’équipe'}</h2>
+            <p className="mt-1 whitespace-pre-wrap text-sm text-stone-700">{order.adminFeedback}</p>
+            <p className="mt-2 text-sm text-stone-600">{english ? 'Update your request below, then send it back for review.' : 'Modifiez votre demande ci-dessous, puis renvoyez-la pour validation.'}</p>
+          </div>
+          <form onSubmit={resubmitDetails} className="space-y-4">
+            <div>
+              <label htmlFor="revision-objective" className="block text-sm font-medium text-stone-700">{english ? 'Project details *' : 'Description du projet *'}</label>
+              <textarea id="revision-objective" required minLength={50} rows={6} value={revisionObjective} onChange={(event) => setRevisionObjective(event.target.value)} className="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2" />
+              <p className="mt-1 text-xs text-stone-500">{english ? 'At least 50 characters.' : 'Au moins 50 caractères.'}</p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div><label htmlFor="revision-options" className="block text-sm font-medium text-stone-700">{english ? 'Requested options' : 'Options souhaitées'}</label><input id="revision-options" value={revisionOptions} onChange={(event) => setRevisionOptions(event.target.value)} className="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2" /></div>
+              <div><label htmlFor="revision-inspiration" className="block text-sm font-medium text-stone-700">{english ? 'Reference links' : 'Liens de référence'}</label><input id="revision-inspiration" value={revisionInspirationLinks} onChange={(event) => setRevisionInspirationLinks(event.target.value)} className="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2" /></div>
+              <div><label htmlFor="revision-budget-min" className="block text-sm font-medium text-stone-700">{english ? 'Minimum budget (XAF)' : 'Budget minimum (FCFA)'}</label><input id="revision-budget-min" type="number" min="0" value={revisionBudgetMin} onChange={(event) => setRevisionBudgetMin(event.target.value)} className="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2" /></div>
+              <div><label htmlFor="revision-budget-max" className="block text-sm font-medium text-stone-700">{english ? 'Maximum budget (XAF)' : 'Budget maximum (FCFA)'}</label><input id="revision-budget-max" type="number" min="0" value={revisionBudgetMax} onChange={(event) => setRevisionBudgetMax(event.target.value)} className="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2" /></div>
+              <div><label htmlFor="revision-date" className="block text-sm font-medium text-stone-700">{english ? 'Requested date' : 'Date souhaitée'}</label><input id="revision-date" type="date" value={revisionDate} onChange={(event) => setRevisionDate(event.target.value)} className="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2" /></div>
+              <div>
+                <label htmlFor="revision-delivery" className="block text-sm font-medium text-stone-700">{english ? 'Delivery method' : 'Mode de livraison'}</label>
+                <select id="revision-delivery" value={revisionDeliveryMethod} onChange={(event) => setRevisionDeliveryMethod(event.target.value as 'home' | 'workshop' | 'carrier')} className="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2">
+                  <option value="workshop">{english ? 'Workshop pickup' : 'Retrait à l’atelier'}</option>
+                  <option value="home">{english ? 'Home delivery' : 'À domicile'}</option>
+                  <option value="carrier">{english ? 'Carrier delivery' : 'Par transporteur'}</option>
+                </select>
+              </div>
+            </div>
+            {revisionDeliveryMethod !== 'workshop' ? (
+              <div><label htmlFor="revision-address" className="block text-sm font-medium text-stone-700">{english ? 'Delivery address *' : 'Adresse de livraison *'}</label><input id="revision-address" required value={revisionAddress} onChange={(event) => setRevisionAddress(event.target.value)} className="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2" /></div>
+            ) : null}
+            <div>
+              <label htmlFor="revision-files" className="block text-sm font-medium text-stone-700">{english ? 'Additional PDF documents' : 'Documents PDF complémentaires'}</label>
+              <input id="revision-files" type="file" accept="application/pdf" multiple onChange={(event) => setRevisionFiles(Array.from(event.target.files ?? []).slice(0, 5))} className="mt-1 block w-full text-sm text-stone-700" />
+              {order.fileUrls?.length ? <p className="mt-1 text-xs text-stone-500">{english ? `${order.fileUrls.length} document(s) already attached.` : `${order.fileUrls.length} document(s) déjà joint(s).`}</p> : null}
+            </div>
+            <button disabled={submitting} className="rounded-md bg-amber-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-amber-800 disabled:opacity-60">{submitting ? (english ? 'Sending…' : 'Envoi…') : (english ? 'Resubmit for approval' : 'Renvoyer pour validation')}</button>
+          </form>
+        </section>
+      ) : null}
 
       {canQuote ? (
         <form onSubmit={submitQuote} className="space-y-5 rounded-lg border border-stone-200 bg-white p-6">

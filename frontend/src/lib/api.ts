@@ -609,6 +609,17 @@ export const api = {
 
     getMyServiceOrders: () => request(`/service-orders/mine`),
 
+    resubmitServiceOrderDetails: (id: string, data: {
+      projectObjective: string;
+      options?: Record<string, unknown>;
+      inspirationLinks?: string;
+      budgetMin?: number;
+      budgetMax?: number;
+      requestedDate?: string;
+      deliveryMethod: 'home' | 'workshop' | 'carrier';
+      deliveryAddress?: string;
+    }) => post(`/service-orders/${id}/client/resubmit-details`, data),
+
     createCustomerRequest: (data: { category: string; city: string; neighborhood?: string; description: string; budgetMin?: number; budgetMax?: number; requestedDate?: string; contactPreference?: 'platform' | 'whatsapp' | 'both'; contactPhone?: string }) => post<{ id: string }>('/customer-requests', data),
 
     uploadCustomerRequestPhotos: async (id: string, files: File[]) => {

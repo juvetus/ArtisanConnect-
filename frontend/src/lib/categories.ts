@@ -10,6 +10,13 @@ export interface Category {
   type: ListingType;
 }
 
+export interface CategoryGroup {
+  key: string;
+  labelFr: string;
+  labelEn: string;
+  categories: Category[];
+}
+
 /** Métiers d'art et services artisanaux courants au Cameroun (bilingue FR / EN). */
 export const CATEGORIES: Category[] = [
   // Artisanat d'art et produits
@@ -124,4 +131,53 @@ export function categoryIcon(value: string, type: ListingType) {
 
 export const PRODUCT_CATEGORIES = CATEGORIES.filter((c) => c.type === 'product');
 export const SERVICE_CATEGORIES = CATEGORIES.filter((c) => c.type === 'service');
+
+const CATEGORY_GROUPS: Record<ListingType, { key: string; labelFr: string; labelEn: string; values: string[] }[]> = {
+  product: [
+    { key: 'home', labelFr: 'Maison & confort', labelEn: 'Home & comfort', values: ['ameublement', 'articles_maison'] },
+    { key: 'food', labelFr: 'Agroalimentaire', labelEn: 'Food & agriculture', values: ['agroalimentaire', 'alimentation_locale', 'plats_prepares', 'fruits_legumes', 'epices_condiments', 'boissons_locales'] },
+    { key: 'fashion', labelFr: 'Mode & accessoires', labelEn: 'Fashion & accessories', values: ['mode', 'vetements_seconde_main', 'chaussures_accessoires', 'maroquinerie', 'cuir_artisanal', 'bijoux_artisanaux'] },
+    { key: 'crafts', labelFr: 'Artisanat & décoration', labelEn: 'Crafts & decor', values: ['vannerie', 'vannerie_artisanale', 'sculpture', 'bois_sculpte', 'poterie', 'poterie_artisanale', 'tissage', 'textile_traditionnel', 'perlerie', 'bronze', 'instruments', 'instruments_traditionnels', 'peinture', 'art_mural'] },
+    { key: 'auto', labelFr: 'Auto & mécanique', labelEn: 'Automotive & mechanics', values: ['accessoires_auto_moto'] },
+    { key: 'beauty', labelFr: 'Beauté & bien-être', labelEn: 'Beauty & wellness', values: ['cosmetiques', 'cosmetiques_beaute'] },
+    { key: 'other', labelFr: 'Autres produits', labelEn: 'Other products', values: ['telephones_accessoires', 'electronique_occasion', 'materiaux_construction', 'fournitures_scolaires', 'jouets', 'produits_importes', 'autres_produits'] },
+  ],
+  service: [
+    { key: 'building', labelFr: 'Bâtiment & travaux', labelEn: 'Construction & trades', values: ['menuiserie', 'maconnerie', 'plomberie', 'electricite', 'froid', 'soudure', 'architecture', 'renovation', 'aluminium_vitrerie', 'solaire', 'forage', 'serrurerie', 'maintenance_groupes_electrogenes'] },
+    { key: 'auto', labelFr: 'Auto & mécanique', labelEn: 'Automotive & mechanics', values: ['mecanique', 'vulcanisation'] },
+    { key: 'sewing', labelFr: 'Couture', labelEn: 'Tailoring', values: ['couture'] },
+    { key: 'beauty', labelFr: 'Beauté', labelEn: 'Beauty', values: ['coiffure', 'maquillage'] },
+    { key: 'diverse', labelFr: 'Services artisanaux divers', labelEn: 'Other artisan services', values: ['nettoyage', 'blanchisserie', 'jardinage', 'nuisibles', 'livraison', 'transport', 'demenagement', 'montage_meubles', 'cuisine_a_domicile', 'garde_enfants', 'aide_a_domicile', 'repassage'] },
+    { key: 'other', labelFr: 'Autres services', labelEn: 'Other services', values: ['reparation', 'traiteur', 'photographie', 'developpement', 'infrastructure', 'support_it', 'cybersecurite', 'agriculture', 'elevage', 'pisciculture', 'transformation_agro', 'travaux_agricoles', 'securite', 'impression', 'formation', 'evenementiel', 'sonorisation', 'electromenager', 'depannage_informatique', 'installation_internet', 'videosurveillance', 'marketing_digital', 'redaction_traduction', 'autres_services'] },
+  ],
+};
+
+export function categoryGroups(categories: Category[]): CategoryGroup[] {
+  if (!categories.length) return [];
+  return [...new Set(categories.map((category) => category.type))].flatMap((type) => {
+    const typedCategories = categories.filter((category) => category.type === type);
+    const remaining = new Set(typedCategories.map((category) => category.value));
+    const groups = CATEGORY_GROUPS[type].map((group) => {
+      const groupedCategories = typedCategories.filter((category) => group.values.includes(category.value));
+      groupedCategories.forEach((category) => remaining.delete(category.value));
+      return { key: `${type}-${group.key}`, labelFr: group.labelFr, labelEn: group.labelEn, categories: groupedCategories };
+    }).filter((group) => group.categories.length > 0);
+
+    if (remaining.size) {
+      const otherGroup = groups.find((group) => group.key === `${type}-other`);
+      if (otherGroup) {
+        otherGroup.categories.push(...typedCategories.filter((category) => remaining.has(category.value)));
+      } else {
+        groups.push({
+          key: `${type}-other`,
+          labelFr: type === 'product' ? 'Autres produits' : 'Autres services',
+          labelEn: type === 'product' ? 'Other products' : 'Other services',
+          categories: typedCategories.filter((category) => remaining.has(category.value)),
+        });
+      }
+    }
+
+    return groups;
+  });
+}
 

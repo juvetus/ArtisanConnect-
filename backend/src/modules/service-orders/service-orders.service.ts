@@ -189,6 +189,90 @@ export class ServiceOrdersService {
     });
   }
 
+  async resubmitDetails(clientId: string, id: string, data: {
+    projectObjective: string;
+    options?: Record<string, unknown>;
+    inspirationLinks?: string;
+    budgetMin?: number;
+    budgetMax?: number;
+    requestedDate?: string;
+    deliveryMethod: 'home' | 'workshop' | 'carrier';
+    deliveryAddress?: string;
+  }) {
+    const order = await this.ordersRepository.findOne({
+      where: { id, clientId, status: 'details_requested' },
+      relations: { service: true },
+    });
+    if (!order) throw new NotFoundException('Demande à compléter introuvable');
+
+    if (!data.projectObjective?.trim() || data.projectObjective.trim().length < 50) {
+      throw new BadRequestException('Le besoin doit contenir au moins 50 caractères');
+    }
+    if (!['home', 'workshop', 'carrier'].includes(data.deliveryMethod)) {
+      throw new BadRequestException('Mode de livraison invalide');
+    }
+    if (data.deliveryMethod !== 'workshop' && !data.deliveryAddress?.trim()) {
+      throw new BadRequestException('Une adresse est obligatoire pour ce mode de livraison');
+    }
+    if (data.budgetMin !== undefined && (!Number.isFinite(data.budgetMin) || data.budgetMin < 0)) {
+      throw new BadRequestException('Le budget minimum est invalide');
+    }
+    if (data.budgetMax !== undefined && (!Number.isFinite(data.budgetMax) || data.budgetMax < 0)) {
+      throw new BadRequestException('Le budget maximum est invalide');
+    }
+    if (data.budgetMin !== undefined && data.budgetMax !== undefined && data.budgetMin > data.budgetMax) {
+      throw new BadRequestException('Le budget minimum ne peut pas dépasser le budget maximum');
+    }
+
+    const addressChanged = (data.deliveryAddress?.trim() || null) !== order.deliveryAddress;
+    order.projectObjective = data.projectObjective.trim();
+    order.options = data.options ?? {};
+    order.inspirationLinks = data.inspirationLinks?.trim() || null;
+    order.budgetMin = data.budgetMin ?? null;
+    order.budgetMax = data.budgetMax ?? null;
+    order.requestedDate = data.requestedDate ? new Date(data.requestedDate) : null;
+    order.deliveryMethod = data.deliveryMethod;
+    order.deliveryAddress = data.deliveryMethod !== 'workshop' ? data.deliveryAddress!.trim() : null;
+    if (addressChanged) {
+      order.deliveryLatitude = null;
+      order.deliveryLongitude = null;
+    }
+    order.status = 'pending_admin_validation';
+    order.adminFeedback = null;
+
+    const savedOrder = await this.ordersRepository.save(order);
+    const admins = await this.usersRepository.find({ where: { role: 'admin' } });
+    await Promise.all(admins.map(async (admin) => {
+      try {
+        await this.notificationsService.notify({
+          recipientId: admin.id,
+          type: 'new_order',
+          title: 'Demande de service modifiée à revalider',
+          content: `Le client a complété la demande pour « ${order.service.title} ». Elle attend une nouvelle validation.`,
+          link: '/admin/service-orders',
+          relatedId: order.id,
+        });
+      } catch {
+        // Une notification ne doit pas annuler la republication.
+      }
+    }));
+
+    try {
+      await this.notificationsService.notify({
+        recipientId: clientId,
+        type: 'order_status',
+        title: 'Votre demande modifiée a été envoyée',
+        content: 'Elle sera vérifiée à nouveau par notre équipe.',
+        link: `/service-orders/${order.id}`,
+        relatedId: order.id,
+      });
+    } catch {
+      // Une notification ne doit pas annuler la republication.
+    }
+
+    return savedOrder;
+  }
+
   async updateAdminStatus(adminId: string, id: string, status: Extract<ServiceOrderStatus, 'sent_to_artisan' | 'rejected' | 'details_requested'>, feedback?: string) {
     const order = await this.ordersRepository.findOne({
       where: { id, status: 'pending_admin_validation' },
@@ -208,8 +292,8 @@ export class ServiceOrdersService {
       await this.notificationsService.notify({
         recipientId: status === 'sent_to_artisan' ? order.artisanId : order.clientId,
         type: 'order_status',
-        title: status === 'sent_to_artisan' ? 'Votre demande a été transmise' : 'Mise à jour de votre demande',
-        content: feedback || 'Votre demande de service a été mise à jour.',
+        title: status === 'sent_to_artisan' ? 'Votre demande a été transmise' : status === 'details_requested' ? 'Précisions requises pour votre demande' : 'Mise à jour de votre demande',
+        content: status === 'details_requested' ? `Modifiez votre demande puis renvoyez-la pour validation : ${feedback}` : feedback || 'Votre demande de service a été mise à jour.',
         link: `/service-orders/${order.id}`,
         relatedId: order.id,
       });

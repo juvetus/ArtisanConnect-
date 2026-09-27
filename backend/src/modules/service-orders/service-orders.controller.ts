@@ -60,6 +60,25 @@ export class ServiceOrdersController {
     return this.serviceOrdersService.findByClient(user.id);
   }
 
+  @Post(':id/client/resubmit-details')
+  resubmitDetails(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() body: {
+      projectObjective: string;
+      options?: Record<string, unknown>;
+      inspirationLinks?: string;
+      budgetMin?: number;
+      budgetMax?: number;
+      requestedDate?: string;
+      deliveryMethod: 'home' | 'workshop' | 'carrier';
+      deliveryAddress?: string;
+    },
+  ) {
+    if (user.role !== 'client') throw new ForbiddenException('Seul le client peut modifier sa demande.');
+    return this.serviceOrdersService.resubmitDetails(user.id, id, body);
+  }
+
   @Get('artisan/mine')
   getArtisanOrders(@CurrentUser() user: AuthUser) {
     return this.serviceOrdersService.findByArtisan(user.id);
