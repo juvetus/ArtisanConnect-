@@ -237,3 +237,5 @@ Le volet institutions peut devenir un produit à part entière, avec son propre 
 La base fonctionnelle est déjà plus avancée que ne le laisse entendre l'analyse initiale : vérification progressive, avis liés aux commandes, demandes de devis, commandes et gestion de certains incidents sont présents. Le risque principal du pilote est maintenant l'écart entre cette capacité technique et l'offre réelle, la clarté des conditions et l'exécution quotidienne.
 
 Priorité : obtenir des interactions réelles et mesurables dans un périmètre limité, corriger les frictions observées, puis élargir sur la base des résultats.
+
+**Facturation ajoutée le 27 septembre 2026 :** les commandes produit payées disposent maintenant d’une entité `Invoice`, d’un numéro unique, d’un PDF téléchargeable par le client ou le vendeur, d’un envoi e-mail et d’un détail HT/TVA/TTC. Le taux TVA est configurable et vaut `0` par défaut tant que le régime fiscal de Tekou Digital n’est pas validé. Le document reste donc un reçu/facture provisoire à faire valider avant publication commerciale.

@@ -191,6 +191,33 @@ export class PdfService {
     ]);
   }
 
+  invoice(invoice: any, order: any) {
+    return this.render(`Facture ${invoice.invoiceNumber}`, 'Document de facturation', [
+      {
+        heading: 'Émetteur et client',
+        headers: ['Champ', 'Valeur'],
+        columns: [0.34, 0.66],
+        rows: [
+          ['Émetteur', 'Tekou Digital — ArtisanConnect (informations légales à confirmer)'],
+          ['Client', order.buyer?.name ?? invoice.buyerId],
+          ['Commande', order.id],
+          ['Date', invoice.issuedAt ? new Date(invoice.issuedAt).toLocaleDateString('fr-FR') : '—'],
+        ],
+      },
+      {
+        heading: 'Détail',
+        headers: ['Désignation', 'Montant'],
+        columns: [0.7, 0.3],
+        rows: [
+          [order.listing?.title ?? 'Commande ArtisanConnect', `${Number(invoice.subtotal).toLocaleString('fr-FR')} ${invoice.currency}`],
+          ['Sous-total HT', `${Number(invoice.subtotal).toLocaleString('fr-FR')} ${invoice.currency}`],
+          [`TVA (${Number(invoice.taxRate).toLocaleString('fr-FR')} %)`, `${Number(invoice.taxAmount).toLocaleString('fr-FR')} ${invoice.currency}`],
+          ['Total TTC', `${Number(invoice.total).toLocaleString('fr-FR')} ${invoice.currency}`],
+        ],
+      },
+    ], 'ArtisanConnect — Document provisoire à valider juridiquement');
+  }
+
   payment(order: any, payment: any) {
     return this.render('Reçu de paiement', 'Justificatif de règlement', [
       {

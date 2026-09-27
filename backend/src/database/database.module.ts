@@ -29,6 +29,7 @@ import {
   CustomerRequest,
   Report,
   AnalyticsEvent,
+  Invoice,
 } from '../entities/index.js';
 import { PilotTrustFeatures1758200000000 } from './migrations/1758200000000-pilot-trust-features.js';
 import { CustomerRequestStatuses1758300000000 } from './migrations/1758300000000-customer-request-statuses.js';
@@ -53,6 +54,7 @@ import { CustomerRequestPayments1760100000000 } from './migrations/1760100000000
 import { CustomerRequestAdminReplies1760200000000 } from './migrations/1760200000000-customer-request-admin-replies.js';
 import { CatalogDemoFlags1760300000000 } from './migrations/1760300000000-catalog-demo-flags.js';
 import { PilotFunnelProvenance1760400000000 } from './migrations/1760400000000-pilot-funnel-provenance.js';
+import { Invoices1760500000000 } from './migrations/1760500000000-invoices.js';
 
 @Module({
   imports: [
@@ -65,9 +67,9 @@ import { PilotFunnelProvenance1760400000000 } from './migrations/1760400000000-p
         username: configService.get('DB_USERNAME', 'artisan'),
         password: configService.get('DB_PASSWORD', 'artisan_password_dev'),
         database: configService.get('DB_DATABASE', 'artisan_connect'),
-        entities: [User, Listing, Order, Payment, Review, Message, InstitutionalResource, InstitutionalProgram, ArtisanFormalization, Shop, Notification, Service, ServiceOrder, ServiceQuote, ServicePayment, ServiceReview, ServiceValidationHistory, ProgramApplication, Subscription, SubscriptionPlan, PromotionCode, PromotionRedemption, AiImageGeneration, Payout, CustomerRequest, Report, AnalyticsEvent],
+        entities: [User, Listing, Order, Payment, Review, Message, InstitutionalResource, InstitutionalProgram, ArtisanFormalization, Shop, Notification, Service, ServiceOrder, ServiceQuote, ServicePayment, ServiceReview, ServiceValidationHistory, ProgramApplication, Subscription, SubscriptionPlan, PromotionCode, PromotionRedemption, AiImageGeneration, Payout, CustomerRequest, Report, AnalyticsEvent, Invoice],
         synchronize: configService.get('DB_SYNCHRONIZE', configService.get('NODE_ENV') === 'development' ? 'true' : 'false') === 'true',
-        migrations: [PilotTrustFeatures1758200000000, CustomerRequestStatuses1758300000000, AnalyticsEvents1758400000000, ShopAvailability1758500000000, CustomerRequestAttachments1758600000000, ListingSponsoring1758700000000, UserAvatar1758800000000, ServiceVideos1758900000000, InstitutionMedia1759000000000, InstitutionPdfs1759100000000, QuoteDetails1759200000000, ServiceExternalUrls1759300000000, ListingAiImages1759400000000, PromotionCodes1759500000000, PromotionRedemptions1759600000000, PromotionMaxUses1759700000000, AiImageGenerations1759800000000, PromotionPlanRestrictions1759900000000, ServiceSponsoring1760000000000, CustomerRequestPayments1760100000000, CustomerRequestAdminReplies1760200000000, CatalogDemoFlags1760300000000, PilotFunnelProvenance1760400000000],
+        migrations: [PilotTrustFeatures1758200000000, CustomerRequestStatuses1758300000000, AnalyticsEvents1758400000000, ShopAvailability1758500000000, CustomerRequestAttachments1758600000000, ListingSponsoring1758700000000, UserAvatar1758800000000, ServiceVideos1758900000000, InstitutionMedia1759000000000, InstitutionPdfs1759100000000, QuoteDetails1759200000000, ServiceExternalUrls1759300000000, ListingAiImages1759400000000, PromotionCodes1759500000000, PromotionRedemptions1759600000000, PromotionMaxUses1759700000000, AiImageGenerations1759800000000, PromotionPlanRestrictions1759900000000, ServiceSponsoring1760000000000, CustomerRequestPayments1760100000000, CustomerRequestAdminReplies1760200000000, CatalogDemoFlags1760300000000, PilotFunnelProvenance1760400000000, Invoices1760500000000],
         // En production `synchronize` est désactivé : le schéma évolue uniquement par migrations.
         migrationsRun: configService.get('DB_SYNCHRONIZE', configService.get('NODE_ENV') === 'development' ? 'true' : 'false') !== 'true',
         logging: configService.get('NODE_ENV') === 'development',
@@ -75,7 +77,7 @@ import { PilotFunnelProvenance1760400000000 } from './migrations/1760400000000-p
         retryDelay: Number(configService.get('DB_RETRY_DELAY', 3000)),
       }),
     }),
-    TypeOrmModule.forFeature([User, Listing, Order, Payment, Review, Message, InstitutionalResource, InstitutionalProgram, ArtisanFormalization, Shop, Notification, Service, ServiceOrder, ServiceQuote, ServicePayment, ServiceReview, ServiceValidationHistory, ProgramApplication, Subscription, SubscriptionPlan, PromotionCode, PromotionRedemption, AiImageGeneration, Payout, CustomerRequest, Report, AnalyticsEvent]),
+    TypeOrmModule.forFeature([User, Listing, Order, Payment, Review, Message, InstitutionalResource, InstitutionalProgram, ArtisanFormalization, Shop, Notification, Service, ServiceOrder, ServiceQuote, ServicePayment, ServiceReview, ServiceValidationHistory, ProgramApplication, Subscription, SubscriptionPlan, PromotionCode, PromotionRedemption, AiImageGeneration, Payout, CustomerRequest, Report, AnalyticsEvent, Invoice]),
   ],
   exports: [TypeOrmModule],
 })

@@ -25,3 +25,4 @@ export { Payout } from './payout.entity.js';
 export { CustomerRequest } from './customer-request.entity.js';
 export { Report } from './report.entity.js';
 export { AnalyticsEvent } from './analytics-event.entity.js';
+export { Invoice } from './invoice.entity.js';
