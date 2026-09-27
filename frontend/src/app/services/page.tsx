@@ -148,13 +148,14 @@ export default function ServicesCatalogPage() {
 
       {isLoading ? <p className="text-stone-600">{t('action_loading')}</p> : null}
       {!isLoading && !displayedServices?.length ? <p className="rounded-lg border border-stone-200 bg-stone-50 p-6 text-stone-600">{t('services_empty')}</p> : null}
-      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+      <div className={`grid gap-5 ${displayedServices?.length === 1 ? 'max-w-3xl md:grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
         {displayedServices?.map((service) => {
           const isDemo = isDemoContent(service.id, service.isDemo);
           const isWoman = service.artisan?.gender === 'female';
           const isCoop = service.artisan?.gender === 'cooperative';
           const imageUrl = service.fileUrls?.[0];
           const priceLabel = service.price ? formatXAF(service.price) : service.priceMin && service.priceMax ? `${formatXAF(service.priceMin)} - ${formatXAF(service.priceMax)}` : (english ? 'On quote' : 'Sur devis');
+          const description = service.description.replace(/\*\*/g, '').replace(/^#+\s*/gm, '').trim();
           const quoteHref = `/customer-requests?category=${encodeURIComponent(service.category)}${service.artisan?.location ? `&city=${encodeURIComponent(service.artisan.location)}` : ''}`;
           return (
             <article key={service.id} className="relative flex flex-col overflow-hidden rounded-lg border border-stone-200 bg-white shadow-xs">
@@ -176,10 +177,12 @@ export default function ServicesCatalogPage() {
               )}
               <div className="flex-1">
                 <p className="text-xs font-medium uppercase tracking-wide text-amber-700">{categoryLabel(service.category)}</p>
-                <h2 className="mt-2 text-xl font-semibold text-stone-900">{service.title}</h2>
-                <p className="mt-3 line-clamp-4 text-sm text-stone-600">{service.description}</p>
-                <p className="mt-4 text-lg font-bold text-stone-950">{priceLabel}</p>
-                <p className="mt-4 text-sm text-stone-600">{t('service_estimated_days', { days: service.estimatedDays })}</p>
+                <h2 className="mt-2 line-clamp-2 text-xl font-semibold text-stone-900">{service.title}</h2>
+                <p className="mt-3 min-h-20 line-clamp-4 text-sm leading-6 text-stone-600">{description}</p>
+                <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2 border-t border-stone-100 pt-3">
+                  <p className="text-lg font-bold text-stone-950">{priceLabel}</p>
+                  <p className="text-sm text-stone-600">{t('service_estimated_days', { days: service.estimatedDays })}</p>
+                </div>
                 <p className="mt-2 text-sm text-stone-600">{service.averageRating ? `★ ${service.averageRating}/5` : t('service_no_rating')} <span className="text-stone-400">{t('service_reviews_count', { count: service.reviewCount ?? 0 })}</span></p>
                 <p className="mt-2 truncate text-xs text-stone-500">{service.artisan?.name ?? (english ? 'Local artisan' : 'Artisan local')}{service.artisan?.location ? ` · ${service.artisan.location}` : ''}</p>
               </div>
