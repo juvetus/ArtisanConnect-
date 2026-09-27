@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { Order, Payment } from '../../entities/index.js';
 import { MomoService } from '../momo/momo.service.js';
+import { InvoicesService } from '../invoices/invoices.service.js';
 
 @Injectable()
 export class PaymentsService {
@@ -11,6 +12,7 @@ export class PaymentsService {
     private paymentsRepository: Repository<Payment>,
     private dataSource: DataSource,
     private momoService: MomoService,
+    private invoicesService: InvoicesService,
   ) {}
 
   async findByOrder(orderId: string): Promise<Payment | null> {
@@ -85,7 +87,7 @@ export class PaymentsService {
   }
 
   async confirmMomoPayment(orderId: string, buyerId: string): Promise<Payment> {
-    return this.dataSource.transaction(async (manager) => {
+    const payment = await this.dataSource.transaction(async (manager) => {
       const order = await manager.findOne(Order, { where: { id: orderId } });
       if (!order) throw new NotFoundException('Commande introuvable');
       if (order.buyerId !== buyerId) {
@@ -116,6 +118,8 @@ export class PaymentsService {
 
       return payment;
     });
+    await this.invoicesService.issueForOrder(orderId);
+    return payment;
   }
 
   /**
@@ -123,7 +127,7 @@ export class PaymentsService {
    * et la commande passée à « terminée » dans la même transaction.
    */
   async confirmCashPayment(orderId: string, sellerId: string): Promise<Payment> {
-    return this.dataSource.transaction(async (manager) => {
+    const payment = await this.dataSource.transaction(async (manager) => {
       const order = await manager.findOne(Order, { where: { id: orderId } });
       if (!order) throw new NotFoundException('Commande introuvable');
       if (order.sellerId !== sellerId) {
@@ -146,6 +150,8 @@ export class PaymentsService {
 
       return payment;
     });
+    await this.invoicesService.issueForOrder(orderId);
+    return payment;
   }
 
   async confirmOrangeMoneyTest(orderId: string, buyerId: string): Promise<Payment> {
@@ -153,7 +159,7 @@ export class PaymentsService {
       throw new ForbiddenException('La confirmation mock Orange Money est désactivée');
     }
 
-    return this.dataSource.transaction(async (manager) => {
+    const payment = await this.dataSource.transaction(async (manager) => {
       const order = await manager.findOne(Order, { where: { id: orderId } });
       if (!order) throw new NotFoundException('Commande introuvable');
       if (order.buyerId !== buyerId) {
@@ -176,6 +182,8 @@ export class PaymentsService {
       await manager.update(Order, orderId, { status: 'confirmed' });
       return payment;
     });
+    await this.invoicesService.issueForOrder(orderId);
+    return payment;
   }
 
   async handleMomoWebhook(body: Record<string, unknown>): Promise<{ success: boolean; message: string }> {
@@ -198,6 +206,7 @@ export class PaymentsService {
       payment.orangeMoneyTransactionId = String(payload.transactionId || payload.referenceId || payment.orangeMoneyTransactionId || `MOMO-${Date.now()}`);
       await this.paymentsRepository.save(payment);
       await this.dataSource.manager.update(Order, orderId, { status: 'confirmed' });
+      await this.invoicesService.issueForOrder(orderId);
       return { success: true, message: 'Paiement MoMo validé' };
     }
 

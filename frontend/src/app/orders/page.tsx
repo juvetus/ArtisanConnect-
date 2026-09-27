@@ -182,6 +182,18 @@ export default function OrdersPage() {
                     </>
                   )}
                 </p>
+                {order.status === 'completed' && order.payment && ['confirmed', 'captured'].includes(order.payment.status) ? (
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      onClick={() => api.downloadInvoice(order.id).catch((error) => setMomoError((current) => ({ ...current, [order.id]: error instanceof Error ? error.message : 'Facture indisponible.' })))}
+                      className="rounded-md border border-amber-700 px-3 py-1.5 text-sm font-medium text-amber-800 hover:bg-amber-50"
+                    >
+                      Télécharger la facture
+                    </button>
+                    {momoError[order.id] ? <p className="mt-1 text-xs text-red-600">{momoError[order.id]}</p> : null}
+                  </div>
+                ) : null}
                 <p className="mt-1 text-sm text-stone-500">
                   {t('orders_delivery')} : {order.deliveryMethod === 'home'
                     ? `${t('orders_home_delivery')}${order.deliveryAddress ? ` - ${order.deliveryAddress}` : ''}`

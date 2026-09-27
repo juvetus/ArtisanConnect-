@@ -195,6 +195,8 @@ export const api = {
 
   buyerOrders: (buyerId: string) => request<Paginated<Order>>(`/orders/buyer/${buyerId}`),
 
+  downloadInvoice: (orderId: string) => downloadProtectedFile(`/invoices/order/${orderId}/pdf`, `facture-${orderId.slice(0, 8)}.pdf`),
+
   sellerOrders: (sellerId: string) => request<Paginated<Order>>(`/orders/seller/${sellerId}`),
 
   updateOrderStatus: (id: string, status: Order['status']) =>
