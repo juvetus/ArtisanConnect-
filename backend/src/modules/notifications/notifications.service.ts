@@ -48,13 +48,11 @@ export class NotificationsService {
         : baseUrl;
       const sends: Promise<unknown>[] = [];
       if (recipient.email && !recipient.email.endsWith('@phone.artisanconnect.local') && this.emailService) {
-        const escapedContent = this.escapeHtml(data.content).replace(/\n/g, '<br>');
-        const escapedLink = this.escapeHtml(link);
         sends.push(this.emailService.send({
           to: recipient.email,
           subject: `[ArtisanConnect] ${data.title}`,
           text: `${data.content}\n\nConsulter : ${link}`,
-          html: `<p>${escapedContent}</p><p><a href="${escapedLink}">Consulter sur ArtisanConnect</a></p>`,
+          html: this.buildNotificationHtml(data.title, data.content, link),
         }));
       }
 
@@ -78,6 +76,27 @@ export class NotificationsService {
       '"': '&quot;',
       "'": '&#039;',
     })[character] ?? character);
+  }
+
+  private buildNotificationHtml(title: string, content: string, link: string): string {
+    const escapedTitle = this.escapeHtml(title);
+    const escapedContent = this.escapeHtml(content).replace(/\n/g, '<br>');
+    const escapedLink = this.escapeHtml(link);
+    return `
+      <div style="margin:0;background:#f5f5f4;padding:32px 16px;font-family:Arial,Helvetica,sans-serif;color:#292524;line-height:1.5;">
+        <div style="max-width:640px;margin:0 auto;overflow:hidden;border:1px solid #e7e5e4;border-radius:12px;background:#ffffff;">
+          <div style="background:#1c1917;padding:24px 28px;color:#ffffff;">
+            <div style="font-size:22px;font-weight:700;letter-spacing:-.02em;">Artisan<span style="color:#fbbf24;">Connect</span></div>
+            <div style="margin-top:6px;color:#d6d3d1;font-size:13px;">Une notification concernant votre compte</div>
+          </div>
+          <div style="padding:28px;">
+            <h1 style="margin:0 0 20px;font-size:20px;color:#1c1917;">${escapedTitle}</h1>
+            <div style="border-left:4px solid #d97706;padding:4px 0 4px 16px;">${escapedContent}</div>
+            <a href="${escapedLink}" style="display:inline-block;margin-top:24px;border-radius:6px;background:#b45309;padding:12px 18px;color:#ffffff;text-decoration:none;font-weight:700;">Consulter sur ArtisanConnect</a>
+          </div>
+          <div style="border-top:1px solid #e7e5e4;padding:16px 28px;color:#78716c;font-size:12px;">ArtisanConnect · La marketplace des artisans et vendeurs locaux du Cameroun</div>
+        </div>
+      </div>`;
   }
 
   async notifyAdmins(data: { title: string; content: string; link: string; relatedId?: string }) {
