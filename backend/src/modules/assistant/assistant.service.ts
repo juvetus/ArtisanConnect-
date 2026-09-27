@@ -73,7 +73,7 @@ export class AssistantService {
         headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ model, prompt: generatedPrompt, size: '1024x1024' }),
       });
-    if (!response.ok) throw new BadRequestException('Le service de génération d’images est momentanément indisponible.');
+    if (!response.ok) throw new BadRequestException(await this.providerError(response, 'Le service de génération d’images est momentanément indisponible.'));
     const data = await response.json() as { data?: Array<{ url?: string; b64_json?: string }> };
     const generated = data.data?.[0];
     if (!generated?.url && !generated?.b64_json) throw new BadRequestException('Le service IA n’a produit aucune image.');
@@ -117,7 +117,7 @@ export class AssistantService {
         ],
       }),
     });
-    if (!response.ok) throw new BadRequestException('Le service IA est momentanément indisponible');
+    if (!response.ok) throw new BadRequestException(await this.providerError(response, 'Le service IA est momentanément indisponible'));
     const data = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
     const content = data.choices?.[0]?.message?.content?.trim();
     if (!content) throw new BadRequestException('Le service IA n’a produit aucun texte');
@@ -154,7 +154,7 @@ export class AssistantService {
         ],
       }),
     });
-    if (!response.ok) throw new BadRequestException('Le service d’analyse photo est momentanément indisponible.');
+    if (!response.ok) throw new BadRequestException(await this.providerError(response, 'Le service d’analyse photo est momentanément indisponible.'));
     const data = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
     const content = data.choices?.[0]?.message?.content;
     if (!content) throw new BadRequestException('Le service IA n’a produit aucune analyse.');
@@ -183,6 +183,16 @@ export class AssistantService {
       };
     } catch {
       throw new BadRequestException('Le résultat d’analyse photo est invalide.');
+    }
+  }
+
+  private async providerError(response: Response, fallback: string): Promise<string> {
+    try {
+      const body = await response.json() as { error?: { message?: string } | string; message?: string };
+      const detail = typeof body.error === 'string' ? body.error : body.error?.message ?? body.message;
+      return detail ? `${fallback} (${detail.slice(0, 240)})` : fallback;
+    } catch {
+      return fallback;
     }
   }
 
