@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { api } from '@/lib/api';
-import { SERVICE_CATEGORIES, PRODUCT_CATEGORIES, categoryLabel } from '@/lib/categories';
+import { SERVICE_CATEGORIES, PRODUCT_CATEGORIES, categoryGroups, categoryLabel } from '@/lib/categories';
 import { CITIES, NEIGHBORHOODS, slugify } from '@/lib/locations';
 import { useLanguage } from '@/lib/language-context';
 
@@ -92,16 +92,13 @@ export function ArtisanFilters({
             className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
           >
             <option value="">{english ? 'All trades' : 'Tous les métiers'}</option>
-            <optgroup label={english ? 'Services' : 'Services'}>
-              {SERVICE_CATEGORIES.map((item) => (
-                <option key={item.value} value={item.value}>{categoryLabel(item.value)}</option>
-              ))}
-            </optgroup>
-            <optgroup label={english ? 'Products' : 'Produits'}>
-              {PRODUCT_CATEGORIES.map((item) => (
-                <option key={item.value} value={item.value}>{categoryLabel(item.value)}</option>
-              ))}
-            </optgroup>
+            {[...categoryGroups(SERVICE_CATEGORIES), ...categoryGroups(PRODUCT_CATEGORIES)].map((group) => (
+              <optgroup key={group.key} label={english ? group.labelEn : group.labelFr}>
+                {group.categories.map((item) => (
+                  <option key={item.value} value={item.value}>{categoryLabel(item.value, language)}</option>
+                ))}
+              </optgroup>
+            ))}
           </select>
         </label>
 

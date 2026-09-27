@@ -9,7 +9,7 @@ import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
 import type { Service } from '@/lib/types';
 import { Pagination } from '@/components/Pagination';
-import { categoryLabel, SERVICE_CATEGORIES } from '@/lib/categories';
+import { categoryLabel, categoryGroups, SERVICE_CATEGORIES } from '@/lib/categories';
 import { DemoBadge } from '@/components/DemoBadge';
 import { isDemoContent } from '@/lib/demo-mode';
 import { formatXAF } from '@/lib/format';
@@ -117,8 +117,12 @@ export default function ServicesCatalogPage() {
               className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
             >
               <option value="">{english ? 'All trades' : 'Tous les métiers'}</option>
-              {SERVICE_CATEGORIES.map((item) => (
-                <option key={item.value} value={item.value}>{categoryLabel(item.value)}</option>
+              {categoryGroups(SERVICE_CATEGORIES).map((group) => (
+                <optgroup key={group.key} label={english ? group.labelEn : group.labelFr}>
+                  {group.categories.map((item) => (
+                    <option key={item.value} value={item.value}>{categoryLabel(item.value, language)}</option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </label>

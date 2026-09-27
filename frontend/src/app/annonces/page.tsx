@@ -8,7 +8,7 @@ import { Pagination } from '@/components/Pagination';
 import { api } from '@/lib/api';
 import { useLanguage } from '@/lib/language-context';
 import { CITIES, NEIGHBORHOODS, slugify } from '@/lib/locations';
-import { PRODUCT_CATEGORIES, SERVICE_CATEGORIES, categoryLabel } from '@/lib/categories';
+import { PRODUCT_CATEGORIES, SERVICE_CATEGORIES, categoryGroups, categoryLabel } from '@/lib/categories';
 import type { Listing } from '@/lib/types';
 
 type Filters = { q?: string; category?: string; type?: 'product' | 'service'; city?: string; neighborhood?: string; minPrice?: number; maxPrice?: number };
@@ -59,7 +59,33 @@ export default function ListingsPage() {
           <label className="text-sm font-medium text-stone-700">{french ? 'Budget min. (FCFA)' : 'Min. budget (XAF)'}<input type="number" min={0} step={500} value={filters.minPrice ?? ''} onChange={(event) => updateFilters({ minPrice: event.target.value ? Number(event.target.value) : undefined })} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2" /></label>
           <label className="text-sm font-medium text-stone-700">{french ? 'Budget max. (FCFA)' : 'Max. budget (XAF)'}<input type="number" min={0} step={500} value={filters.maxPrice ?? ''} onChange={(event) => updateFilters({ maxPrice: event.target.value ? Number(event.target.value) : undefined })} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2" /></label>
         </div>
-        <details><summary className="cursor-pointer text-sm font-medium text-stone-700">{french ? 'Choisir une catégorie' : 'Choose a category'}</summary><div className="mt-3 flex flex-wrap gap-2">{[...PRODUCT_CATEGORIES, ...SERVICE_CATEGORIES].map((category) => <button key={category.value} type="button" onClick={() => updateFilters({ category: filters.category === category.value ? undefined : category.value })} className={`rounded-full border px-3 py-1.5 text-sm ${filters.category === category.value ? 'border-amber-700 bg-amber-700 text-white' : 'border-stone-300 bg-white text-stone-700'}`}>{categoryLabel(category.value)}</button>)}</div></details>
+        <details>
+          <summary className="cursor-pointer text-sm font-medium text-stone-700">{french ? 'Choisir une catégorie' : 'Choose a category'}</summary>
+          <div className="mt-3 space-y-4">
+            {[
+              { title: french ? 'Produits' : 'Products', categories: PRODUCT_CATEGORIES },
+              { title: french ? 'Services' : 'Services', categories: SERVICE_CATEGORIES },
+            ].map((section) => (
+              <div key={section.title}>
+                <h3 className="mb-2 text-sm font-semibold text-stone-700">{section.title}</h3>
+                <div className="space-y-3">
+                  {categoryGroups(section.categories).map((group) => (
+                    <div key={group.key}>
+                      <p className="mb-1 text-xs font-medium text-stone-500">{french ? group.labelFr : group.labelEn}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {group.categories.map((category) => (
+                          <button key={category.value} type="button" onClick={() => updateFilters({ category: filters.category === category.value ? undefined : category.value })} className={`rounded-full border px-3 py-1.5 text-sm ${filters.category === category.value ? 'border-amber-700 bg-amber-700 text-white' : 'border-stone-300 bg-white text-stone-700'}`}>
+                            {categoryLabel(category.value, language)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </details>
       </section>
 
       {error ? <p className="rounded-md bg-amber-50 p-4 text-sm text-amber-900">{french ? 'Le catalogue est momentanément indisponible.' : 'The catalog is temporarily unavailable.'}</p> : null}

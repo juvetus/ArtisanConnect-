@@ -8,7 +8,7 @@ import useSWR from 'swr';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
-import { CATEGORIES, PRODUCT_CATEGORIES, SERVICE_CATEGORIES, categoryLabel } from '@/lib/categories';
+import { CATEGORIES, PRODUCT_CATEGORIES, SERVICE_CATEGORIES, categoryGroups, categoryLabel } from '@/lib/categories';
 import { formatXAF } from '@/lib/format';
 import { StatusBadge } from '@/components/StatusBadge';
 import { AiTextSuggestion } from '@/components/AiTextSuggestion';
@@ -760,20 +760,11 @@ export default function DashboardPage() {
                   }}
                   className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600"
                 >
-                  <optgroup label={t('filter_crafts')}>
-                    {PRODUCT_CATEGORIES.map((c) => (
-                      <option key={c.value} value={c.value}>
-                        {categoryLabel(c.value)}
-                      </option>
-                    ))}
-                  </optgroup>
-                  <optgroup label={t('filter_services')}>
-                    {SERVICE_CATEGORIES.map((c) => (
-                      <option key={c.value} value={c.value}>
-                        {categoryLabel(c.value)}
-                      </option>
-                    ))}
-                  </optgroup>
+                  {[...categoryGroups(PRODUCT_CATEGORIES), ...categoryGroups(SERVICE_CATEGORIES)].map((group) => (
+                    <optgroup key={group.key} label={english ? group.labelEn : group.labelFr}>
+                      {group.categories.map((c) => <option key={c.value} value={c.value}>{categoryLabel(c.value, language)}</option>)}
+                    </optgroup>
+                  ))}
                 </select>
               </div>
 

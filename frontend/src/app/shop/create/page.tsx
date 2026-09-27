@@ -7,7 +7,7 @@ import { api } from '@/lib/api';
 import { ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
-import { PRODUCT_CATEGORIES, categoryLabel } from '@/lib/categories';
+import { PRODUCT_CATEGORIES, categoryGroups, categoryLabel } from '@/lib/categories';
 import { SHOP_OPTIONAL_DOCS, SHOP_REQUIRED_DOCS, type KycDocument, type ShopType } from '@/lib/types';
 const LocationPicker = dynamic(() => import('@/components/LocationPicker').then((module) => module.LocationPicker), { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-md bg-stone-100" /> });
 
@@ -15,7 +15,7 @@ const SHOP_TYPES: ShopType[] = ['artisan', 'reseller', 'individual'];
 
 export default function CreateShopPage() {
   const { user, ready } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const router = useRouter();
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -284,10 +284,12 @@ export default function CreateShopPage() {
                 onChange={(e) => setCategory(e.target.value)}
                 className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600"
               >
-                {PRODUCT_CATEGORIES.map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {categoryLabel(c.value)}
-                  </option>
+                {categoryGroups(PRODUCT_CATEGORIES).map((group) => (
+                  <optgroup key={group.key} label={language === 'en' ? group.labelEn : group.labelFr}>
+                    {group.categories.map((c) => (
+                      <option key={c.value} value={c.value}>{categoryLabel(c.value, language)}</option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </div>

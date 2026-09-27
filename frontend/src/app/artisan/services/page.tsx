@@ -7,7 +7,7 @@ import useSWR from 'swr';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
-import { SERVICE_CATEGORIES, categoryLabel } from '@/lib/categories';
+import { SERVICE_CATEGORIES, categoryGroups, categoryLabel } from '@/lib/categories';
 import { AiTextSuggestion } from '@/components/AiTextSuggestion';
 
 interface Service {
@@ -356,10 +356,12 @@ export default function ServicesPage() {
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                   className="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-amber-500 focus:outline-none"
                 >
-                  {categories.map((cat) => (
-                    <option key={cat.value} value={cat.value}>
-                      {cat.labelFr}
-                    </option>
+                  {categoryGroups(categories).map((group) => (
+                    <optgroup key={group.key} label={group.labelFr}>
+                      {group.categories.map((cat) => (
+                        <option key={cat.value} value={cat.value}>{cat.labelFr}</option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
               </div>
