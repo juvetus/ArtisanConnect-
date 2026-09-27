@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { useLanguage } from '@/lib/language-context';
 import { formatXAF } from '@/lib/format';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Pagination } from '@/components/Pagination';
@@ -58,6 +59,8 @@ function roleLabel(role: Role) {
 
 export default function AdminPage() {
   const { user, ready } = useAuth();
+  const { language } = useLanguage();
+  const english = language === 'en';
   const router = useRouter();
   const [view, setView] = useState<'overview' | 'users' | 'listings' | 'shops' | 'formalizations' | 'orders' | 'subscriptions' | 'moderation' | 'analytics'>('overview');
   const [actionError, setActionError] = useState('');
@@ -174,23 +177,23 @@ export default function AdminPage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm font-medium uppercase tracking-wide text-amber-700">Pilotage</p>
-          <h1 className="text-3xl font-semibold">Administration</h1>
-          <p className="mt-1 text-stone-600">Vue opérationnelle de la marketplace camerounaise.</p>
+          <p className="text-sm font-medium uppercase tracking-wide text-amber-700">{english ? 'Operations' : 'Pilotage'}</p>
+          <h1 className="text-3xl font-semibold">{english ? 'Administration' : 'Administration'}</h1>
+          <p className="mt-1 text-stone-600">{english ? 'Operational view of the Cameroonian marketplace.' : 'Vue opérationnelle de la marketplace camerounaise.'}</p>
         </div>
-        {view === 'overview' && <button onClick={() => void api.downloadAdminReportPdf()} className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50">Exporter le rapport PDF</button>}
+        {view === 'overview' && <button onClick={() => void api.downloadAdminReportPdf()} className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50">{english ? 'Export PDF report' : 'Exporter le rapport PDF'}</button>}
         <div className="flex rounded-lg border border-stone-200 bg-white p-1 text-sm">
           {[
-            ['overview', 'Synthèse'],
-            ...(user.role !== 'viewer' ? [['shops', 'Boutiques']] : []),
-            ...(user.role !== 'viewer' ? [['formalizations', 'Formalisations']] : []),
-            ...(user.role === 'admin' ? [['service-validation', 'Valider services']] : []),
-            ...(user.role === 'admin' ? [['users', 'Utilisateurs']] : []),
-            ...(user.role !== 'viewer' ? [['listings', 'Annonces']] : []),
-            ...(user.role === 'admin' ? [['moderation', 'Modération']] : []),
+            ['overview', english ? 'Summary' : 'Synthèse'],
+            ...(user.role !== 'viewer' ? [['shops', english ? 'Shops' : 'Boutiques']] : []),
+            ...(user.role !== 'viewer' ? [['formalizations', english ? 'Formalization' : 'Formalisations']] : []),
+            ...(user.role === 'admin' ? [['service-validation', english ? 'Validate services' : 'Valider services']] : []),
+            ...(user.role === 'admin' ? [['users', english ? 'Users' : 'Utilisateurs']] : []),
+            ...(user.role !== 'viewer' ? [['listings', english ? 'Listings' : 'Annonces']] : []),
+            ...(user.role === 'admin' ? [['moderation', english ? 'Moderation' : 'Modération']] : []),
             ...(user.role === 'admin' ? [['analytics', 'Analytics']] : []),
-            ...(user.role === 'admin' ? [['subscriptions', 'Abonnements']] : []),
-            ['orders', 'Commandes'],
+            ...(user.role === 'admin' ? [['subscriptions', english ? 'Subscriptions' : 'Abonnements']] : []),
+            ['orders', english ? 'Orders' : 'Commandes'],
           ].map(([value, label]) => (
             value === 'service-validation' ? (
               <Link key={value} href="/admin/services" className="rounded-md px-3 py-2 text-stone-600 hover:bg-stone-100">
@@ -214,10 +217,10 @@ export default function AdminPage() {
       {view === 'overview' && (
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            ['Utilisateurs', stats.users, `${stats.artisans} artisans · ${stats.clients} clients`],
-            ['Annonces actives', stats.listings, 'Produits et services visibles'],
-            ['Commandes', stats.orders, `${stats.pendingPayments} paiement(s) en attente`],
-            ['Volume terminé', formatXAF(stats.revenue), `Commission (10 %) : ${formatXAF(stats.platformFees)}${stats.servicePlatformFees ? ` · Services : ${formatXAF(stats.servicePlatformFees)}` : ''}`],
+            [english ? 'Users' : 'Utilisateurs', stats.users, english ? `${stats.artisans} artisans · ${stats.clients} clients` : `${stats.artisans} artisans · ${stats.clients} clients`],
+            [english ? 'Active listings' : 'Annonces actives', stats.listings, english ? 'Visible products and services' : 'Produits et services visibles'],
+            [english ? 'Orders' : 'Commandes', stats.orders, english ? `${stats.pendingPayments} payment(s) pending` : `${stats.pendingPayments} paiement(s) en attente`],
+            [english ? 'Completed volume' : 'Volume terminé', formatXAF(stats.revenue), `${english ? 'Commission (10%)' : 'Commission (10 %)'} : ${formatXAF(stats.platformFees)}${stats.servicePlatformFees ? ` · ${english ? 'Services' : 'Services'} : ${formatXAF(stats.servicePlatformFees)}` : ''}`],
           ].map(([label, value, detail]) => (
             <div key={label} className="rounded-lg border border-stone-200 bg-white p-5">
               <p className="text-sm text-stone-600">{label}</p>
@@ -231,10 +234,10 @@ export default function AdminPage() {
       {view === 'overview' && (
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            ['Femmes Artisanes', `${stats.womenArtisans ?? 0} (${stats.womenPercentage ?? 0}%)`, 'Entrepreneuriat féminin (BuyFromWomen)'],
-            ['Coopératives & GIC', `${stats.cooperativeArtisans ?? 0} (${stats.cooperativePercentage ?? 0}%)`, 'Groupements et structures collectives'],
-            ['Institutions partenaires', stats.institutions ?? 0, 'Acteurs institutionnels'],
-            ['Dispositifs & Candidatures', `${stats.programs ?? 0} prog. · ${stats.resources ?? 0} ress.`, `${stats.programApplications ?? 0} candidature(s) enregistrée(s)`],
+            [english ? 'Women artisans' : 'Femmes Artisanes', `${stats.womenArtisans ?? 0} (${stats.womenPercentage ?? 0}%)`, english ? 'Women entrepreneurship (BuyFromWomen)' : 'Entrepreneuriat féminin (BuyFromWomen)'],
+            [english ? 'Cooperatives & GICs' : 'Coopératives & GIC', `${stats.cooperativeArtisans ?? 0} (${stats.cooperativePercentage ?? 0}%)`, english ? 'Collective groups and structures' : 'Groupements et structures collectives'],
+            [english ? 'Partner institutions' : 'Institutions partenaires', stats.institutions ?? 0, english ? 'Institutional actors' : 'Acteurs institutionnels'],
+            [english ? 'Programs & applications' : 'Dispositifs & Candidatures', `${stats.programs ?? 0} prog. · ${stats.resources ?? 0} res.`, `${stats.programApplications ?? 0} ${english ? 'application(s) recorded' : 'candidature(s) enregistrée(s)'}`],
           ].map(([label, value, detail]) => (
             <div key={label} className="rounded-lg border border-stone-200 bg-white p-5">
               <p className="text-sm text-stone-600">{label}</p>
@@ -249,18 +252,18 @@ export default function AdminPage() {
         <section className="rounded-lg border border-amber-200 bg-amber-50/60 p-6">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-stone-900">Indicateurs du pilote vendeur</h2>
-              <p className="mt-1 text-sm text-stone-600">Données cumulées des boutiques actives.</p>
+              <h2 className="text-lg font-semibold text-stone-900">{english ? 'Seller pilot indicators' : 'Indicateurs du pilote vendeur'}</h2>
+              <p className="mt-1 text-sm text-stone-600">{english ? 'Cumulative data from active shops.' : 'Données cumulées des boutiques actives.'}</p>
             </div>
-            <span className="text-xs font-medium uppercase tracking-wide text-amber-800">Lecture équipe admin</span>
+            <span className="text-xs font-medium uppercase tracking-wide text-amber-800">{english ? 'Admin team view' : 'Lecture équipe admin'}</span>
           </div>
           <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {[
-              ['Boutiques actives', stats.activeShops ?? 0],
-              ['Vues boutique', stats.shopViews ?? 0],
-              ['Contacts WhatsApp', stats.whatsappContacts ?? 0],
-              ['Partages', stats.shopShares ?? 0],
-              ['Ventes réussies', stats.successfulSales ?? 0],
+              [english ? 'Active shops' : 'Boutiques actives', stats.activeShops ?? 0],
+              [english ? 'Shop views' : 'Vues boutique', stats.shopViews ?? 0],
+              [english ? 'WhatsApp contacts' : 'Contacts WhatsApp', stats.whatsappContacts ?? 0],
+              [english ? 'Shares' : 'Partages', stats.shopShares ?? 0],
+              [english ? 'Successful sales' : 'Ventes réussies', stats.successfulSales ?? 0],
             ].map(([label, value]) => (
               <div key={label} className="rounded-md border border-amber-100 bg-white p-4">
                 <p className="text-sm text-stone-600">{label}</p>
