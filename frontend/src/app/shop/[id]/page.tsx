@@ -66,6 +66,14 @@ export default async function ShopPublicPage({ params }: { params: Promise<{ id:
     unavailable: { label: '● Indisponible actuellement', className: 'bg-stone-100 text-stone-600' },
   };
   const availability = availabilityLabel[shop.availability ?? 'available'];
+  const interventionLabels: Record<string, string> = {
+    workshop: 'À l’atelier',
+    home: 'À domicile',
+    carrier: 'Livraison / transporteur',
+  };
+  const interventionMethods = shop.deliveryMethods?.length
+    ? shop.deliveryMethods
+    : [shop.deliveryMode ?? 'workshop'];
 
   return (
     <main className="mx-auto max-w-3xl p-6">
@@ -109,6 +117,12 @@ export default async function ShopPublicPage({ params }: { params: Promise<{ id:
             <p className="text-xs uppercase tracking-wide text-stone-500">Délai moyen</p>
             <p className="mt-1 font-medium text-stone-900">
               {shop.averageDelayDays ? `${shop.averageDelayDays} jours` : 'À convenir'}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-stone-500">Mode d’intervention</p>
+            <p className="mt-1 font-medium text-stone-900">
+              {interventionMethods.map((method) => interventionLabels[method] ?? method).join(' · ')}
             </p>
           </div>
           <div className="sm:col-span-2 lg:col-span-4 flex flex-wrap items-center gap-3 border-t border-stone-100 pt-3">
