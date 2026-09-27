@@ -34,6 +34,83 @@ export type BlogArticle = {
 
 export const blogArticles: BlogArticle[] = [
   {
+    slug: 'appel-100-heroines-systemes-agroalimentaires-cameroun',
+    category: { fr: 'Opportunités', en: 'Opportunities' },
+    title: {
+      fr: '100 Héroïnes : un appel pour valoriser les femmes des systèmes agroalimentaires',
+      en: '100 Heroines: a call to recognise women transforming agrifood systems',
+    },
+    excerpt: {
+      fr: 'La FAO lance une initiative internationale mettant en lumière 100 femmes, dont trois Camerounaises, engagées dans l’agriculture, la transformation et le développement rural.',
+      en: 'The FAO has launched an international initiative recognising 100 women, including three Cameroonians, working in agriculture, processing and rural development.',
+    },
+    coverImage: '/images/41d62fbdc29e6747a08fa625f29d6d62.jpg',
+    coverAlt: { fr: 'Femme camerounaise portant une tenue traditionnelle colorée', en: 'Cameroonian woman wearing a colourful traditional outfit' },
+    sources: [{ label: 'MINPMEESA - Appel à candidatures 100 Héroïnes', url: 'https://www.minpmeesa.cm/site/appel-a-candidatures-100-heroines-des-systemes-agroalimentaires-et-du-developpement-rural/' }],
+    author: 'L’équipe ArtisanConnect',
+    publishedAt: '2026-09-28',
+    readingTime: 3,
+    keywords: ['100 Héroïnes', 'FAO Cameroun', 'femmes agroalimentaire', 'développement rural Cameroun'],
+    sections: {
+      fr: [
+        {
+          heading: 'Une initiative internationale',
+          paragraphs: [
+            'Le MINPMEESA relaie un appel à candidatures lancé par l’Organisation des Nations Unies pour l’Alimentation et l’Agriculture (FAO) dans le cadre de l’initiative « 100 Héroïnes des systèmes agroalimentaires et du développement rural ».',
+            'L’objectif est de mettre en lumière 100 femmes remarquables à travers le monde. Trois places sont annoncées pour des Camerounaises dont le parcours contribue à transformer les systèmes agroalimentaires ou à soutenir le développement rural.',
+          ],
+        },
+        {
+          heading: 'Quels parcours peuvent être valorisés ?',
+          paragraphs: ['L’appel concerne notamment les femmes qui créent de la valeur et un impact dans les domaines suivants :'],
+          bullets: ['production agricole et transformation agroalimentaire ;', 'entrepreneuriat et innovation ;', 'nutrition et accès aux marchés ;', 'développement rural ;', 'valorisation des savoirs et pratiques traditionnels.'],
+        },
+        {
+          heading: 'Pourquoi cette reconnaissance compte',
+          paragraphs: [
+            'Au-delà d’une distinction, une mise en lumière internationale peut aider à faire connaître un parcours, une innovation ou une solution développée localement. Elle rappelle aussi le rôle des femmes dans la sécurité alimentaire, la création d’emplois et la vitalité des territoires ruraux.',
+            'Pour préparer une candidature, il est utile de rassembler des faits vérifiables : activité menée, bénéficiaires, emplois ou revenus créés, innovation proposée, résultats obtenus et contribution à la communauté. Les photos, chiffres et témoignages peuvent renforcer le dossier lorsqu’ils sont autorisés et correctement documentés.',
+          ],
+        },
+        {
+          heading: 'Modalités et vigilance sur les dates',
+          paragraphs: [
+            'Selon l’avis relayé par le MINPMEESA, les candidates camerounaises intéressées devaient utiliser le modèle prévu et soumettre leur dossier à l’adresse FAOCM-Feedback@fao.org. La date limite indiquée dans la publication est septembre 2026, tandis que la révélation et la célébration des 100 Héroïnes sont annoncées pour octobre 2026.',
+            'Ces dates doivent être vérifiées sur la publication officielle avant toute démarche, car un appel peut être clôturé, prolongé ou remplacé par une nouvelle procédure. ArtisanConnect relaie l’opportunité à titre informatif et ne remplace pas l’organisateur pour l’enregistrement des candidatures.',
+          ],
+        },
+      ],
+      en: [
+        {
+          heading: 'An international initiative',
+          paragraphs: [
+            'MINPMEESA has shared a call for applications launched by the Food and Agriculture Organization of the United Nations (FAO) as part of the “100 Heroines of Agrifood Systems and Rural Development” initiative.',
+            'The initiative aims to recognise 100 outstanding women around the world. Three places are announced for Cameroonian women whose work contributes to transforming agrifood systems or supporting rural development.',
+          ],
+        },
+        {
+          heading: 'Which achievements can be highlighted?',
+          paragraphs: ['The call may concern women creating value and impact in areas such as:'],
+          bullets: ['agricultural production and food processing;', 'entrepreneurship and innovation;', 'nutrition and market access;', 'rural development;', 'traditional knowledge and practices.'],
+        },
+        {
+          heading: 'Why this recognition matters',
+          paragraphs: [
+            'Beyond an award, international recognition can help showcase a local journey, innovation or solution. It also highlights the role women play in food security, job creation and the vitality of rural communities.',
+            'Applicants should prepare verifiable facts: the activity, beneficiaries, jobs or income created, the innovation, results and contribution to the community. Photos, figures and testimonials can strengthen an application when properly documented and authorised.',
+          ],
+        },
+        {
+          heading: 'Application details and date check',
+          paragraphs: [
+            'According to the notice shared by MINPMEESA, interested Cameroonian candidates were invited to use the required template and submit their application to FAOCM-Feedback@fao.org. The notice states a September 2026 deadline, while the announcement and celebration of the 100 Heroines are planned for October 2026.',
+            'Check the official publication before taking action: a call may be closed, extended or replaced by a new procedure. ArtisanConnect shares this opportunity for information and does not replace the organiser for application registration.',
+          ],
+        },
+      ],
+    },
+  },
+  {
     slug: 'kribi-formation-teinture-artisanale-couturieres-tailleurs',
     category: { fr: 'Formation artisanale', en: 'Craft training' },
     title: {
