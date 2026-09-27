@@ -69,7 +69,7 @@ export default function ArtisanServiceOrdersPage() {
 
   if (!ready || user?.role !== 'artisan') return null;
 
-  const isFinished = (order: ServiceOrder) => ['completed', 'cancelled', 'rejected'].includes(order.status);
+  const isFinished = (order: ServiceOrder) => ['completed', 'cancelled', 'rejected', 'pending_admin_validation', 'details_requested'].includes(order.status);
   const activeOrders = orders.filter((order) => !isFinished(order));
   const finishedOrders = orders.filter(isFinished);
   const clientWhatsApp = (order: ServiceOrder) => whatsappHref(
