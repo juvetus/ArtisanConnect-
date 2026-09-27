@@ -728,6 +728,8 @@ function ShopsAdmin({
   onAction: (action: () => Promise<unknown>) => Promise<void>;
   canDelete: boolean;
 }) {
+  const { language } = useLanguage();
+  const english = language === 'en';
   const [activeDoc, setActiveDoc] = useState<{ url: string; label: string; shopName: string } | null>(null);
   const [expandedShops, setExpandedShops] = useState<Record<string, boolean>>({});
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
@@ -756,14 +758,14 @@ function ShopsAdmin({
     <>
       <section className="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-xs">
         <div className="border-b border-stone-200 p-5">
-          <h2 className="font-semibold">Validation des boutiques & Preuves KYC ({shops.length})</h2>
+          <h2 className="font-semibold">{english ? 'Shop validation & KYC evidence' : 'Validation des boutiques & Preuves KYC'} ({shops.length})</h2>
           <p className="mt-1 text-sm text-stone-600">
-            Vérifiez les pièces justificatives, photos d&apos;atelier et vidéos téléversées par les vendeurs avant validation.
+            {english ? 'Review identity documents, workshop photos and seller videos before validation.' : 'Vérifiez les pièces justificatives, photos d\'atelier et vidéos téléversées par les vendeurs avant validation.'}
           </p>
         </div>
         <div className="divide-y divide-stone-100">
           {shops.length === 0 ? (
-            <p className="p-5 text-sm text-stone-600">Aucune boutique enregistrée.</p>
+            <p className="p-5 text-sm text-stone-600">{english ? 'No shops registered.' : 'Aucune boutique enregistrée.'}</p>
           ) : (
             shops.slice(page * pageSize, (page + 1) * pageSize).map((shop) => (
               <div key={shop.id} className="flex flex-col gap-4 p-5">
@@ -774,26 +776,26 @@ function ShopsAdmin({
                       <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-medium capitalize text-stone-700">{shop.type}</span>
                       {shop.isWomenLed && (
                         <span className="rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-800">
-                          👩‍🎨 Entrepreneuriat Féminin
+                          {english ? '👩‍🎨 Women-led' : '👩‍🎨 Entrepreneuriat Féminin'}
                         </span>
                       )}
                       {shop.isCooperative && (
                         <span className="rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-semibold text-indigo-800">
-                          🤝 Coopérative / GIC
+                          {english ? '🤝 Cooperative / GIC' : '🤝 Coopérative / GIC'}
                         </span>
                       )}
                       {shop.verifiedBadge && (
-                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">✓ Vérifié</span>
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">✓ {english ? 'Verified' : 'Vérifié'}</span>
                       )}
                       {shop.topSellerBadge && (
-                        <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-800">★ Top vendeur</span>
+                        <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-800">★ {english ? 'Top seller' : 'Top vendeur'}</span>
                       )}
                       {shop.identityVerified && (
-                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">✔ Identité vérifiée</span>
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">✔ {english ? 'Identity verified' : 'Identité vérifiée'}</span>
                       )}
                     </div>
                     <p className="mt-1 text-sm text-stone-600">
-                      Vendeur : <strong>{shop.seller?.name || 'Artisan'}</strong> ({shop.seller?.email}) · Mobile Money : <strong>{shop.mobileMoneyNumber}</strong>
+                      {english ? 'Seller' : 'Vendeur'} : <strong>{shop.seller?.name || (english ? 'Artisan' : 'Artisan')}</strong> ({shop.seller?.email}) · Mobile Money : <strong>{shop.mobileMoneyNumber}</strong>
                     </p>
                     {shop.city && (
                       <p className="text-xs text-stone-500">
@@ -811,12 +813,12 @@ function ShopsAdmin({
                         }`}
                       >
                         {shop.status === 'pending'
-                          ? '⏳ En attente de validation manuelle'
+                          ? (english ? '⏳ Pending manual validation' : '⏳ En attente de validation manuelle')
                           : shop.status === 'active'
-                            ? '✓ Active'
+                            ? (english ? '✓ Active' : '✓ Active')
                             : shop.status === 'rejected'
-                              ? `Rejetée — ${shop.rejectionReason ?? ''}`
-                              : 'Suspendue'}
+                              ? `${english ? 'Rejected' : 'Rejetée'} — ${shop.rejectionReason ?? ''}`
+                              : (english ? 'Suspended' : 'Suspendue')}
                       </span>
                     </p>
                   </div>
@@ -826,16 +828,16 @@ function ShopsAdmin({
                         onClick={() => onReview(shop.id, true)}
                         className="rounded-md bg-green-700 px-4 py-2 text-sm font-semibold text-white hover:bg-green-800 shadow-sm"
                       >
-                        Approuver la boutique
+                        {english ? 'Approve shop' : 'Approuver la boutique'}
                       </button> : null}
                       <button
                         onClick={() => {
-                          const reason = prompt('Motif du rejet (optionnel) :');
+                          const reason = prompt(english ? 'Rejection reason (optional):' : 'Motif du rejet (optionnel) :');
                           if (reason !== null) onReview(shop.id, false);
                         }}
                         className="rounded-md bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
                       >
-                        Rejeter
+                        {english ? 'Reject' : 'Rejeter'}
                       </button>
                     </div>
                   )}
@@ -844,28 +846,28 @@ function ShopsAdmin({
                       {canDelete ? (
                         <button
                           onClick={() => {
-                            if (shop.identityVerified || confirm(`Confirmez-vous avoir contrôlé la pièce d'identité de « ${shop.name} » ?`)) {
+                            if (shop.identityVerified || confirm(english ? `Confirm that you checked the identity document for “${shop.name}”?` : `Confirmez-vous avoir contrôlé la pièce d'identité de « ${shop.name} » ?`)) {
                               void onAction(() => api.adminSetShopIdentityVerified(shop.id, !shop.identityVerified));
                             }
                           }}
                           className="rounded-md bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
                         >
-                          {shop.identityVerified ? 'Retirer « Identité vérifiée »' : 'Marquer l’identité vérifiée'}
+                          {shop.identityVerified ? (english ? 'Remove “Identity verified”' : 'Retirer « Identité vérifiée »') : (english ? 'Mark identity as verified' : 'Marquer l’identité vérifiée')}
                         </button>
                       ) : null}
                       <button
                         onClick={() => void onAction(() => api.adminSetShopStatus(shop.id, shop.status === 'active' ? 'suspended' : 'active'))}
                         className="rounded-md bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-700 hover:bg-orange-100"
                       >
-                        {shop.status === 'active' ? 'Désactiver' : 'Réactiver'}
+                        {shop.status === 'active' ? (english ? 'Disable' : 'Désactiver') : (english ? 'Reactivate' : 'Réactiver')}
                       </button>
                       <button
                         onClick={() => {
-                          if (confirm(`Supprimer définitivement la boutique « ${shop.name} » ?`)) void onAction(() => api.adminDeleteShop(shop.id));
+                            if (confirm(english ? `Permanently delete shop “${shop.name}”?` : `Supprimer définitivement la boutique « ${shop.name} » ?`)) void onAction(() => api.adminDeleteShop(shop.id));
                         }}
                         className="rounded-md bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
                       >
-                        Supprimer
+                        {english ? 'Delete' : 'Supprimer'}
                       </button>
                     </div>
                   )}
@@ -879,17 +881,17 @@ function ShopsAdmin({
                     className="flex w-full items-center justify-between p-3.5 text-left transition hover:bg-stone-100"
                   >
                     <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-stone-700">
-                      📂 Pièces justificatives et preuves KYC ({shop.kycDocuments?.length || 0})
+                      📂 {english ? 'Identity documents and KYC evidence' : 'Pièces justificatives et preuves KYC'} ({shop.kycDocuments?.length || 0})
                     </span>
                     <span className="text-xs font-medium text-amber-800 flex items-center gap-1">
-                      {expandedShops[shop.id] ? 'Masquer les images ▲' : 'Afficher les images ▼'}
+                      {expandedShops[shop.id] ? (english ? 'Hide images ▲' : 'Masquer les images ▲') : (english ? 'Show images ▼' : 'Afficher les images ▼')}
                     </span>
                   </button>
 
                   {expandedShops[shop.id] && (
                     <div className="border-t border-stone-200 p-3.5 bg-white">
                       {(!shop.kycDocuments || shop.kycDocuments.length === 0) ? (
-                        <p className="text-xs text-stone-500 italic">Aucun document téléversé.</p>
+                        <p className="text-xs text-stone-500 italic">{english ? 'No documents uploaded.' : 'Aucun document téléversé.'}</p>
                       ) : (
                         <div className="flex flex-wrap gap-3">
                           {shop.kycDocuments.map((doc, idx) => {
