@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { api } from '@/lib/api';
+import { useLanguage } from '@/lib/language-context';
 import type { ServiceValidationHistory } from '@/lib/types';
 
 interface DashboardStats {
@@ -53,6 +54,8 @@ type TabType = 'dashboard' | 'pending' | 'revision';
 
 export default function AdminServicesPage() {
   const { user, ready } = useAuth();
+  const { language } = useLanguage();
+  const english = language === 'en';
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<TabType>('dashboard');
@@ -191,9 +194,9 @@ export default function AdminServicesPage() {
     const due = new Date(dueDate);
     const hoursRemaining = Math.round((due.getTime() - now.getTime()) / (1000 * 60 * 60));
     
-    if (hoursRemaining < 0) return '⏰ Dépassé';
-    if (hoursRemaining < 24) return `⏰ ${hoursRemaining}h restantes`;
-    return `⏰ ${Math.round(hoursRemaining / 24)}j restants`;
+    if (hoursRemaining < 0) return english ? '⏰ Overdue' : '⏰ Dépassé';
+    if (hoursRemaining < 24) return english ? `⏰ ${hoursRemaining}h remaining` : `⏰ ${hoursRemaining}h restantes`;
+    return english ? `⏰ ${Math.round(hoursRemaining / 24)}d remaining` : `⏰ ${Math.round(hoursRemaining / 24)}j restants`;
   };
 
   return (
@@ -201,8 +204,8 @@ export default function AdminServicesPage() {
       <div className="mx-auto max-w-6xl px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-stone-900">Validation des services</h1>
-          <p className="mt-2 text-sm text-stone-600">Gérez les services en attente de validation et de révision</p>
+          <h1 className="text-3xl font-bold text-stone-900">{english ? 'Service validation' : 'Validation des services'}</h1>
+          <p className="mt-2 text-sm text-stone-600">{english ? 'Manage services awaiting validation or revision' : 'Gérez les services en attente de validation et de révision'}</p>
         </div>
 
         {/* Notice */}
@@ -228,7 +231,7 @@ export default function AdminServicesPage() {
                 : 'text-stone-600 hover:text-stone-900'
             }`}
           >
-            📊 Tableau de bord
+            📊 {english ? 'Dashboard' : 'Tableau de bord'}
           </button>
           <button
             onClick={() => setTab('pending')}
@@ -238,7 +241,7 @@ export default function AdminServicesPage() {
                 : 'text-stone-600 hover:text-stone-900'
             }`}
           >
-            ⏳ En attente ({stats?.stats.pendingValidationCount || 0})
+            ⏳ {english ? 'Pending' : 'En attente'} ({stats?.stats.pendingValidationCount || 0})
           </button>
           <button
             onClick={() => setTab('revision')}
@@ -248,7 +251,7 @@ export default function AdminServicesPage() {
                 : 'text-stone-600 hover:text-stone-900'
             }`}
           >
-            🔄 Révision ({stats?.stats.validationRequestedCount || 0})
+            🔄 {english ? 'Revision' : 'Révision'} ({stats?.stats.validationRequestedCount || 0})
           </button>
         </div>
 
@@ -265,31 +268,31 @@ export default function AdminServicesPage() {
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
                   <div className="rounded-lg border border-amber-200 bg-amber-50 p-6">
-                    <p className="text-sm text-amber-700">En attente de validation</p>
+                    <p className="text-sm text-amber-700">{english ? 'Pending validation' : 'En attente de validation'}</p>
                     <p className="mt-2 text-3xl font-bold text-amber-900">
                       {stats.stats.pendingValidationCount}
                     </p>
                   </div>
                   <div className="rounded-lg border border-orange-200 bg-orange-50 p-6">
-                    <p className="text-sm text-orange-700">Révision demandée</p>
+                    <p className="text-sm text-orange-700">{english ? 'Revision requested' : 'Révision demandée'}</p>
                     <p className="mt-2 text-3xl font-bold text-orange-900">
                       {stats.stats.validationRequestedCount}
                     </p>
                   </div>
                   <div className="rounded-lg border border-green-200 bg-green-50 p-6">
-                    <p className="text-sm text-green-700">Approuvés</p>
+                    <p className="text-sm text-green-700">{english ? 'Approved' : 'Approuvés'}</p>
                     <p className="mt-2 text-3xl font-bold text-green-900">
                       {stats.stats.approvedCount}
                     </p>
                   </div>
                   <div className="rounded-lg border border-red-200 bg-red-50 p-6">
-                    <p className="text-sm text-red-700">Rejetés</p>
+                    <p className="text-sm text-red-700">{english ? 'Rejected' : 'Rejetés'}</p>
                     <p className="mt-2 text-3xl font-bold text-red-900">
                       {stats.stats.rejectedCount}
                     </p>
                   </div>
                   <div className="rounded-lg border border-blue-200 bg-blue-50 p-6">
-                    <p className="text-sm text-blue-700">Temps moyen</p>
+                    <p className="text-sm text-blue-700">{english ? 'Average time' : 'Temps moyen'}</p>
                     <p className="mt-2 text-3xl font-bold text-blue-900">
                       {stats.stats.avgValidationTimeHours}h
                     </p>
@@ -299,19 +302,19 @@ export default function AdminServicesPage() {
                 <div className="rounded-lg border border-stone-200 bg-white p-6">
                   <div className="flex flex-wrap items-end justify-between gap-3">
                     <div>
-                      <h2 className="text-lg font-semibold text-stone-900">Répartition des services</h2>
-                      <p className="mt-1 text-sm text-stone-600">Vue actuelle des statuts de validation.</p>
+                      <h2 className="text-lg font-semibold text-stone-900">{english ? 'Service distribution' : 'Répartition des services'}</h2>
+                      <p className="mt-1 text-sm text-stone-600">{english ? 'Current view of validation statuses.' : 'Vue actuelle des statuts de validation.'}</p>
                     </div>
                     <span className="text-xs text-stone-500">
-                      Total : {stats.stats.pendingValidationCount + stats.stats.validationRequestedCount + stats.stats.approvedCount + stats.stats.rejectedCount}
+                      {english ? 'Total' : 'Total'} : {stats.stats.pendingValidationCount + stats.stats.validationRequestedCount + stats.stats.approvedCount + stats.stats.rejectedCount}
                     </span>
                   </div>
                   <div className="mt-6 space-y-4">
                     {[
-                      { label: 'En attente', value: stats.stats.pendingValidationCount, color: 'bg-amber-500' },
-                      { label: 'Révision demandée', value: stats.stats.validationRequestedCount, color: 'bg-orange-500' },
-                      { label: 'Approuvés', value: stats.stats.approvedCount, color: 'bg-green-500' },
-                      { label: 'Rejetés', value: stats.stats.rejectedCount, color: 'bg-red-500' },
+                      { label: english ? 'Pending' : 'En attente', value: stats.stats.pendingValidationCount, color: 'bg-amber-500' },
+                      { label: english ? 'Revision requested' : 'Révision demandée', value: stats.stats.validationRequestedCount, color: 'bg-orange-500' },
+                      { label: english ? 'Approved' : 'Approuvés', value: stats.stats.approvedCount, color: 'bg-green-500' },
+                      { label: english ? 'Rejected' : 'Rejetés', value: stats.stats.rejectedCount, color: 'bg-red-500' },
                     ].map((item) => {
                       const total = stats.stats.pendingValidationCount + stats.stats.validationRequestedCount + stats.stats.approvedCount + stats.stats.rejectedCount;
                       const width = total > 0 ? Math.max((item.value / total) * 100, item.value > 0 ? 3 : 0) : 0;
@@ -334,12 +337,12 @@ export default function AdminServicesPage() {
                   onClick={handleExportCsv}
                   className="rounded-md border border-stone-300 bg-white px-4 py-2 font-medium text-stone-700 hover:bg-stone-50"
                 >
-                  Exporter les services en CSV
+                  {english ? 'Export services as CSV' : 'Exporter les services en CSV'}
                 </button>
 
                 <div className="rounded-lg border border-stone-200 bg-white p-6">
-                  <h2 className="mb-4 text-lg font-semibold text-stone-900">Historique des validations</h2>
-                  {!history.length ? <p className="text-sm text-stone-600">Aucune validation enregistrée.</p> : (
+                  <h2 className="mb-4 text-lg font-semibold text-stone-900">{english ? 'Validation history' : 'Historique des validations'}</h2>
+                  {!history.length ? <p className="text-sm text-stone-600">{english ? 'No validation recorded.' : 'Aucune validation enregistrée.'}</p> : (
                     <div className="space-y-3">
                       {history.map((entry) => (
                         <div key={entry.id} className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 pb-3 text-sm last:border-0">
