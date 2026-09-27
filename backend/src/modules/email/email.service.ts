@@ -4,6 +4,7 @@ import nodemailer, { type Transporter } from 'nodemailer';
 
 export interface EmailMessage {
   to: string;
+  replyTo?: string;
   subject: string;
   text: string;
   html?: string;
@@ -37,6 +38,7 @@ export class EmailService {
       await this.getTransporter().sendMail({
         from: this.from,
         to: message.to,
+        replyTo: message.replyTo,
         subject: message.subject,
         text: message.text,
         html: message.html,
