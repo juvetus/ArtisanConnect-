@@ -1078,6 +1078,8 @@ const PROMOTION_PLAN_OPTIONS = [
 ] as const;
 
 function AdminSubscriptions({ subscriptions, promotionCodes, onAction }: { subscriptions: AdminSubscription[]; promotionCodes: AdminPromotionCode[]; onAction: (action: () => Promise<unknown>) => Promise<void> }) {
+  const { language } = useLanguage();
+  const english = language === 'en';
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<AdminSubscription['status'] | 'all'>('all');
   const [page, setPage] = useState(0);
@@ -1189,6 +1191,8 @@ function AdminOrders({
   onCancel: (id: string) => Promise<void>;
   onRefund: (id: string) => Promise<void>;
 }) {
+  const { language } = useLanguage();
+  const english = language === 'en';
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<Order['status'] | 'all'>('all');
   const [expanded, setExpanded] = useState<string | null>(null);
