@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useLanguage } from '@/lib/language-context';
+import { DEMO_MODE } from '@/lib/demo-mode';
 
 export default function HowItWorksPage() {
   const { t } = useLanguage();
@@ -67,7 +68,7 @@ export default function HowItWorksPage() {
       <section className="grid gap-4 md:grid-cols-3">
         <div className="rounded-lg border border-stone-200 bg-white p-5">
           <h2 className="font-semibold text-stone-900">{t('how_payments_title')}</h2>
-          <p className="mt-2 text-sm text-stone-600">{t('how_payments_desc')}</p>
+          <p className="mt-2 text-sm text-stone-600">{t(DEMO_MODE ? 'how_payments_demo_desc' : 'how_payments_desc')}</p>
         </div>
         <div className="rounded-lg border border-stone-200 bg-white p-5">
           <h2 className="font-semibold text-stone-900">{t('how_delivery_title')}</h2>

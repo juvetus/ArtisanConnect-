@@ -55,6 +55,9 @@ export class InstitutionalProgram {
   @Column({ type: 'varchar', nullable: false })
   institutionId: string;
 
+  @Column({ type: 'boolean', nullable: true })
+  isDemo: boolean | null;
+
   @ManyToOne(() => User, { nullable: false })
   institution: Relation<User>;
 

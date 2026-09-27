@@ -2,12 +2,17 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { DemoBadge } from '@/components/DemoBadge';
+import { isDemoContent } from '@/lib/demo-mode';
+import { CARRIER_SIMULATION_MODE } from '@/lib/pilot-capabilities';
 import type { Service } from '@/lib/types';
 import { whatsappHref } from '@/lib/whatsapp';
+import { trackEvent } from '@/lib/analytics';
 import { resolveMediaUrl } from '@/lib/media';
 
 function externalLinkLabel(url: string, language: 'fr' | 'en') {
@@ -57,6 +62,8 @@ export default function ServiceOrderPage() {
       router.push(`/login?redirect=/services/${params.id}`);
       return;
     }
+    const trackedService = service;
+    if (!trackedService) return;
 
     try {
       setSubmitting(true);
@@ -80,6 +87,7 @@ export default function ServiceOrderPage() {
         clientConfirmed,
         termsAccepted,
       });
+      trackEvent('order_created', { targetId: trackedService.id, label: trackedService.category, city: trackedService.artisan?.location ?? undefined });
       if (projectFiles.length) {
         await api.uploadServiceOrderFiles((createdOrder as { id: string }).id, projectFiles);
       }
@@ -100,6 +108,7 @@ export default function ServiceOrderPage() {
 
   if (loading) return <p className="text-stone-600">Chargement du service...</p>;
   if (!service) return <p className="text-red-700">Service indisponible.</p>;
+  const isDemo = isDemoContent(service.id, service.isDemo);
   const artisanWhatsapp = whatsappHref(service.artisan?.whatsappPhone ?? service.artisan?.phone, `Bonjour ${service.artisan?.name ?? ''}, je suis intéressé par votre service « ${service.title} » sur ArtisanConnect.`);
 
   return (
@@ -109,10 +118,11 @@ export default function ServiceOrderPage() {
       <section className="rounded-lg border border-stone-200 bg-white p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
+            {isDemo ? <div className="mb-3"><DemoBadge /></div> : null}
             <p className="text-sm font-medium uppercase tracking-wide text-amber-700">Service approuvé</p>
             <h1 className="mt-1 text-3xl font-semibold text-stone-900">{service.title}</h1>
             <p className="mt-2 text-stone-600">Par {service.artisan?.name ?? 'Artisan'}</p>
-            {artisanWhatsapp ? <a href={artisanWhatsapp} target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700">Contacter sur WhatsApp</a> : null}
+            {!isDemo && artisanWhatsapp ? <a href={artisanWhatsapp} target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700">Contacter sur WhatsApp</a> : null}
           </div>
           <div className="text-right text-sm text-stone-600">
             <p>{service.estimatedDays} jours estimés</p>
@@ -123,7 +133,7 @@ export default function ServiceOrderPage() {
           </div>
         </div>
         <p className="mt-6 whitespace-pre-wrap text-stone-700">{service.description}</p>
-        {service.fileUrls?.length ? <div className="mt-6"><h2 className="text-xl font-semibold text-stone-900">Réalisations</h2><div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">{service.fileUrls.map((url, index) => <img key={`${url}-${index}`} src={resolveMediaUrl(url)} alt={`${service.title} - réalisation ${index + 1}`} className="aspect-square w-full rounded-lg object-cover" />)}</div></div> : null}
+        {service.fileUrls?.length ? <div className="mt-6"><h2 className="text-xl font-semibold text-stone-900">Réalisations</h2><div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">{service.fileUrls.map((url, index) => <Image key={`${url}-${index}`} src={resolveMediaUrl(url)} alt={`${service.title} - réalisation ${index + 1}`} width={800} height={800} unoptimized className="aspect-square w-full rounded-lg object-cover" />)}</div></div> : null}
         {service.videoUrls?.length ? <div className="mt-6"><h2 className="text-xl font-semibold text-stone-900">Démonstrations vidéo</h2><div className="mt-3 grid gap-3 sm:grid-cols-2">{service.videoUrls.map((url, index) => <video key={`${url}-${index}`} src={resolveMediaUrl(url)} controls preload="metadata" className="w-full rounded-lg" aria-label={`${service.title} - vidéo ${index + 1}`} />)}</div></div> : null}
         {service.externalUrls?.length ? <div className="mt-6"><h2 className="text-xl font-semibold text-stone-900">Voir d’autres réalisations</h2><div className="mt-3 flex flex-wrap gap-2">{service.externalUrls.map((url, index) => <a key={`${url}-${index}`} href={url} target="_blank" rel="noreferrer" className="rounded-md border border-amber-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50">{externalLinkLabel(url, 'fr')} ↗</a>)}</div></div> : null}
         {service.tags?.length ? (
@@ -133,6 +143,13 @@ export default function ServiceOrderPage() {
         ) : null}
       </section>
 
+      {isDemo ? (
+        <section role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-6 text-amber-950">
+          <DemoBadge />
+          <h2 className="mt-3 text-xl font-semibold">Prestation de démonstration</h2>
+          <p className="mt-2 text-sm">Les prix, délais et avis affichés sont des exemples. Cette prestation ne peut pas encore être demandée.</p>
+        </section>
+      ) : (
       <section className="rounded-lg border border-stone-200 bg-white p-6">
         <h2 className="text-2xl font-semibold text-stone-900">Demander ce service</h2>
         <p className="mt-2 text-sm text-stone-600">Décrivez votre projet avec assez de détails pour permettre une première validation.</p>
@@ -189,9 +206,10 @@ export default function ServiceOrderPage() {
               <select id="deliveryMethod" required value={deliveryMethod} onChange={(event) => setDeliveryMethod(event.target.value as typeof deliveryMethod)} className="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2">
                 <option value="workshop">Retrait à l’atelier</option>
                 <option value="home">Livraison à domicile</option>
-                <option value="carrier">Livraison par notre transporteur</option>
+                <option value="carrier">{CARRIER_SIMULATION_MODE ? 'Transporteur (simulation)' : 'Transporteur'}</option>
               </select>
             </div>
+            {deliveryMethod === 'carrier' && CARRIER_SIMULATION_MODE ? <p role="note" className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Le transporteur est simulé; aucune course réelle n’est réservée. Confirmez directement avec l’artisan le lieu, le coût et la remise.</p> : null}
             {deliveryMethod !== 'workshop' ? <div><label htmlFor="deliveryAddress" className="block text-sm font-medium text-stone-700">Adresse du lieu *</label><textarea id="deliveryAddress" required value={deliveryAddress} onChange={(event) => setDeliveryAddress(event.target.value)} rows={2} placeholder="Ville, quartier, repères..." className="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2" /></div> : null}
             {deliveryMethod !== 'workshop' ? <div><p className="mb-2 text-sm font-medium text-stone-700">Position du lieu</p><LocationPicker latitude={deliveryLatitude} longitude={deliveryLongitude} onChange={([lat, lng]) => { setDeliveryLatitude(lat); setDeliveryLongitude(lng); }} /></div> : null}
 
@@ -202,6 +220,7 @@ export default function ServiceOrderPage() {
           </form>
         )}
       </section>
+      )}
     </div>
   );
 }

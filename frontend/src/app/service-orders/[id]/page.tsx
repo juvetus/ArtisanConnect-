@@ -1,16 +1,16 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useEffectEvent, useState } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import type { ServiceOrder, ServicePayment, ServiceQuote, ServiceReview } from '@/lib/types';
 import { whatsappHref } from '@/lib/whatsapp';
+import { CARRIER_SIMULATION_MODE, MOBILE_MONEY_TEST_MODE } from '@/lib/pilot-capabilities';
 
 export default function ServiceOrderQuotePage() {
   const params = useParams<{ id: string }>();
-  const router = useRouter();
   const { user, ready } = useAuth();
   const [order, setOrder] = useState<ServiceOrder | null>(null);
   const [quote, setQuote] = useState<ServiceQuote | null>(null);
@@ -58,8 +58,12 @@ export default function ServiceOrderQuotePage() {
     }
   };
 
+  const loadForEffect = useEffectEvent(() => load());
+
   useEffect(() => {
-    if (ready && user && params.id) void load();
+    if (!ready || !user || !params.id) return;
+    const timeout = window.setTimeout(() => void loadForEffect(), 0);
+    return () => window.clearTimeout(timeout);
   }, [ready, user, params.id]);
 
   const submitQuote = async (event: FormEvent) => {
@@ -168,7 +172,8 @@ export default function ServiceOrderQuotePage() {
         <p className="text-sm uppercase tracking-wide text-amber-700">Demande de service</p>
         <h1 className="mt-1 text-2xl font-semibold text-stone-900">{order.service?.title}</h1>
         <p className="mt-2 text-sm text-stone-600">Statut : {order.status}</p>
-        <p className="mt-1 text-sm text-stone-600">Livraison : {order.deliveryMethod === 'home' ? `À domicile${order.deliveryAddress ? ` - ${order.deliveryAddress}` : ''}` : order.deliveryMethod === 'carrier' ? 'Par notre transporteur' : 'Retrait à l’atelier'}</p>
+        <p className="mt-1 text-sm text-stone-600">Livraison : {order.deliveryMethod === 'home' ? `À domicile${order.deliveryAddress ? ` - ${order.deliveryAddress}` : ''}` : order.deliveryMethod === 'carrier' ? (CARRIER_SIMULATION_MODE ? 'Transporteur (simulation)' : 'Par transporteur') : 'Retrait à l’atelier'}</p>
+        {order.deliveryMethod === 'carrier' && CARRIER_SIMULATION_MODE ? <p role="note" className="mt-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Aucune course réelle n’est réservée. Confirmez directement avec l’artisan le lieu, le coût et la remise.</p> : null}
         <p className="mt-4 whitespace-pre-wrap text-stone-700">{order.projectObjective}</p>
         <div className="mt-5 flex flex-wrap items-center gap-3">
           <Link
@@ -228,7 +233,7 @@ export default function ServiceOrderQuotePage() {
 
       {isClient && payments.length ? (
         <section className="space-y-4 rounded-lg border border-amber-200 bg-amber-50 p-6">
-          <div><h2 className="text-xl font-semibold text-stone-900">Paiements</h2><p className="mt-1 text-sm text-stone-600">Acompte de 30 %, puis solde de 70 % à la livraison.</p></div>
+          <div><h2 className="text-xl font-semibold text-stone-900">Paiements</h2><p className="mt-1 text-sm text-stone-600">Acompte de 30 %, puis solde de 70 % selon le devis accepté.</p>{MOBILE_MONEY_TEST_MODE ? <p role="note" className="mt-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Les paiements affichés dans cet environnement sont des tests; aucune somme réelle n’est encaissée. Ne faites pas de transfert Mobile Money réel.</p> : null}</div>
           <div className="grid gap-4 sm:grid-cols-2">
             {payments.map((payment) => (
               <div key={payment.id} className="rounded-md border border-amber-200 bg-white p-4">

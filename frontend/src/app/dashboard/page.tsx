@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import useSWR from 'swr';
@@ -171,28 +172,6 @@ export default function DashboardPage() {
       setFormError(error instanceof Error ? error.message : 'La génération de l’image IA a échoué.');
     } finally {
       setGeneratingAiImage(false);
-    }
-  };
-
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    if (!files.length) return;
-    if (files.length > 5) {
-      setFormError('Sélectionnez au maximum 5 images.');
-      e.target.value = '';
-      return;
-    }
-    setUploadingImage(true);
-    setFormError('');
-    try {
-      const { imageUrls: uploaded } = await api.uploadListingImages(files);
-      setImageUrls(uploaded);
-      setImageUrl(uploaded[0] ?? '');
-    } catch {
-      setFormError("Le téléversement des images a échoué (5 Mo max par image, JPEG/PNG/WebP/GIF).");
-    } finally {
-      setUploadingImage(false);
-      e.target.value = '';
     }
   };
 
@@ -662,11 +641,12 @@ export default function DashboardPage() {
                     <div className="rounded bg-stone-100 p-2"><div className="text-[10px] uppercase tracking-wide text-stone-500">WhatsApp</div><div className="mt-1 font-semibold text-stone-900">{metrics.whatsappContactClicks}</div></div>
                     <div className="rounded bg-stone-100 p-2"><div className="text-[10px] uppercase tracking-wide text-stone-500">{t('dashboard_qr_shares')}</div><div className="mt-1 font-semibold text-stone-900">{metrics.whatsappShareClicks}</div></div>
                   </div>
-                  <img
+                  <Image
                     src={qrCodeUrl}
                     alt={t('dashboard_qr_alt', { name: shop.name })}
                     width={200}
                     height={200}
+                    unoptimized
                     className="mt-3 h-48 w-48"
                   />
                   <p className="mt-2 break-all text-xs text-stone-500">{shopUrl}</p>
@@ -899,8 +879,8 @@ export default function DashboardPage() {
               {imageUrls.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2" aria-label="Réorganiser les photos du produit">
                   {imageUrls.map((url, i) => (
-                    <div key={url} draggable onDragStart={() => setDraggedImageIndex(i)} onDragOver={(event) => event.preventDefault()} onDrop={() => reorderImages(i)} className={`relative cursor-grab rounded border ${i === 0 ? 'border-amber-600 ring-2 ring-amber-100' : 'border-stone-200'}`} title={i === 0 ? 'Image principale' : 'Glissez pour réorganiser'}>
-                      <img src={resolveMediaUrl(url)} alt={`Aperçu ${i + 1}`} className="h-16 w-16 rounded object-cover" />
+                    <div key={url} draggable onDragStart={() => setDraggedImageIndex(i)} onDragOver={(event) => event.preventDefault()} onDrop={() => reorderImages(i)} className={`relative cursor-grab rounded border ${i === 0 ? 'border-amber-600 ring-2 ring-amber-100' : 'border-stone-200'}`} title={url === imageUrl ? 'Image principale' : 'Glissez pour réorganiser'}>
+                      <Image src={resolveMediaUrl(url)} alt={`Aperçu ${i + 1}`} width={64} height={64} unoptimized className="h-16 w-16 rounded object-cover" />
                       {i === 0 ? <span className="absolute bottom-0 left-0 right-0 bg-amber-700/90 px-1 py-0.5 text-center text-[10px] font-medium text-white">Principale</span> : null}
                     </div>
                   ))}
@@ -924,7 +904,7 @@ export default function DashboardPage() {
                   {generatingAiImage ? 'Génération...' : 'Générer une image IA'}
                 </button>
               </div>
-              {aiImageUrls.length > 0 && <div className="mt-3 grid grid-cols-3 gap-2">{aiImageUrls.map((url, index) => <div key={`${url}-${index}`} className="relative"><img src={resolveMediaUrl(url)} alt={`Image IA ${index + 1}`} className="aspect-square w-full rounded border border-amber-300 object-cover" /><button type="button" onClick={() => setAiImageUrls((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="absolute right-1 top-1 rounded bg-stone-900/80 px-2 py-1 text-xs text-white" aria-label={`Supprimer l’image IA ${index + 1}`}>×</button></div>)}</div>}
+              {aiImageUrls.length > 0 && <div className="mt-3 grid grid-cols-3 gap-2">{aiImageUrls.map((url, index) => <div key={`${url}-${index}`} className="relative"><Image src={resolveMediaUrl(url)} alt={`Image IA ${index + 1}`} width={400} height={400} unoptimized className="aspect-square w-full rounded border border-amber-300 object-cover" /><button type="button" onClick={() => setAiImageUrls((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="absolute right-1 top-1 rounded bg-stone-900/80 px-2 py-1 text-xs text-white" aria-label={`Supprimer l’image IA ${index + 1}`}>×</button></div>)}</div>}
             </div>
 
             {formError && <p className="text-sm text-red-600">{formError}</p>}

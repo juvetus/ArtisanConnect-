@@ -70,12 +70,29 @@ export interface AnalyticsFunnel {
   periodDays: number;
   funnel: Record<string, number>;
   conversion: {
-    visitorToQuote: number;
-    visitorToOrder: number;
-    quoteToAnswer: number;
-    profileViewToWhatsapp: number;
+    visitorToQuote: { numerator: number; denominator: number; percent: number };
+    visitorToOrder: { numerator: number; denominator: number; percent: number };
+    quoteToAnswer: { numerator: number; denominator: number; percent: number };
+    profileViewToWhatsapp: { numerator: number; denominator: number; percent: number };
+    quoteToAcceptance: { numerator: number; denominator: number; percent: number };
+    completionRate: { numerator: number; denominator: number; percent: number };
+    completedOrderToReview: { numerator: number; denominator: number; percent: number };
   };
-  artisans: { registered: number; active: number; withIdentityVerified: number };
+  artisans: { registered: number; profileComplete: number; withRealOffers: number; receivedResponse: number; active: number; withIdentityVerified: number };
+  dataQuality: {
+    demoEventsExcluded: number;
+    unclassifiedEvents: number;
+    demoRequestsExcluded: number;
+    unclassifiedRequests: number;
+    demoServiceOrdersExcluded: number;
+    unclassifiedServiceOrders: number;
+    demoListingsExcluded: number;
+    demoServicesExcluded: number;
+    unclassifiedShops: number;
+    demoSubscriptionsExcluded: number;
+    unclassifiedSubscriptions: number;
+  };
+  commercial: { plan: string; views: number; ctas: number; subscriptions: number; active: number; revenue: number }[];
   topSearches: { label: string; count: number }[];
   topCategories: { label: string; count: number }[];
   topCities: { label: string; count: number }[];
@@ -128,6 +145,7 @@ export interface PublicArtisan {
   isWomenLed?: boolean;
   isCooperative?: boolean;
   successfulSales: number;
+  offerCount?: number;
   premium?: boolean;
   createdAt: string;
   coverImageUrl?: string | null;
@@ -196,6 +214,7 @@ export interface Listing {
   imageUrls?: string[] | null;
   aiImageUrls?: string[] | null;
   status: 'active' | 'inactive';
+  isDemo?: boolean;
   stock: number;
   acceptedPaymentMethods?: ('cash' | 'momo' | 'orange_money')[] | null;
   deliveryMethods?: ('workshop' | 'home' | 'carrier')[] | null;
@@ -434,6 +453,7 @@ export interface Service {
   externalUrls?: string[];
   sponsoredUntil?: string | null;
   status: ServiceStatus;
+  isDemo?: boolean;
   validationFeedback?: string | null;
   artisan?: User;
   validatedBy?: User | null;

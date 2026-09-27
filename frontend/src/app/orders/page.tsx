@@ -11,6 +11,7 @@ import { formatXAF } from '@/lib/format';
 import { StatusBadge } from '@/components/StatusBadge';
 import { ReviewSection } from '@/components/ReviewSection';
 import type { Order } from '@/lib/types';
+import { CARRIER_SIMULATION_MODE, MOBILE_MONEY_TEST_MODE } from '@/lib/pilot-capabilities';
 
 function whatsappNumber(phone: string) {
   const digits = phone.replace(/\D/g, '');
@@ -35,11 +36,11 @@ function sellerWhatsappHref(order: Order) {
 function EscrowSteps({ order, english }: { order: Order; english: boolean }) {
   if (order.paymentMethod !== 'orange_money' && order.paymentMethod !== 'momo') return null;
   const steps = [
-    { label: english ? 'Payment held securely (escrow)' : 'Paiement bloqué (escrow)', done: Boolean(order.payment && order.payment.status !== 'pending') },
+    { label: MOBILE_MONEY_TEST_MODE ? (english ? 'Test payment status recorded' : 'Statut du paiement test enregistré') : (english ? 'Payment held in escrow' : 'Paiement bloqué en escrow'), done: Boolean(order.payment && order.payment.status !== 'pending') },
     { label: english ? 'Seller confirmed product availability' : 'Vendeur : produit disponible', done: order.sellerConfirmedAvailability },
-    ...(order.deliveryMethod === 'carrier' ? [{ label: english ? 'Carrier collected and verified the product' : 'Transporteur : produit récupéré et conforme', done: order.carrierVerified }] : []),
+    ...(order.deliveryMethod === 'carrier' ? [{ label: CARRIER_SIMULATION_MODE ? (english ? 'Simulated carrier step' : 'Étape transporteur simulée') : (english ? 'Carrier collected and verified the product' : 'Transporteur : produit récupéré et conforme'), done: order.carrierVerified }] : []),
     { label: english ? 'Receipt confirmed' : 'Réception confirmée', done: order.buyerConfirmedReception },
-    { label: english ? 'Payment released to seller' : 'Paiement libéré au vendeur', done: order.payment?.status === 'captured' },
+    { label: MOBILE_MONEY_TEST_MODE ? (english ? 'Test settlement status recorded' : 'Statut de règlement test enregistré') : (english ? 'Payment released to seller' : 'Paiement libéré au vendeur'), done: order.payment?.status === 'captured' },
   ];
   return (
     <ol className="mt-2 space-y-1 text-sm">
@@ -49,7 +50,7 @@ function EscrowSteps({ order, english }: { order: Order; english: boolean }) {
         </li>
       ))}
       {order.cancellationReason && (
-        <li className="text-red-600">✗ {order.cancellationReason} — {english ? 'refund issued' : 'remboursement effectué'}</li>
+        <li className="text-red-600">✗ {order.cancellationReason} — {MOBILE_MONEY_TEST_MODE ? (english ? 'test refund status recorded' : 'statut de remboursement test enregistré') : (english ? 'refund issued' : 'remboursement effectué')}</li>
       )}
     </ol>
   );
@@ -170,9 +171,9 @@ export default function OrdersPage() {
                 </p>
                 <p className="mt-1 text-sm text-stone-500">
                   {order.paymentMethod === 'momo'
-                    ? 'MoMo'
+                    ? (MOBILE_MONEY_TEST_MODE ? 'MoMo — test' : 'MoMo')
                     : order.paymentMethod === 'orange_money'
-                      ? 'Orange Money'
+                      ? (MOBILE_MONEY_TEST_MODE ? 'Orange Money — test' : 'Orange Money')
                       : t('orders_cash_handover')}
                   {order.payment && (
                     <>
@@ -190,9 +191,10 @@ export default function OrdersPage() {
                 </p>
                 {order.deliveryMethod === 'carrier' && (
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-stone-600">
+                    {CARRIER_SIMULATION_MODE ? <p role="note" className="w-full rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">{t('carrier_simulation_notice')}</p> : null}
                     {order.deliveryTrackingId ? (
                       <>
-                        <span>{t('orders_tracking')} {order.deliveryCarrier || 'Gozem'} : {order.deliveryStatus}</span>
+                        <span>{t('orders_tracking')} {CARRIER_SIMULATION_MODE ? (english ? 'Simulation' : 'Simulation') : (order.deliveryCarrier || 'Gozem')} : {order.deliveryStatus}</span>
                         {order.deliveryTrackingUrl && (
                           <a href={order.deliveryTrackingUrl} target="_blank" rel="noreferrer" className="text-amber-700 underline">
                             {t('orders_open_tracking')}
@@ -212,7 +214,7 @@ export default function OrdersPage() {
                         disabled={busyId === order.id}
                         className="rounded-md bg-stone-900 px-3 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-60"
                       >
-                        {t('orders_request_carrier')}
+                        {CARRIER_SIMULATION_MODE ? (english ? 'Simulate carrier request' : 'Simuler la demande transporteur') : t('orders_request_carrier')}
                       </button>
                     )}
                   </div>
@@ -245,6 +247,7 @@ export default function OrdersPage() {
 
                 {(order.paymentMethod === 'momo' || order.paymentMethod === 'orange_money') && order.status !== 'cancelled' && (
                   <div className="mt-3 flex flex-wrap gap-2">
+                    {MOBILE_MONEY_TEST_MODE ? <p role="note" className="w-full rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">{t('payment_test_mode_notice')}</p> : null}
                     {order.paymentMethod === 'momo' && order.payment?.status === 'pending' && order.status === 'pending' && (
                       <div className="flex w-full flex-wrap items-start gap-2">
                         <div>
@@ -264,7 +267,7 @@ export default function OrdersPage() {
                           disabled={busyId === order.id}
                           className="rounded-md bg-orange-600 px-3 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-60"
                         >
-                          {t('orders_pay_momo')}
+                          {MOBILE_MONEY_TEST_MODE ? (english ? 'Run MoMo test' : 'Lancer le test MoMo') : t('orders_pay_momo')}
                         </button>
                       </div>
                     )}
@@ -274,7 +277,7 @@ export default function OrdersPage() {
                         disabled={busyId === order.id}
                         className="rounded-md bg-orange-600 px-3 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-60"
                       >
-                        {t('orders_pay_orange')}
+                        {MOBILE_MONEY_TEST_MODE ? (english ? 'Run Orange Money test' : 'Lancer le test Orange Money') : t('orders_pay_orange')}
                       </button>
                     )}
                     {(order.deliveryMethod === 'carrier' ? order.carrierVerified : order.sellerConfirmedAvailability) && !order.buyerConfirmedReception && (

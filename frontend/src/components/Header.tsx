@@ -29,10 +29,6 @@ export function Header() {
     refreshInterval: 20000,
   });
 
-  const { data: opportunityUnread } = useSWR(user?.role === 'artisan' ? 'opportunity-notifications-unread' : null, () => api.notificationsOpportunitiesUnread(), {
-    refreshInterval: 20000,
-  });
-
   const handleLogout = () => {
     setMenuOpen(false);
     logout();
@@ -40,9 +36,9 @@ export function Header() {
   };
 
   return (
-    <header className="border-b border-stone-200 bg-white md:fixed md:inset-y-0 md:left-0 md:z-40 md:flex md:w-64 md:flex-col md:border-r md:border-b-0">
-      <div className="relative mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-4 px-6 py-4 md:h-full md:min-h-0 md:flex-col md:items-stretch md:justify-start md:gap-6 md:px-4 md:py-6">
-        <div className="flex items-center gap-4 md:justify-between">
+    <header className="border-b border-stone-200 bg-white">
+      <div className="relative mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-4 px-6 py-4">
+        <div className="flex items-center gap-4">
           <Link href="/" className="text-lg font-semibold tracking-tight text-stone-900">
             Artisan<span className="text-amber-700">Connect</span>
           </Link>
@@ -90,36 +86,20 @@ export function Header() {
         <nav
           id="main-navigation"
           onClick={() => setMenuOpen(false)}
-          className={`${menuOpen ? 'flex' : 'hidden'} order-3 max-h-[calc(100vh-8rem)] min-w-0 w-full min-h-0 flex-col items-stretch gap-1 overflow-auto border-t border-stone-200 pt-3 text-sm md:order-none md:flex md:max-h-none md:w-full md:flex-1 md:flex-col md:items-stretch md:justify-start md:gap-1 md:overflow-y-auto md:border-t-0 md:border-0 md:pt-0 md:text-sm [&>a]:shrink-0 [&>a]:whitespace-nowrap [&>a]:px-2 [&>a]:py-2 [&>button]:shrink-0 [&>button]:whitespace-nowrap [&>button]:px-2 [&>button]:py-2`}
+          className={`${menuOpen ? 'flex' : 'hidden'} order-3 w-full flex-col items-stretch gap-1 border-t border-stone-200 pt-3 text-sm md:order-none md:flex md:flex-1 md:w-auto md:flex-row md:items-center md:justify-end md:gap-1 md:border-0 md:pt-0 md:text-[13px] [&>a]:whitespace-nowrap [&>a]:px-2 [&>a]:py-2 [&>button]:whitespace-nowrap [&>button]:px-2 [&>button]:py-2`}
         >
-          <Link href="/annonces" className={navLinkClass('/annonces')}>
-            {t('nav_listings')}
+          <Link href="/" className={navLinkClass('/')}>
+            Annonces
           </Link>
-          {user?.role !== 'artisan' ? (
-            <Link href="/trouver-un-artisan" className={navLinkClass('/trouver-un-artisan')}>
-              {user?.role === 'institution' ? (language === 'en' ? 'Source artisans' : 'Sourcer des artisans') : t('nav_find_artisan')}
-            </Link>
-          ) : null}
-          {user?.role !== 'artisan' && user?.role !== 'institution' && user?.role !== 'admin' ? (
-            <Link href="/services" className={navLinkClass('/services')}>
-              {t('nav_services')}
-            </Link>
-          ) : null}
-          {user?.role !== 'artisan' && user?.role !== 'admin' ? (
-            <Link href="/how-it-works" className={navLinkClass('/how-it-works')}>
-              {t('nav_how_it_works')}
-            </Link>
-          ) : null}
-          {user?.role !== 'artisan' && user?.role !== 'admin' ? (
-            <Link href="/blog" className={navLinkClass('/blog')}>
-              Blog
-            </Link>
-          ) : null}
-          {!user || (user.role !== 'client' && user.role !== 'artisan' && user.role !== 'institution' && user.role !== 'admin') ? (
-            <Link href="/institutions" className={navLinkClass('/institutions')}>
-              {t('nav_institutions')}
-            </Link>
-          ) : null}
+          <Link href="/services" className={navLinkClass('/services')}>
+            {t('nav_services')}
+          </Link>
+          <Link href="/how-it-works" className={navLinkClass('/how-it-works')}>
+            {t('nav_how_it_works')}
+          </Link>
+          <Link href="/blog" className={navLinkClass('/blog')}>
+            Blog
+          </Link>
           {!ready ? null : user ? (
             <>
               {user.role === 'admin' && (
@@ -144,11 +124,6 @@ export function Header() {
                   className={navLinkClass('/admin/service-orders')}
                 >
                   {t('nav_service_requests')}
-                </Link>
-              )}
-              {user.role === 'admin' && (
-                <Link href="/admin/customer-requests" className={navLinkClass('/admin/customer-requests')}>
-                  Demandes sans artisan
                 </Link>
               )}
               {user.role === 'artisan' && (
@@ -181,22 +156,6 @@ export function Header() {
                 </Link>
               )}
               {user.role === 'artisan' && (
-                <Link href="/artisan/customer-requests" className={`${navLinkClass('/artisan/customer-requests')} flex items-center justify-between gap-2`}>
-                  {t('nav_opportunities')}
-                  {opportunityUnread && opportunityUnread.unreadCount > 0 ? <span className="rounded-full bg-red-600 px-1.5 py-0.5 text-xs font-semibold text-white">{opportunityUnread.unreadCount}</span> : null}
-                </Link>
-              )}
-              {user.role === 'artisan' && (
-                <Link href="/assistant" className={navLinkClass('/assistant')}>
-                  {t('nav_assistant')}
-                </Link>
-              )}
-              {user.role === 'artisan' && (
-                <Link href="/assistant/images" className={navLinkClass('/assistant/images')}>
-                  {language === 'en' ? 'AI Image Studio' : 'Studio images IA'}
-                </Link>
-              )}
-              {user.role === 'artisan' && (
                 <Link href="/formalization" className={navLinkClass('/formalization')}>
                   {t('nav_formalization')}
                 </Link>
@@ -211,9 +170,6 @@ export function Header() {
                   {t('nav_institution_space')}
                 </Link>
               )}
-              <Link href="/profile" className={navLinkClass('/profile')}>
-                {t('nav_profile')}
-              </Link>
               <Link
                 href="/notifications"
                 className={`relative ${navLinkClass('/notifications')}`}

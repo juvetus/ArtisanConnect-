@@ -2,6 +2,7 @@
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { Listing, Order, Payment } from '../../entities/index.js';
+import { isDemoMode } from '../../demo-mode.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 
 /** Commission prélevée par la plateforme sur chaque commande. */
@@ -34,6 +35,9 @@ export class OrdersService {
     paymentMethod: 'cash' | 'momo' | 'orange_money' = 'cash',
     delivery: ProductOrderDeliveryInput = { deliveryMethod: 'workshop' },
   ): Promise<Order> {
+    if (isDemoMode()) {
+      throw new ForbiddenException('Les commandes sont désactivées en mode démonstration');
+    }
     if (!Number.isInteger(quantity) || quantity < 1) {
       throw new BadRequestException('Quantité invalide');
     }
@@ -51,6 +55,7 @@ export class OrdersService {
       });
 
       if (!listing) throw new NotFoundException('Annonce introuvable');
+      if (listing.isDemo) throw new ForbiddenException('Cette annonce de démonstration ne peut pas être commandée');
       if (listing.status !== 'active') throw new BadRequestException("Cette annonce n'est plus disponible");
       if (listing.sellerId === buyerId) {
         throw new ForbiddenException('Vous ne pouvez pas commander votre propre annonce');

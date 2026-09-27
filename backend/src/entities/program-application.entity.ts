@@ -16,6 +16,9 @@ export class ProgramApplication {
   @Column()
   programId: string;
 
+  @Column({ type: 'boolean', nullable: true })
+  isDemo: boolean | null;
+
   @Column({ type: 'text' })
   motivation: string;
 

@@ -6,6 +6,7 @@ import { createHash } from 'crypto';
 import { UsersService } from '../users/users.service.js';
 import { EmailService } from '../email/email.service.js';
 import type { User } from '../../entities/user.entity.js';
+import { isDemoMode } from '../../demo-mode.js';
 
 @Injectable()
 export class AuthService {
@@ -63,6 +64,7 @@ export class AuthService {
 
     const storedEmail = email ?? `${phone!.replace('+', '')}@phone.artisanconnect.local`;
     const user = await this.usersService.create(storedEmail, password, name, role, gender);
+    await this.usersService.update(user.id, { isDemo: isDemoMode() });
     if (role === 'institution') {
       await this.usersService.update(user.id, { isActive: false });
     }

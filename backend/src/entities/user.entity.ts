@@ -69,6 +69,9 @@ export class User {
   @Column({ default: true })
   isActive: boolean;
 
+  @Column({ type: 'boolean', nullable: true })
+  isDemo: boolean | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

@@ -14,6 +14,9 @@ export class Subscription {
   @Column()
   planId: string;
 
+  @Column({ type: 'boolean', nullable: true })
+  isDemo: boolean | null;
+
   @Column('enum', { enum: ['pending', 'active', 'failed', 'cancelled'], default: 'pending' })
   status: 'pending' | 'active' | 'failed' | 'cancelled';
 

@@ -12,9 +12,13 @@ export default function AdminServiceOrdersPage() {
   const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(true);
 
+  const fetchOrders = async () => {
+    return await api.getPendingServiceOrders() as ServiceOrder[];
+  };
+
   const loadOrders = async () => {
     try {
-      setOrders((await api.getPendingServiceOrders()) as ServiceOrder[]);
+      setOrders(await fetchOrders());
     } catch {
       setNotice('Impossible de charger les demandes.');
     } finally {
@@ -23,7 +27,13 @@ export default function AdminServiceOrdersPage() {
   };
 
   useEffect(() => {
-    if (ready && user?.role === 'admin') void loadOrders();
+    if (!ready || user?.role !== 'admin') return;
+    let active = true;
+    void fetchOrders()
+      .then((data) => { if (active) setOrders(data); })
+      .catch(() => { if (active) setNotice('Impossible de charger les demandes.'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, [ready, user]);
 
   const act = async (id: string, action: 'validate' | 'request' | 'reject') => {

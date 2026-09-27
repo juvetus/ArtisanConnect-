@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { categoryLabel } from '@/lib/categories';
 import { useLanguage } from '@/lib/language-context';
 import { useAuth } from '@/lib/auth-context';
@@ -26,7 +27,7 @@ export function ArtisanCard({ artisan }: { artisan: PublicArtisan }) {
     <article className="flex h-full flex-col rounded-lg border border-stone-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-start gap-4">
         {artisan.coverImageUrl ? (
-          <img src={resolveMediaUrl(artisan.coverImageUrl)} alt="" className="h-16 w-16 shrink-0 rounded-full object-cover" />
+          <Image src={resolveMediaUrl(artisan.coverImageUrl)} alt="" width={64} height={64} unoptimized className="h-16 w-16 shrink-0 rounded-full object-cover" />
         ) : (
           <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xl font-semibold text-amber-800" aria-hidden>
             {artisan.name.charAt(0).toUpperCase()}

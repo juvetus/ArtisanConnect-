@@ -96,6 +96,9 @@ export class ServiceOrder {
   @Column({ type: 'text', nullable: true })
   deliveryFeedback: string | null;
 
+  @Column({ type: 'boolean', nullable: true })
+  isDemo: boolean | null;
+
   @Column({ type: 'timestamp', nullable: true })
   deliveredAt: Date | null;
 

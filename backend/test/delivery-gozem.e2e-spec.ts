@@ -24,6 +24,7 @@ describe('Gozem delivery flow (e2e)', () => {
     process.env.CARRIER_PROVIDER = 'Gozem';
     delete process.env.CARRIER_API_KEY;
     process.env.CARRIER_WEBHOOK_SECRET = webhookSecret;
+    process.env.SMTP_ENABLED = 'false';
     process.env.DB_SYNCHRONIZE = 'true';
     process.env.DB_RETRY_ATTEMPTS = '1';
     process.env.DB_RETRY_DELAY = '100';

@@ -11,8 +11,9 @@ export class NotificationsController {
     @CurrentUser() user: AuthUser,
     @Query('skip', new DefaultValuePipe(0), ParseIntPipe) skip: number = 0,
     @Query('take', new DefaultValuePipe(30), ParseIntPipe) take: number = 30,
+    @Query('q') search = '',
   ) {
-    const [items, total] = await this.notificationsService.findByRecipient(user.id, skip, take);
+    const [items, total] = await this.notificationsService.findByRecipient(user.id, skip, take, search);
     return { items, total, unreadCount: await this.notificationsService.unreadCount(user.id) };
   }
 

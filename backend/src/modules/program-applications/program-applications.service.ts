@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { ProgramApplication } from '../../entities/program-application.entity.js';
 import { InstitutionalProgram } from '../../entities/institutional-program.entity.js';
 import { User } from '../../entities/user.entity.js';
+import { isDemoMode } from '../../demo-mode.js';
 
 @Injectable()
 export class ProgramApplicationsService {
@@ -19,11 +20,11 @@ export class ProgramApplicationsService {
     }
     const program = await this.programs.findOne({ where: { id: programId, status: 'active' } });
     if (!program) throw new NotFoundException('Programme introuvable ou fermé');
-    const artisan = await this.users.findOne({ where: { id: artisanId, role: 'artisan' } });
+    const artisan = await this.users.findOne({ where: { id: artisanId, role: 'artisan', ...(isDemoMode() ? {} : { isDemo: false }) } });
     if (!artisan) throw new ForbiddenException('Seuls les artisans peuvent postuler');
     const existing = await this.applications.findOne({ where: { artisanId, programId } });
     if (existing) throw new ConflictException('Vous avez déjà postulé à ce programme');
-    return this.applications.save(this.applications.create({ artisanId, programId, motivation: motivation.trim(), status: 'submitted', institutionNotes: null }));
+    return this.applications.save(this.applications.create({ artisanId, programId, motivation: motivation.trim(), status: 'submitted', institutionNotes: null, isDemo: isDemoMode() }));
   }
 
   mine(artisanId: string) {

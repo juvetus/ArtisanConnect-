@@ -10,6 +10,9 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: DEMO_MODE
+        # Set both demo flags to false when real offers are ready for launch.
+        value: 'true'
       - key: PORT
         value: 10000
       - key: JWT_SECRET
@@ -96,6 +99,123 @@ services:
         value: https://artisanconnect-api-frankfurt.onrender.com
       - key: NEXT_PUBLIC_SITE_URL
         value: https://artisanconnectcm.info
+      - key: NEXT_PUBLIC_DEMO_MODE
+        value: 'true'
+      - key: NEXT_PUBLIC_MOBILE_MONEY_MODE
+        value: test
+      - key: NEXT_PUBLIC_CARRIER_MODE
+        value: simulation
+
+  - type: web
+    name: artisanconnect-api-staging
+    region: frankfurt
+    runtime: node
+    rootDir: backend
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DEMO_MODE
+        value: 'false'
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRATION
+        value: 7d
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_NAME
+        value: Administration ArtisanConnect Staging
+      - key: DB_HOST
+        fromDatabase:
+          name: artisanconnect-db-staging
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: artisanconnect-db-staging
+          property: port
+      - key: DB_USERNAME
+        fromDatabase:
+          name: artisanconnect-db-staging
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: artisanconnect-db-staging
+          property: password
+      - key: DB_DATABASE
+        fromDatabase:
+          name: artisanconnect-db-staging
+          property: database
+      - key: DB_SYNCHRONIZE
+        value: 'false'
+      - key: DB_RETRY_ATTEMPTS
+        value: '5'
+      - key: DB_RETRY_DELAY
+        value: '3000'
+      - key: FRONTEND_URL
+        value: https://artisanconnect-web-staging.onrender.com
+      - key: API_URL
+        value: https://artisanconnect-api-staging.onrender.com
+      - key: MOMO_MODE
+        value: sandbox
+      - key: MOMO_BASE_URL
+        value: https://sandbox.momodeveloper.mtn.com
+      - key: MOMO_TARGET_ENVIRONMENT
+        value: sandbox
+      - key: MOMO_API_USER
+        sync: false
+      - key: MOMO_API_KEY
+        sync: false
+      - key: MOMO_SUBSCRIPTION_KEY
+        sync: false
+      - key: MOMO_WEBHOOK_SECRET
+        sync: false
+      - key: ORANGE_MONEY_MODE
+        value: mock
+      - key: SMTP_ENABLED
+        value: 'false'
+      - key: SMTP_HOST
+        value: smtp-relay.brevo.com
+      - key: SMTP_PORT
+        value: '587'
+      - key: SMTP_SECURE
+        value: 'false'
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+
+  - type: web
+    name: artisanconnect-web-staging
+    region: frankfurt
+    runtime: node
+    rootDir: frontend
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://artisanconnect-api-staging.onrender.com
+      - key: NEXT_PUBLIC_SITE_URL
+        value: https://artisanconnect-web-staging.onrender.com
+      - key: NEXT_PUBLIC_DEMO_MODE
+        value: 'false'
+      - key: NEXT_PUBLIC_MOBILE_MONEY_MODE
+        value: test
+      - key: NEXT_PUBLIC_CARRIER_MODE
+        value: simulation
 
 databases:
   - name: artisanconnect-db-one
@@ -103,3 +223,8 @@ databases:
     postgresMajorVersion: '18'
     databaseName: artisanconnect_db_one
     user: artisanconnect_db_one_user
+  - name: artisanconnect-db-staging
+    region: frankfurt
+    postgresMajorVersion: '18'
+    databaseName: artisanconnect_staging_db
+    user: artisanconnect_staging_user

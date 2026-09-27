@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
@@ -103,7 +104,7 @@ export default function AssistantImagesPage() {
             <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => setReferenceImage(event.target.files?.[0])} className="mt-1 block w-full rounded-md border border-amber-300 bg-amber-50 p-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-amber-700 file:px-3 file:py-2 file:font-medium file:text-white" />
             <span className="mt-1 block text-xs font-normal text-stone-500">{english ? 'The AI will use this photo as a product reference. JPG, PNG or WebP, 5 MB maximum.' : 'L’IA utilisera cette photo comme référence du produit. JPG, PNG ou WebP, 5 Mo maximum.'}</span>
           </label>
-          {referenceImage ? <img src={URL.createObjectURL(referenceImage)} alt={english ? 'Selected product reference' : 'Référence produit sélectionnée'} className="h-24 w-24 rounded-md border border-stone-200 object-cover" /> : null}
+          {referenceImage ? <Image src={URL.createObjectURL(referenceImage)} alt={english ? 'Selected product reference' : 'Référence produit sélectionnée'} width={96} height={96} unoptimized className="h-24 w-24 rounded-md border border-stone-200 object-cover" /> : null}
           <div className="rounded-md border border-stone-200 p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div><h2 className="text-sm font-semibold text-stone-900">{english ? 'Analyze portfolio photo' : 'Analyser une photo de portfolio'}</h2><p className="mt-1 text-xs text-stone-600">{english ? 'Photo quality and trade coherence only; ownership cannot be verified from pixels.' : 'Qualité visuelle et cohérence avec le métier seulement; la propriété ne peut pas être vérifiée à partir des pixels.'}</p></div>
@@ -128,7 +129,7 @@ export default function AssistantImagesPage() {
 
         <section className="rounded-xl border border-stone-200 bg-white p-6">
           <h2 className="text-xl font-semibold">{english ? 'Generated images' : 'Images générées'}</h2>
-          {images.length ? <div className="mt-4 grid gap-4 sm:grid-cols-2">{images.map((url, index) => <figure key={`${url}-${index}`} className="overflow-hidden rounded-md border border-amber-200"><img src={url} alt={english ? `AI staging image ${index + 1}` : `Image IA de mise en scène ${index + 1}`} className="aspect-square w-full object-cover" /><figcaption className="flex items-center justify-between gap-2 p-2 text-xs text-amber-800"><span>Image IA</span><a href={url} target="_blank" rel="noreferrer" className="underline">{english ? 'Open' : 'Ouvrir'}</a></figcaption></figure>)}</div> : <p className="mt-4 rounded-md bg-stone-50 p-6 text-sm text-stone-600">{english ? 'Your generated images will appear here.' : 'Vos images générées apparaîtront ici.'}</p>}
+          {images.length ? <div className="mt-4 grid gap-4 sm:grid-cols-2">{images.map((url, index) => <figure key={`${url}-${index}`} className="overflow-hidden rounded-md border border-amber-200"><Image src={url} alt={english ? `AI staging image ${index + 1}` : `Image IA de mise en scène ${index + 1}`} width={800} height={800} unoptimized className="aspect-square w-full object-cover" /><figcaption className="flex items-center justify-between gap-2 p-2 text-xs text-amber-800"><span>Image IA</span><a href={url} target="_blank" rel="noreferrer" className="underline">{english ? 'Open' : 'Ouvrir'}</a></figcaption></figure>)}</div> : <p className="mt-4 rounded-md bg-stone-50 p-6 text-sm text-stone-600">{english ? 'Your generated images will appear here.' : 'Vos images générées apparaîtront ici.'}</p>}
           <Link href="/assistant" className="mt-6 inline-block text-sm font-medium text-amber-800 underline">{english ? 'Back to text assistant' : 'Retour à l’assistant texte'}</Link>
         </section>
       </div>

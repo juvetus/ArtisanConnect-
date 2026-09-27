@@ -1,4 +1,4 @@
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { ServiceOrdersService } from './service-orders.service.js';
 
 describe('ServiceOrdersService', () => {
@@ -53,6 +53,19 @@ describe('ServiceOrdersService', () => {
     clientConfirmed: true,
     termsAccepted: true,
   };
+
+  it('bloque la création d’une demande en mode démonstration avant de lire le service', async () => {
+    const originalDemoMode = process.env.DEMO_MODE;
+    process.env.DEMO_MODE = 'true';
+
+    try {
+      await expect(service.createOrder('client-1', requestData)).rejects.toBeInstanceOf(ForbiddenException);
+      expect(services.findOne).not.toHaveBeenCalled();
+    } finally {
+      if (originalDemoMode === undefined) delete process.env.DEMO_MODE;
+      else process.env.DEMO_MODE = originalDemoMode;
+    }
+  });
 
   it('refuse une nouvelle demande si le client a déjà une demande active pour ce service', async () => {
     orders.count.mockResolvedValue(1);
