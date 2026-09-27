@@ -384,14 +384,14 @@ export default function AdminPage() {
       {view === 'users' && (
         <div className="space-y-4">
           <section className="rounded-lg border border-stone-200 bg-white p-5">
-            <h2 className="font-semibold">Ajouter un utilisateur</h2>
-            <p className="mt-1 text-sm text-stone-600">Réservé aux administrateurs. Le mot de passe initial doit être transmis par un canal sûr.</p>
+            <h2 className="font-semibold">{english ? 'Add a user' : 'Ajouter un utilisateur'}</h2>
+            <p className="mt-1 text-sm text-stone-600">{english ? 'Administrators only. The initial password must be shared through a secure channel.' : 'Réservé aux administrateurs. Le mot de passe initial doit être transmis par un canal sûr.'}</p>
             <form onSubmit={createUser} className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_180px_180px_auto]">
               <input
                 required
                 value={newUser.name}
                 onChange={(event) => setNewUser((current) => ({ ...current, name: event.target.value }))}
-                placeholder="Nom"
+                placeholder={english ? 'Name' : 'Nom'}
                 className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
               />
               <input
@@ -408,7 +408,7 @@ export default function AdminPage() {
                 minLength={8}
                 value={newUser.password}
                 onChange={(event) => setNewUser((current) => ({ ...current, password: event.target.value }))}
-                placeholder="Mot de passe"
+                placeholder={english ? 'Password' : 'Mot de passe'}
                 className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
               />
               <select
@@ -431,13 +431,13 @@ export default function AdminPage() {
                   value={newUser.gender}
                   onChange={(event) => setNewUser((current) => ({ ...current, gender: event.target.value as typeof newUser.gender }))}
                   className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600 md:col-span-4"
-                  aria-label="Profil artisan"
+                  aria-label={english ? 'Artisan profile' : 'Profil artisan'}
                 >
                   {ARTISAN_PROFILE_TYPES.map((profile) => <option key={profile.value} value={profile.value}>{profile.label}</option>)}
                 </select>
               )}
               <button className="rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-white hover:bg-amber-800">
-                Ajouter
+                {english ? 'Add' : 'Ajouter'}
               </button>
             </form>
           </section>
@@ -446,53 +446,53 @@ export default function AdminPage() {
             <div className="border-b border-stone-200 p-5">
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
-                  <h2 className="font-semibold">Utilisateurs ({filteredUsers.length}/{data.users.length})</h2>
-                  <p className="mt-1 text-sm text-stone-600">Les mots de passe ne sont jamais exposés.</p>
+                  <h2 className="font-semibold">{english ? 'Users' : 'Utilisateurs'} ({filteredUsers.length}/{data.users.length})</h2>
+                  <p className="mt-1 text-sm text-stone-600">{english ? 'Passwords are never exposed.' : 'Les mots de passe ne sont jamais exposés.'}</p>
                 </div>
               </div>
               <div className="mt-4 grid gap-3 lg:grid-cols-[1.4fr_180px_180px_160px_auto]">
                 <label className="text-sm font-medium text-stone-700">
-                  Recherche
+                  {english ? 'Search' : 'Recherche'}
                   <input
                     type="search"
                     value={userSearch}
                     onChange={(event) => { setUserSearch(event.target.value); setUsersPage(0); }}
-                    placeholder="Nom ou e-mail"
+                    placeholder={english ? 'Name or email' : 'Nom ou e-mail'}
                     className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
                   />
                 </label>
                 <label className="text-sm font-medium text-stone-700">
-                  Rôle
+                  {english ? 'Role' : 'Rôle'}
                   <select
                     value={userRoleFilter}
                     onChange={(event) => { setUserRoleFilter(event.target.value as Role | 'all'); setUsersPage(0); }}
                     className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
                   >
-                    <option value="all">Tous</option>
+                    <option value="all">{english ? 'All' : 'Tous'}</option>
                     {ADMIN_CREATABLE_ROLES.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}
                   </select>
                 </label>
                 <label className="text-sm font-medium text-stone-700">
-                  Profil
+                  {english ? 'Profile' : 'Profil'}
                   <select
                     value={userGenderFilter}
                     onChange={(event) => { setUserGenderFilter(event.target.value as typeof userGenderFilter); setUsersPage(0); }}
                     className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
                   >
-                    <option value="all">Tous</option>
+                    <option value="all">{english ? 'All' : 'Tous'}</option>
                     {ARTISAN_PROFILE_TYPES.map((profile) => <option key={profile.value} value={profile.value}>{profile.label}</option>)}
                   </select>
                 </label>
                 <label className="text-sm font-medium text-stone-700">
-                  Statut
+                  {english ? 'Status' : 'Statut'}
                   <select
                     value={userStatusFilter}
                     onChange={(event) => { setUserStatusFilter(event.target.value as typeof userStatusFilter); setUsersPage(0); }}
                     className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
                   >
-                    <option value="all">Tous</option>
-                    <option value="active">Actifs</option>
-                    <option value="inactive">Désactivés</option>
+                    <option value="all">{english ? 'All' : 'Tous'}</option>
+                    <option value="active">{english ? 'Active' : 'Actifs'}</option>
+                    <option value="inactive">{english ? 'Disabled' : 'Désactivés'}</option>
                   </select>
                 </label>
                 <button
@@ -501,7 +501,7 @@ export default function AdminPage() {
                   onClick={() => { setUserSearch(''); setUserRoleFilter('all'); setUserGenderFilter('all'); setUserStatusFilter('all'); setUsersPage(0); }}
                   className="self-end rounded-md border border-stone-300 px-3 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-50"
                 >
-                  Réinitialiser
+                  {english ? 'Reset' : 'Réinitialiser'}
                 </button>
               </div>
             </div>
@@ -519,7 +519,7 @@ export default function AdminPage() {
                         {member.gender === 'female' ? 'Femme' : member.gender === 'cooperative' ? 'Coopérative' : member.gender}
                       </span>
                     )}
-                    {member.isActive === false && <span className="rounded-full bg-red-100 px-3 py-1 text-xs text-red-700">Désactivé</span>}
+                        {member.isActive === false && <span className="rounded-full bg-red-100 px-3 py-1 text-xs text-red-700">{english ? 'Disabled' : 'Désactivé'}</span>}
                     {member.role !== 'admin' && (
                       <>
                         <select
@@ -533,7 +533,7 @@ export default function AdminPage() {
                           onClick={() => void runAdminAction(() => api.adminSetUserStatus(member.id, member.isActive === false))}
                           className="text-sm text-orange-700 underline"
                         >
-                          {member.isActive === false ? 'Réactiver' : 'Désactiver'}
+                          {member.isActive === false ? (english ? 'Reactivate' : 'Réactiver') : (english ? 'Disable' : 'Désactiver')}
                         </button>
                         <button
                           onClick={() => {
@@ -541,7 +541,7 @@ export default function AdminPage() {
                           }}
                           className="text-sm text-red-700 underline"
                         >
-                          Supprimer
+                          {english ? 'Delete' : 'Supprimer'}
                         </button>
                       </>
                     )}
@@ -549,7 +549,7 @@ export default function AdminPage() {
                 </div>
               ))}
               {filteredUsers.length === 0 && (
-                <p className="p-4 text-sm text-stone-500">Aucun utilisateur ne correspond à cette recherche.</p>
+                <p className="p-4 text-sm text-stone-500">{english ? 'No users match this search.' : 'Aucun utilisateur ne correspond à cette recherche.'}</p>
               )}
             </div>
             {filteredUsers.length > PAGE_SIZE && (
