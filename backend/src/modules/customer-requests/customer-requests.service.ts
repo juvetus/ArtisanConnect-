@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, Repository } from 'typeorm';
 import { isDemoMode } from '../../demo-mode.js';
 import { CustomerRequest, Listing, Service, ServiceReview, Shop, User } from '../../entities/index.js';
-import type { ContactPreference } from '../../entities/customer-request.entity.js';
+import type { ContactPreference, CustomerRequestType } from '../../entities/customer-request.entity.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { StorageService } from '../storage/storage.service.js';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service.js';
@@ -92,12 +92,25 @@ export class CustomerRequestsService {
     private readonly momo: MomoService,
   ) {}
 
-  async create(clientId: string, data: { category: string; city: string; neighborhood?: string; description: string; budgetMin?: number; budgetMax?: number; requestedDate?: string; contactPreference?: ContactPreference; contactPhone?: string }) {
+  async create(clientId: string, data: { category: string; city: string; neighborhood?: string; description: string; budgetMin?: number; budgetMax?: number; requestedDate?: string; contactPreference?: ContactPreference; contactPhone?: string; requestType?: CustomerRequestType; organizationName?: string; requestedQuantity?: number }) {
     if (isDemoMode()) {
       throw new ForbiddenException('La publication de demandes est désactivée en mode démonstration');
     }
     if (!data.category?.trim() || !data.city?.trim() || !data.description?.trim() || data.description.trim().length < 20) {
       throw new BadRequestException('La catégorie, la ville et une description de 20 caractères sont requises');
+    }
+    const requestType = data.requestType ?? 'personal';
+    if (requestType !== 'personal' && requestType !== 'business') {
+      throw new BadRequestException('Type de demande invalide');
+    }
+    if (requestType === 'business' && !data.organizationName?.trim()) {
+      throw new BadRequestException('Le nom de l’entreprise est obligatoire pour une demande B2B');
+    }
+    if (data.requestedQuantity !== undefined && (!Number.isInteger(data.requestedQuantity) || data.requestedQuantity < 1)) {
+      throw new BadRequestException('La quantité doit être un entier supérieur à zéro');
+    }
+    if (requestType === 'business' && data.requestedQuantity === undefined) {
+      throw new BadRequestException('La quantité souhaitée est obligatoire pour une demande B2B');
     }
     const contactPreference = data.contactPreference ?? 'platform';
     if (contactPreference !== 'platform' && !data.contactPhone?.trim()) {
@@ -105,6 +118,9 @@ export class CustomerRequestsService {
     }
     const request = await this.requests.save(this.requests.create({
       clientId,
+      requestType,
+      organizationName: requestType === 'business' ? data.organizationName!.trim() : null,
+      requestedQuantity: requestType === 'business' ? data.requestedQuantity! : null,
       category: data.category.trim(),
       city: data.city.trim(),
       neighborhood: data.neighborhood?.trim() || null,
@@ -121,13 +137,20 @@ export class CustomerRequestsService {
       responses: [],
     }));
 
-    const targets = await this.selectArtisansForRequest(request);
+    const targets = requestType === 'business' ? [] : await this.selectArtisansForRequest(request);
     request.contactedArtisanIds = targets.map((target) => target.id);
     await this.requests.save(request);
 
     const deadline = request.requestedDate ? ` (souhaité pour le ${new Date(request.requestedDate).toLocaleDateString('fr-FR')})` : '';
     const summary = `${request.category} à ${request.neighborhood ? `${request.neighborhood}, ` : ''}${request.city}${deadline} : ${request.description.slice(0, 140)}${request.description.length > 140 ? '…' : ''}`;
-    if (!targets.length) {
+    if (requestType === 'business') {
+      await this.notifications.notifyAdmins({
+        title: 'Demande B2B à examiner',
+        content: `Brief professionnel de ${request.organizationName} : ${request.requestedQuantity} unité(s) de ${request.category} à ${request.city}. Sélectionnez les artisans adaptés avant transmission.`,
+        link: '/admin/customer-requests',
+        relatedId: request.id,
+      }).catch(() => undefined);
+    } else if (!targets.length) {
       await this.notifications.notifyAdmins({
         title: 'Demande client sans artisan correspondant',
         content: `${summary}\nAucun artisan actif ne correspond au métier demandé. Un suivi manuel est nécessaire.`,
@@ -148,6 +171,51 @@ export class CustomerRequestsService {
     }
 
     return request;
+  }
+
+  async findBusinessCandidatesForAdmin(requestId: string) {
+    const request = await this.requests.findOne({ where: { id: requestId, requestType: 'business', status: 'new' } });
+    if (!request) throw new NotFoundException('Brief B2B en attente introuvable');
+    const candidates = await this.selectArtisansForRequest(request);
+    return candidates.map((artisan) => ({ id: artisan.id, name: artisan.name, location: artisan.location }));
+  }
+
+  async assignBusinessArtisans(requestId: string, artisanIds: string[]) {
+    const request = await this.requests.findOne({ where: { id: requestId, requestType: 'business', status: 'new' } });
+    if (!request) throw new NotFoundException('Brief B2B en attente introuvable');
+    const selectedIds = [...new Set((artisanIds ?? []).filter((id) => typeof id === 'string' && id.trim()))];
+    if (!selectedIds.length || selectedIds.length > MAX_TARGETED_ARTISANS) {
+      throw new BadRequestException(`Sélectionnez entre 1 et ${MAX_TARGETED_ARTISANS} artisans`);
+    }
+
+    const candidates = await this.selectArtisansForRequest(request);
+    const candidateIds = new Set(candidates.map((candidate) => candidate.id));
+    if (selectedIds.some((id) => !candidateIds.has(id))) {
+      throw new BadRequestException('La sélection contient un artisan qui ne correspond pas aux critères du brief');
+    }
+
+    const selectedArtisans = candidates.filter((artisan) => selectedIds.includes(artisan.id));
+    request.contactedArtisanIds = selectedArtisans.map((artisan) => artisan.id);
+    request.status = 'contacted';
+    await this.requests.save(request);
+
+    const summary = `Brief B2B de ${request.organizationName} : ${request.requestedQuantity} unité(s) de ${request.category} à ${request.city}. Consultez la demande et répondez avec votre proposition.`;
+    await Promise.all(selectedArtisans.map(async (artisan) => {
+      try {
+        await this.notifications.notify({
+          recipientId: artisan.id,
+          type: 'new_order',
+          title: 'Nouvelle opportunité professionnelle B2B',
+          content: summary,
+          link: '/artisan/customer-requests',
+          relatedId: request.id,
+        });
+      } catch {
+        // Une notification ne doit pas annuler l’assignation.
+      }
+    }));
+
+    return { success: true, contactedArtisanIds: request.contactedArtisanIds };
   }
 
   /**
@@ -212,6 +280,7 @@ export class CustomerRequestsService {
       where: [
         { status: 'new', contactedArtisanIds: '' },
         { status: 'new', contactedArtisanIds: IsNull() },
+        { requestType: 'business', status: In(['new', 'contacted', 'in_progress']) },
       ],
       order: { createdAt: 'DESC' },
       take: 200,
@@ -233,7 +302,7 @@ export class CustomerRequestsService {
     if (!reply) throw new BadRequestException('La réponse est obligatoire');
     const request = await this.requests.findOne({ where: { id: requestId } });
     if (!request) throw new NotFoundException('Demande introuvable');
-    if ((request.contactedArtisanIds ?? []).length > 0) {
+    if (request.requestType !== 'business' && (request.contactedArtisanIds ?? []).length > 0) {
       throw new BadRequestException('Un artisan a déjà été ciblé pour cette demande');
     }
 
@@ -285,6 +354,7 @@ export class CustomerRequestsService {
 
     return requests
       .filter((request) => {
+        if (request.requestType === 'business' && !(request.contactedArtisanIds ?? []).includes(artisanId)) return false;
         // Une fois l'accord conclu, seuls les artisans ayant répondu voient encore la demande.
         if (request.status === 'in_progress' && !(request.responses ?? []).some((response) => response.artisanId === artisanId)) return false;
         if (normalizedCategory && !normalize(request.category).includes(normalizedCategory)) return false;

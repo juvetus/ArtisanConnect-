@@ -153,6 +153,115 @@ describe('CustomerRequestsService', () => {
     expect(result.contactedArtisanIds).toEqual(['artisan-menuisier']);
   });
 
+  it('met un brief B2B en revue admin sans contacter automatiquement des artisans', async () => {
+    const created = { id: 'request-b2b', clientId: 'client-1', requestType: 'business', organizationName: 'Hôtel Central', requestedQuantity: 40, category: 'menuiserie', city: 'Douala', description: 'Fourniture de quarante chaises solides pour les salles de réunion de notre établissement.', contactedArtisanIds: [] };
+    requests.create.mockReturnValue(created);
+    requests.save.mockResolvedValue(created);
+    users.find.mockResolvedValue([{ id: 'artisan-1', role: 'artisan', isActive: true, location: 'Douala' }]);
+
+    const result = await service.create('client-1', {
+      requestType: 'business',
+      organizationName: 'Hôtel Central',
+      requestedQuantity: 40,
+      category: 'menuiserie',
+      city: 'Douala',
+      description: 'Fourniture de quarante chaises solides pour les salles de réunion de notre établissement.',
+    });
+
+    expect(requests.create).toHaveBeenCalledWith(expect.objectContaining({
+      requestType: 'business',
+      organizationName: 'Hôtel Central',
+      requestedQuantity: 40,
+      contactedArtisanIds: [],
+    }));
+    expect(notifications.notifyAdmins).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'Demande B2B à examiner',
+      link: '/admin/customer-requests',
+      relatedId: 'request-b2b',
+    }));
+    expect(notifications.notify).not.toHaveBeenCalled();
+    expect(result.contactedArtisanIds).toEqual([]);
+  });
+
+  it('exige entreprise et quantité pour un brief B2B', async () => {
+    await expect(service.create('client-1', {
+      requestType: 'business',
+      category: 'menuiserie',
+      city: 'Douala',
+      description: 'Fourniture de mobilier professionnel pour une nouvelle salle de réunion.',
+      requestedQuantity: 10,
+    })).rejects.toBeInstanceOf(BadRequestException);
+
+    await expect(service.create('client-1', {
+      requestType: 'business',
+      organizationName: 'Entreprise locale',
+      category: 'menuiserie',
+      city: 'Douala',
+      description: 'Fourniture de mobilier professionnel pour une nouvelle salle de réunion.',
+    })).rejects.toBeInstanceOf(BadRequestException);
+    expect(requests.save).not.toHaveBeenCalled();
+  });
+
+  it('permet à l’admin de choisir des artisans correspondants pour un brief B2B', async () => {
+    const request = {
+      id: 'request-b2b',
+      clientId: 'client-1',
+      requestType: 'business',
+      organizationName: 'Hôtel Central',
+      requestedQuantity: 40,
+      category: 'menuiserie',
+      city: 'Douala',
+      neighborhood: null,
+      budgetMin: null,
+      budgetMax: null,
+      requestedDate: null,
+      description: 'Fourniture de quarante chaises solides pour les salles de réunion de notre établissement.',
+      contactedArtisanIds: [],
+      status: 'new',
+    };
+    requests.findOne.mockResolvedValue(request);
+    requests.save.mockImplementation(async (value) => value);
+    users.find.mockResolvedValue([{ id: 'artisan-1', name: 'Menuisier Douala', location: 'Douala' }]);
+    shops.find.mockResolvedValue([{ sellerId: 'artisan-1', city: 'Douala', neighborhood: 'Akwa', category: 'menuiserie', verifiedBadge: true, identityVerified: false, availability: 'available', successfulSales: 4 }]);
+    listings.find.mockResolvedValue([{ sellerId: 'artisan-1', category: 'menuiserie', type: 'product' }]);
+    services.find.mockResolvedValue([]);
+    serviceReviews.find.mockResolvedValue([]);
+
+    const result = await service.assignBusinessArtisans('request-b2b', ['artisan-1']);
+
+    expect(result).toEqual({ success: true, contactedArtisanIds: ['artisan-1'] });
+    expect(request).toMatchObject({ status: 'contacted', contactedArtisanIds: ['artisan-1'] });
+    expect(notifications.notify).toHaveBeenCalledWith(expect.objectContaining({
+      recipientId: 'artisan-1',
+      title: 'Nouvelle opportunité professionnelle B2B',
+      relatedId: 'request-b2b',
+    }));
+  });
+
+  it('ne montre pas les briefs B2B aux artisans avant leur assignation', async () => {
+    requests.find.mockResolvedValue([{
+      id: 'request-b2b',
+      clientId: 'client-1',
+      requestType: 'business',
+      status: 'new',
+      category: 'menuiserie',
+      city: 'Douala',
+      contactedArtisanIds: [],
+      responses: [],
+      createdAt: '2026-09-28T10:00:00.000Z',
+    }]);
+    users.findOne.mockResolvedValue({ id: 'artisan-1', location: 'Douala' });
+    shops.find.mockResolvedValue([{ city: 'Douala', category: 'menuiserie', availability: 'available', successfulSales: 1 }]);
+    listings.find.mockResolvedValue([{ category: 'menuiserie', type: 'product' }]);
+    services.find.mockResolvedValue([]);
+    serviceReviews.find.mockResolvedValue([]);
+    users.find.mockResolvedValue([]);
+
+    const result = await service.findOpenForArtisan('artisan-1');
+
+    expect(result).toEqual([]);
+  });
+
   it('notifie les administrateurs quand aucun artisan ne correspond', async () => {
     const created = { id: 'request-no-match', clientId: 'client-1', category: 'verrerie', city: 'Bafoussam', description: 'Je cherche un artisan verrier pour une installation complète.', contactedArtisanIds: [] };
     requests.create.mockReturnValue(created);

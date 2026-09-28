@@ -15,7 +15,7 @@ export class AssistantController {
   }
 
   @Post('suggest-client-request')
-  suggestClientRequest(@CurrentUser() user: AuthUser, @Body() body: { description: string; category?: string; city?: string; neighborhood?: string; budgetMin?: number; budgetMax?: number; language?: 'fr' | 'en' }) {
+  suggestClientRequest(@CurrentUser() user: AuthUser, @Body() body: { description: string; category?: string; city?: string; neighborhood?: string; budgetMin?: number; budgetMax?: number; requestType?: 'personal' | 'business'; organizationName?: string; requestedQuantity?: number; language?: 'fr' | 'en' }) {
     if (user.role !== 'client') throw new BadRequestException('La suggestion pour décrire un besoin est réservée aux clients. Les artisans peuvent préparer une réponse depuis Opportunités.');
     if (!body.description?.trim()) throw new BadRequestException('Saisissez une première description pour obtenir une suggestion');
     const context = [
@@ -23,6 +23,9 @@ export class AssistantController {
       body.city ? `Ville : ${body.city}` : '',
       body.neighborhood ? `Quartier : ${body.neighborhood}` : '',
       body.budgetMin !== undefined || body.budgetMax !== undefined ? `Budget communiqué : ${body.budgetMin ?? 0} à ${body.budgetMax ?? 'non précisé'} FCFA` : '',
+      body.requestType === 'business' ? 'Type : demande professionnelle B2B' : '',
+      body.organizationName ? `Organisation : ${body.organizationName}` : '',
+      body.requestedQuantity ? `Quantité : ${body.requestedQuantity}` : '',
     ].filter(Boolean).join('\n');
     return this.assistant.generate({ task: 'demande_client', input: body.description.slice(0, 3000), context, language: body.language });
   }

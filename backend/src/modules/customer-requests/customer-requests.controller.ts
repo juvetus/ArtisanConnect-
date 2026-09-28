@@ -12,7 +12,7 @@ export class CustomerRequestsController {
   constructor(private readonly service: CustomerRequestsService) {}
 
   @Post()
-  create(@CurrentUser() user: AuthUser, @Body() body: { category: string; city: string; neighborhood?: string; description: string; budgetMin?: number; budgetMax?: number; requestedDate?: string; contactPreference?: 'platform' | 'whatsapp' | 'both'; contactPhone?: string }) {
+  create(@CurrentUser() user: AuthUser, @Body() body: { category: string; city: string; neighborhood?: string; description: string; budgetMin?: number; budgetMax?: number; requestedDate?: string; contactPreference?: 'platform' | 'whatsapp' | 'both'; contactPhone?: string; requestType?: 'personal' | 'business'; organizationName?: string; requestedQuantity?: number }) {
     if (user.role !== 'client') {
       throw new ForbiddenException('La publication d’une demande est réservée aux clients. Les artisans peuvent répondre aux demandes depuis la page Opportunités.');
     }
@@ -34,6 +34,18 @@ export class CustomerRequestsController {
   @Get('admin/unmatched')
   unmatchedForAdmin() {
     return this.service.findUnmatchedForAdmin();
+  }
+
+  @UseGuards(AdminGuard)
+  @Get('admin/:id/artisan-candidates')
+  artisanCandidatesForAdmin(@Param('id') id: string) {
+    return this.service.findBusinessCandidatesForAdmin(id);
+  }
+
+  @UseGuards(AdminGuard)
+  @Post('admin/:id/assign-artisans')
+  assignArtisansForAdmin(@Param('id') id: string, @Body('artisanIds') artisanIds: string[]) {
+    return this.service.assignBusinessArtisans(id, artisanIds);
   }
 
   @UseGuards(AdminGuard)
