@@ -220,7 +220,7 @@ export default function AdminPage() {
             [english ? 'Users' : 'Utilisateurs', stats.users, english ? `${stats.artisans} artisans · ${stats.clients} clients` : `${stats.artisans} artisans · ${stats.clients} clients`],
             [english ? 'Active listings' : 'Annonces actives', stats.listings, english ? 'Visible products and services' : 'Produits et services visibles'],
             [english ? 'Orders' : 'Commandes', stats.orders, english ? `${stats.pendingPayments} payment(s) pending` : `${stats.pendingPayments} paiement(s) en attente`],
-            [english ? 'Completed volume' : 'Volume terminé', formatXAF(stats.revenue), `${english ? 'Commission (10%)' : 'Commission (10 %)'} : ${formatXAF(stats.platformFees)}${stats.servicePlatformFees ? ` · ${english ? 'Services' : 'Services'} : ${formatXAF(stats.servicePlatformFees)}` : ''}`],
+            [english ? 'Completed volume' : 'Volume terminé', formatXAF(stats.revenue), `${english ? 'Recorded commissions' : 'Commissions comptabilisées'} : ${formatXAF(stats.platformFees)}${stats.servicePlatformFees ? ` · ${english ? 'Services' : 'Services'} : ${formatXAF(stats.servicePlatformFees)}` : ''}`],
           ].map(([label, value, detail]) => (
             <div key={label} className="rounded-lg border border-stone-200 bg-white p-5">
               <p className="text-sm text-stone-600">{label}</p>

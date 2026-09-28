@@ -5,9 +5,6 @@ import { Listing, Order, Payment } from '../../entities/index.js';
 import { isDemoMode } from '../../demo-mode.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 
-/** Commission prélevée par la plateforme sur chaque commande. */
-const PLATFORM_FEE_RATE = 0.10;
-
 interface ProductOrderDeliveryInput {
   deliveryMethod: 'workshop' | 'home' | 'carrier';
   deliveryAddress?: string;
@@ -81,7 +78,7 @@ export class OrdersService {
           listingId: listing.id,
           quantity,
           totalPrice,
-          platformFee: Math.round(totalPrice * PLATFORM_FEE_RATE),
+          platformFee: 0,
           status: 'pending',
           paymentMethod,
           deliveryMethod: delivery.deliveryMethod,

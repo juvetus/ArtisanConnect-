@@ -65,7 +65,7 @@ export function PricingContent({ plans }: { plans: PricingPlan[] }) {
     question1: 'Do I have to pay to receive requests?', answer1: 'No. You can receive quote requests with the Starter plan. Paid plans mainly increase visibility and response speed.',
     question2: 'How is payment made?', answer2: 'Mobile Money subscription flows are currently sandbox/mock for pilot testing; do not treat a test confirmation as a real payment. Check the notice in the payment flow.',
     question3: 'What happens if I change plans?', answer3: 'Your plan is replaced and the new validity period is calculated from the payment made.',
-    question4: 'Is there a commission on sales?', answer4: 'Yes, 5% on orders paid through the platform, regardless of the selected plan.',
+    question4: 'Is there a commission on sales?', answer4: 'Yes. A 5% commission applies only to payments actually collected by ArtisanConnect, regardless of the subscription plan. No commission applies to direct cash payments. Test or sandbox payments are not real collections.',
     findTitle: 'Looking for an artisan?', findText: 'For clients, everything is free: searching, quote requests and connecting with artisans.', find: 'Find an artisan', quote: 'Request a quote',
   } : {
     offers: 'Nos offres',
@@ -82,7 +82,7 @@ export function PricingContent({ plans }: { plans: PricingPlan[] }) {
     question1: 'Dois-je payer pour recevoir des demandes ?', answer1: 'Non. Les demandes de devis peuvent être reçues même avec le plan Starter. Le plan payant sert surtout à gagner plus de visibilité et de rapidité.',
     question2: 'Comment se fait le paiement ?', answer2: 'Les parcours Mobile Money des abonnements sont actuellement en sandbox/mock pour les tests du pilote. Une confirmation de test ne correspond pas à un paiement réel; lisez l’avertissement affiché dans le parcours.',
     question3: 'Que se passe-t-il si je change de plan ?', answer3: 'Votre plan est remplacé et la nouvelle validité est recalculée selon le paiement effectué.',
-    question4: 'Y a-t-il une commission sur les ventes ?', answer4: 'Oui, 5 % sur les commandes payées via la plateforme, quel que soit le plan choisi.',
+    question4: 'Y a-t-il une commission sur les ventes ?', answer4: 'Oui. Une commission de 5 % s’applique uniquement aux paiements réellement encaissés par ArtisanConnect, quel que soit le plan d’abonnement. Aucune commission ne s’applique aux paiements directs en espèces. Les paiements de test ou en sandbox ne sont pas des encaissements réels.',
     findTitle: 'Vous cherchez plutôt un artisan ?', findText: 'Côté client, tout est gratuit : recherche, demandes de devis et mise en relation.', find: 'Trouver un artisan', quote: 'Demander un devis',
   };
 

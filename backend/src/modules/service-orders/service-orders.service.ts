@@ -10,8 +10,6 @@ import { ServicePayment } from '../../entities/service-payment.entity.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
-const PLATFORM_FEE_RATE = 0.10;
-
 @Injectable()
 export class ServiceOrdersService {
   constructor(
@@ -475,9 +473,6 @@ export class ServiceOrdersService {
   }
 
   private async createPaymentSchedule(orderId: string, total: number) {
-    await this.ordersRepository.update(orderId, {
-      platformFee: Math.round(total * PLATFORM_FEE_RATE),
-    });
     const existingPayments = await this.paymentsRepository.find({ where: { orderId } });
     if (existingPayments.length) return existingPayments;
 

@@ -32,6 +32,7 @@ import { CustomerRequestsModule } from './modules/customer-requests/customer-req
 import { ModerationModule } from './modules/moderation/moderation.module.js';
 import { AnalyticsModule } from './modules/analytics/analytics.module.js';
 import { AssistantModule } from './modules/assistant/assistant.module.js';
+import { InvoicesModule } from './modules/invoices/invoices.module.js';
 
 @Module({
   imports: [
@@ -67,6 +68,7 @@ import { AssistantModule } from './modules/assistant/assistant.module.js';
     ModerationModule,
     AnalyticsModule,
     AssistantModule,
+    InvoicesModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: JwtAuthGuard }],
