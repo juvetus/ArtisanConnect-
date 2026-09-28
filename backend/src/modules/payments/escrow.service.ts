@@ -4,6 +4,8 @@ import { DataSource, Repository } from 'typeorm';
 import { Order, Payment, Listing } from '../../entities/index.js';
 import { ShopsService } from '../shops/shops.service.js';
 import { OrangeMoneyService } from './orange-money.service.js';
+import { calculateCollectedPlatformCommission } from './platform-commission.js';
+import { InvoicesService } from '../invoices/invoices.service.js';
 
 /**
  * Workflow escrow Mobile Money :
@@ -22,6 +24,7 @@ export class EscrowService {
     private dataSource: DataSource,
     private shopsService: ShopsService,
     private orangeMoneyService: OrangeMoneyService,
+    private invoicesService: InvoicesService,
   ) { }
 
   /** Étape 1 — Paiement client via Orange Money webpayment. */
@@ -68,7 +71,7 @@ export class EscrowService {
     const orderId = String(body.order_id || body.orderId || '').trim();
     if (!orderId) throw new BadRequestException('order_id Orange Money absent');
 
-    return this.dataSource.transaction(async (manager) => {
+    const result = await this.dataSource.transaction(async (manager) => {
       const payment = await manager.findOne(Payment, { where: { orderId } });
       if (!payment) throw new NotFoundException('Paiement Orange Money introuvable');
 
@@ -86,6 +89,9 @@ export class EscrowService {
       await manager.save(payment);
       return { success: true, orderId, status: 'FAILED', transactionId: payment.orangeMoneyTransactionId };
     });
+
+    if (result.status === 'SUCCESS') await this.invoicesService.issueForOrder(orderId);
+    return result;
   }
 
   /** Étape 2 — Le vendeur confirme que le produit est disponible. */
@@ -156,11 +162,13 @@ export class EscrowService {
       if (!payment) throw new NotFoundException('Paiement introuvable');
       if (payment.status === 'refunded') throw new BadRequestException('Ce paiement a été remboursé');
       if (payment.status === 'captured') return payment;
+      if (payment.status !== 'confirmed') throw new BadRequestException('Le paiement doit être confirmé avant le versement');
 
       // Intégration réelle : POST /v1/disbursement vers le numéro Mobile Money du vendeur.
+      const platformFee = calculateCollectedPlatformCommission(Number(order.totalPrice), payment.method);
       payment.status = 'captured';
       await manager.save(payment);
-      await manager.update(Order, orderId, { status: 'completed' });
+      await manager.update(Order, orderId, { status: 'completed', platformFee });
       await this.shopsService.recordSuccessfulSale(order.sellerId);
       return payment;
     });

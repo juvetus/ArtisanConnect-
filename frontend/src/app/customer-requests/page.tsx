@@ -1,9 +1,10 @@
-'use client';
+﻿'use client';
 
 import { FormEvent, Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
+
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { whatsappHref } from '@/lib/whatsapp';
@@ -26,8 +27,11 @@ function CustomerRequestsContent() {
   const { language } = useLanguage();
   const english = language === 'en';
   const searchParams = useSearchParams();
-  const { data: requests, mutate } = useSWR(user?.role === 'client' ? 'customer-requests' : null, api.getMyCustomerRequests, { refreshInterval: 10000, revalidateOnFocus: true });
-  // Préremplissage depuis la fiche artisan : /customer-requests?category=&city=&neighborhood=
+  const { data: requests, mutate } = useSWR(user?.role === 'client' ? 'customer-requests' : null, api.getMyCustomerRequests, {
+    refreshInterval: 10000,
+    revalidateOnFocus: true,
+  });
+
   const [category, setCategory] = useState(searchParams.get('category') ?? '');
   const [city, setCity] = useState(searchParams.get('city') ?? '');
   const [neighborhood, setNeighborhood] = useState(searchParams.get('neighborhood') ?? '');
@@ -42,6 +46,7 @@ function CustomerRequestsContent() {
   const [saving, setSaving] = useState(false);
   const [suggestingRequest, setSuggestingRequest] = useState(false);
   const [payment, setPayment] = useState<Record<string, { method: 'momo' | 'cash'; phone: string }>>({});
+  const [expandedResponses, setExpandedResponses] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (user?.role === 'client') {
@@ -70,7 +75,8 @@ function CustomerRequestsContent() {
     }
   };
 
-  const decide = async (requestId: string, artisanId: string, decision: 'accepted' | 'rejected') => {    try {
+  const decide = async (requestId: string, artisanId: string, decision: 'accepted' | 'rejected') => {
+    try {
       await api.decideCustomerRequestResponse(requestId, artisanId, decision);
       setNotice(decision === 'accepted' ? (english ? 'Offer accepted. You can now discuss the project with the artisan.' : 'Proposition acceptée. Vous pouvez maintenant discuter avec l’artisan.') : (english ? 'Offer declined.' : 'Proposition refusée.'));
       await mutate();
@@ -113,6 +119,7 @@ function CustomerRequestsContent() {
   };
 
   if (!ready || !user) return <p className="text-stone-600">Connectez-vous pour publier une demande.</p>;
+
   if (user.role === 'artisan') {
     return (
       <div className="mx-auto max-w-3xl space-y-5">
@@ -126,6 +133,7 @@ function CustomerRequestsContent() {
       </div>
     );
   }
+
   if (user.role === 'institution') {
     return (
       <div className="mx-auto max-w-3xl space-y-5">
@@ -139,25 +147,52 @@ function CustomerRequestsContent() {
   }
 
   type MyRequest = NonNullable<typeof requests>[number];
+
   const statusLabel = (status: string) => english
     ? ({ new: 'New', contacted: 'Artisans contacted', in_progress: 'In progress', completed: 'Completed' }[status] ?? status)
     : (CUSTOMER_REQUEST_STATUS_LABELS[status as keyof typeof CUSTOMER_REQUEST_STATUS_LABELS] ?? status);
+
   const renderPayment = (request: MyRequest) => {
     const accepted = request.responses?.find((response) => response.status === 'accepted');
     if (!accepted || (request.status !== 'in_progress' && request.paymentStatus !== 'paid')) return null;
+
     const amount = accepted.price;
     const choice = payment[request.id] ?? { method: 'momo' as const, phone: user.phone ?? '' };
-    if (request.paymentStatus === 'paid') return <p className="mt-4 rounded-md border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-800">{english ? `Payment of ${request.paymentAmount} XAF confirmed. Thank you!` : `Paiement de ${request.paymentAmount} FCFA confirmé. Merci !`}</p>;
-    if (!request.deliveredAt) return <p className="mt-4 rounded-md border border-stone-200 bg-stone-50 p-3 text-sm text-stone-700">{english ? `Payment will be available after the artisan marks the work as delivered${amount ? ` (agreed amount: ${amount} XAF)` : ''}.` : `Paiement : disponible dès que l’artisan aura déclaré le travail livré${amount ? ` (montant convenu : ${amount} FCFA)` : ''}.`}</p>;
-    if (request.paymentStatus === 'pending' && request.paymentMethod === 'cash') return <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{english ? `Cash payment of ${request.paymentAmount} XAF: waiting for the artisan to confirm receipt.` : `Paiement en espèces de ${request.paymentAmount} FCFA : en attente de confirmation par l’artisan.`}</p>;
-    if (request.paymentStatus === 'pending') return <div className="mt-4 space-y-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm"><p className="text-amber-900">{english ? `Approve the MoMo payment request for ${request.paymentAmount} XAF on your phone, then verify it.` : `Validez la demande de paiement MoMo de ${request.paymentAmount} FCFA sur votre téléphone, puis vérifiez.`}</p><button type="button" onClick={() => void runPayment(() => api.confirmCustomerRequestMomo(request.id), english ? 'Payment verified.' : 'Paiement vérifié.')} className="rounded-md bg-amber-700 px-3 py-1.5 font-medium text-white hover:bg-amber-800">{english ? 'Verify payment' : 'Vérifier le paiement'}</button></div>;
+
+    if (request.paymentStatus === 'paid') {
+      return <p className="mt-4 rounded-md border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-800">{english ? `Payment of ${request.paymentAmount} XAF confirmed. Thank you!` : `Paiement de ${request.paymentAmount} FCFA confirmé. Merci !`}</p>;
+    }
+    if (!request.deliveredAt) {
+      return <p className="mt-4 rounded-md border border-stone-200 bg-stone-50 p-3 text-sm text-stone-700">{english ? `Payment will be available after the artisan marks the work as delivered${amount ? ` (agreed amount: ${amount} XAF)` : ''}.` : `Paiement : disponible dès que l’artisan aura déclaré le travail livré${amount ? ` (montant convenu : ${amount} FCFA)` : ''}.`}</p>;
+    }
+    if (request.paymentStatus === 'pending' && request.paymentMethod === 'cash') {
+      return <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{english ? `Cash payment of ${request.paymentAmount} XAF: waiting for the artisan to confirm receipt.` : `Paiement en espèces de ${request.paymentAmount} FCFA : en attente de confirmation par l’artisan.`}</p>;
+    }
+    if (request.paymentStatus === 'pending') {
+      return (
+        <div className="mt-4 space-y-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm">
+          <p className="text-amber-900">{english ? `Approve the MoMo payment request for ${request.paymentAmount} XAF on your phone, then verify it.` : `Validez la demande de paiement MoMo de ${request.paymentAmount} FCFA sur votre téléphone, puis vérifiez.`}</p>
+          <button type="button" onClick={() => void runPayment(() => api.confirmCustomerRequestMomo(request.id), english ? 'Payment verified.' : 'Paiement vérifié.')} className="rounded-md bg-amber-700 px-3 py-1.5 font-medium text-white hover:bg-amber-800">{english ? 'Verify payment' : 'Vérifier le paiement'}</button>
+        </div>
+      );
+    }
+
     return (
       <div className="mt-4 space-y-3 rounded-md border border-blue-200 bg-blue-50 p-4 text-sm">
         <p className="font-semibold text-stone-900">{english ? `Work delivered: pay ${amount} XAF to ${accepted.artisan?.name ?? 'the artisan'}` : `Travail livré : payer ${amount} FCFA à ${accepted.artisan?.name ?? 'l’artisan'}`}</p>
         <div className="flex flex-wrap gap-4">
-          {([['momo', 'MTN MoMo'], ['cash', english ? 'Cash' : 'Espèces']] as const).map(([value, label]) => <label key={value} className="flex items-center gap-2"><input type="radio" name={`pay-${request.id}`} checked={choice.method === value} onChange={() => setPayment((current) => ({ ...current, [request.id]: { ...choice, method: value } }))} />{label}</label>)}
+          {([['momo', 'MTN MoMo'], ['cash', english ? 'Cash' : 'Espèces']] as const).map(([value, label]) => (
+            <label key={value} className="flex items-center gap-2">
+              <input type="radio" name={`pay-${request.id}`} checked={choice.method === value} onChange={() => setPayment((current) => ({ ...current, [request.id]: { ...choice, method: value } }))} />
+              {label}
+            </label>
+          ))}
         </div>
-        {choice.method === 'momo' ? <input type="tel" value={choice.phone} onChange={(event) => setPayment((current) => ({ ...current, [request.id]: { ...choice, phone: event.target.value } }))} placeholder={english ? 'MoMo number, e.g. +237 6XX XXX XXX' : 'Numéro MoMo, ex. +237 6XX XXX XXX'} className="w-full rounded-md border border-stone-300 bg-white px-3 py-2" /> : <p className="text-stone-600">{english ? 'Give the cash to the artisan; they will confirm receipt.' : 'Remettez les espèces à l’artisan : il confirmera la réception.'}</p>}
+        {choice.method === 'momo' ? (
+          <input type="tel" value={choice.phone} onChange={(event) => setPayment((current) => ({ ...current, [request.id]: { ...choice, phone: event.target.value } }))} placeholder={english ? 'MoMo number, e.g. +237 6XX XXX XXX' : 'Numéro MoMo, ex. +237 6XX XXX XXX'} className="w-full rounded-md border border-stone-300 bg-white px-3 py-2" />
+        ) : (
+          <p className="text-stone-600">{english ? 'Give the cash to the artisan; they will confirm receipt.' : 'Remettez les espèces à l’artisan : il confirmera la réception.'}</p>
+        )}
         <button type="button" onClick={() => void runPayment(() => api.payCustomerRequest(request.id, { method: choice.method, payerPhone: choice.method === 'momo' ? choice.phone : undefined }), choice.method === 'momo' ? (english ? 'MoMo request sent. Approve it on your phone.' : 'Demande de paiement MoMo envoyée. Validez-la sur votre téléphone.') : (english ? 'Cash payment reported to the artisan.' : 'Paiement en espèces signalé à l’artisan.'))} className="rounded-md bg-blue-700 px-4 py-2 font-medium text-white hover:bg-blue-800">{english ? `Pay ${amount} XAF` : `Payer ${amount} FCFA`}</button>
       </div>
     );
@@ -179,7 +214,7 @@ function CustomerRequestsContent() {
         contactPreference,
         contactPhone: contactPreference === 'platform' ? undefined : contactPhone,
       });
-      // L'envoi des photos est secondaire : une erreur ici ne doit pas perdre la demande.
+
       if (photos.length && created?.id) {
         try {
           await api.uploadCustomerRequestPhotos(created.id, photos);
@@ -187,6 +222,7 @@ function CustomerRequestsContent() {
           setNotice('Demande publiée, mais les photos n’ont pas pu être envoyées.');
         }
       }
+
       setDescription('');
       setBudgetMin('');
       setBudgetMax('');
@@ -208,6 +244,7 @@ function CustomerRequestsContent() {
         <h1 className="mt-1 text-3xl font-semibold text-stone-900">{english ? 'Find an artisan' : 'Je cherche un artisan'}</h1>
         <p className="mt-2 text-stone-600">{english ? 'Describe what you need and let artisans in Cameroon suggest a solution.' : 'Décrivez votre besoin et laissez des artisans du Cameroun vous proposer une solution.'}</p>
       </header>
+
       <form onSubmit={submit} className="space-y-5 rounded-lg border border-stone-200 bg-white p-6">
         <p className="text-xs text-stone-600"><span className="text-red-700" aria-hidden="true">*</span> {english ? 'Required field' : 'Champ obligatoire'}</p>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -270,9 +307,11 @@ function CustomerRequestsContent() {
             </div>
           ) : null}
         </fieldset>
+
         {notice ? <p className="rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-900">{notice}</p> : null}
         <button disabled={saving} className="rounded-md bg-amber-700 px-5 py-2.5 font-medium text-white hover:bg-amber-800 disabled:opacity-60">{saving ? (english ? 'Publishing…' : 'Publication…') : (english ? 'Publish my request' : 'Publier ma demande')}</button>
       </form>
+
       {english ? (
         <section className="space-y-3">
           <h2 className="text-xl font-semibold text-stone-900">My requests</h2>
@@ -282,16 +321,156 @@ function CustomerRequestsContent() {
                 <h3 className="font-semibold">{request.category} · {request.city}</h3>
                 <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-medium text-stone-700">{statusLabel(request.status)}</span>
               </div>
+
               <p className="mt-2 text-sm text-stone-600">{request.description}</p>
-              {request.adminReply ? <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm"><p className="font-semibold text-blue-900">ArtisanConnect team reply</p><p className="mt-1 whitespace-pre-wrap text-blue-900">{request.adminReply}</p></div> : null}
-              {request.responses?.length ? <div className="mt-4 space-y-3 border-t border-stone-100 pt-4"><h4 className="text-sm font-semibold text-stone-900">Artisan responses</h4>{request.responses.map((response, index) => <div key={`${request.id}-${index}`} className="rounded-md bg-stone-50 p-3 text-sm"><p className="font-medium">{response.artisan?.name ?? 'Artisan'}{response.price ? ` · ${response.price} XAF` : ''}{response.days ? ` · ${response.days} days` : ''}</p><p className="mt-1 text-stone-600">{response.message}</p><p className="mt-2 text-xs uppercase text-stone-500">{response.status === 'accepted' ? 'Offer accepted' : response.status === 'rejected' ? 'Offer declined' : 'Waiting for your decision'}</p>{response.status !== 'accepted' && response.status !== 'rejected' ? <div className="mt-3 flex flex-wrap gap-2"><button onClick={() => void decide(request.id, response.artisanId, 'accepted')} className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white">Accept</button><button onClick={() => void decide(request.id, response.artisanId, 'rejected')} className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700">Decline</button></div> : null}</div>)}</div> : null}
-              {request.status !== 'completed' ? <button onClick={() => void complete(request.id)} className="mt-4 text-xs font-medium text-stone-500 underline">Mark as completed</button> : null}
+
+              {request.adminReply ? (
+                <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm">
+                  <p className="font-semibold text-blue-900">ArtisanConnect team reply</p>
+                  <p className="mt-1 whitespace-pre-wrap text-blue-900">{request.adminReply}</p>
+                </div>
+              ) : null}
+
+              {request.responses?.length ? (
+                <div className="mt-4 space-y-3 border-t border-stone-100 pt-4">
+                  <h4 className="text-sm font-semibold text-stone-900">Artisan responses</h4>
+                  {request.responses.map((response, index) => {
+                    const responseKey = `${request.id}-${index}`;
+                    const isExpanded = expandedResponses[responseKey] ?? false;
+                    const message = response.message ?? '';
+                    const preview = message.length > 260 && !isExpanded ? `${message.slice(0, 260)}...` : message;
+
+                    return (
+                      <div key={responseKey} className="rounded-md bg-stone-50 p-3 text-sm">
+                        <p className="font-medium">
+                          {response.artisan?.name ?? 'Artisan'}
+                          {response.price ? ` · ${response.price} XAF` : ''}
+                          {response.days ? ` · ${response.days} days` : ''}
+                        </p>
+
+                        {message ? (
+                          <div className="mt-1">
+                            <p className="whitespace-pre-wrap text-stone-600">{preview}</p>
+                            {message.length > 260 ? (
+                              <button
+                                type="button"
+                                onClick={() => setExpandedResponses((current) => ({ ...current, [responseKey]: !isExpanded }))}
+                                className="mt-2 text-xs font-medium text-amber-800 underline"
+                              >
+                                {isExpanded ? 'Show less' : 'Show more'}
+                              </button>
+                            ) : null}
+                          </div>
+                        ) : null}
+
+                        <p className="mt-2 text-xs uppercase text-stone-500">
+                          {response.status === 'accepted' ? 'Offer accepted' : response.status === 'rejected' ? 'Offer declined' : 'Waiting for your decision'}
+                        </p>
+
+                        {response.status !== 'accepted' && response.status !== 'rejected' ? (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <button onClick={() => void decide(request.id, response.artisanId, 'accepted')} className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white">Accept</button>
+                            <button onClick={() => void decide(request.id, response.artisanId, 'rejected')} className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700">Decline</button>
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
+
+              {request.status !== 'completed' ? (
+                <button onClick={() => void complete(request.id)} className="mt-4 text-xs font-medium text-stone-500 underline">Mark as completed</button>
+              ) : null}
             </article>
           )) : <p className="text-sm text-stone-600">No requests published yet.</p>}
         </section>
       ) : null}
+
       {!english && (
-      <section className="space-y-3"><h2 className="text-xl font-semibold text-stone-900">Mes demandes</h2>{requests?.length ? requests.map((request) => <article key={request.id} className="rounded-lg border border-stone-200 bg-white p-5"><div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-semibold">{request.category} · {request.city}</h3><div className="flex items-center gap-3"><span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-medium text-stone-700">{CUSTOMER_REQUEST_STATUS_LABELS[request.status] ?? request.status}</span>{request.status !== 'completed' ? <button onClick={() => void complete(request.id)} className="text-xs font-medium text-stone-500 underline underline-offset-4 hover:text-stone-800">Marquer comme terminée</button> : null}</div></div><p className="mt-2 text-sm text-stone-600">{request.description}</p>{request.adminReply ? <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm"><p className="font-semibold text-blue-900">Réponse de l’équipe ArtisanConnect{request.adminRepliedAt ? ` · ${new Date(request.adminRepliedAt).toLocaleString('fr-FR')}` : ''}</p><p className="mt-1 whitespace-pre-wrap text-blue-900">{request.adminReply}</p></div> : null}{request.responses?.length ? <div className="mt-4 space-y-3 border-t border-stone-100 pt-4"><h4 className="text-sm font-semibold text-stone-900">Réponses des artisans</h4>{request.responses.map((response, index) => { const href = whatsappHref(response.artisan?.whatsappPhone ?? response.artisan?.phone, `Bonjour ${response.artisan?.name ?? 'artisan'}, je réponds à votre proposition pour ma demande ${request.category} à ${request.city} sur ArtisanConnect.`); const decided = response.status === 'accepted' || response.status === 'rejected'; return <div key={`${request.id}-${index}`} className="rounded-md bg-stone-50 p-3 text-sm"><p className="font-medium">{response.artisan?.name ?? 'Artisan'}{response.price ? ` · ${response.price} FCFA` : ''}{response.days ? ` · ${response.days} jours` : ''}</p><p className="mt-1 text-stone-600">{response.message}</p><p className="mt-2 text-xs uppercase text-stone-500">{response.status === 'accepted' ? 'Proposition acceptée' : response.status === 'rejected' ? 'Proposition refusée' : 'En attente de votre décision'}</p>{!decided ? <div className="mt-3 flex flex-wrap gap-2"><button onClick={() => void decide(request.id, response.artisanId, 'accepted')} className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700">Accepter</button><button onClick={() => void decide(request.id, response.artisanId, 'rejected')} className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">Refuser</button><Link href={`/messages?to=${response.artisanId}&customerRequestId=${request.id}`} className="rounded-md border border-amber-300 px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-50">Discuter</Link></div> : null}{href ? <a href={href} target="_blank" rel="noreferrer" className="mt-2 inline-flex rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700">Contacter sur WhatsApp</a> : null}</div>; })}</div> : null}{renderPayment(request)}</article>) : <p className="text-sm text-stone-600">Aucune demande publiée pour le moment.</p>}</section>
+        <section className="space-y-3">
+          <h2 className="text-xl font-semibold text-stone-900">Mes demandes</h2>
+          {requests?.length ? requests.map((request) => (
+            <article key={request.id} className="rounded-lg border border-stone-200 bg-white p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h3 className="font-semibold">{request.category} · {request.city}</h3>
+                <div className="flex items-center gap-3">
+                  <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-medium text-stone-700">{CUSTOMER_REQUEST_STATUS_LABELS[request.status] ?? request.status}</span>
+                  {request.status !== 'completed' ? (
+                    <button onClick={() => void complete(request.id)} className="text-xs font-medium text-stone-500 underline underline-offset-4 hover:text-stone-800">Marquer comme terminée</button>
+                  ) : null}
+                </div>
+              </div>
+
+              <p className="mt-2 text-sm text-stone-600">{request.description}</p>
+
+              {request.adminReply ? (
+                <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm">
+                  <p className="font-semibold text-blue-900">Réponse de l’équipe ArtisanConnect{request.adminRepliedAt ? ` · ${new Date(request.adminRepliedAt).toLocaleString('fr-FR')}` : ''}</p>
+                  <p className="mt-1 whitespace-pre-wrap text-blue-900">{request.adminReply}</p>
+                </div>
+              ) : null}
+
+              {request.responses?.length ? (
+                <div className="mt-4 space-y-3 border-t border-stone-100 pt-4">
+                  <h4 className="text-sm font-semibold text-stone-900">Réponses des artisans</h4>
+                  {request.responses.map((response, index) => {
+                    const responseKey = `${request.id}-${index}`;
+                    const href = whatsappHref(response.artisan?.whatsappPhone ?? response.artisan?.phone, `Bonjour ${response.artisan?.name ?? 'artisan'}, je réponds à votre proposition pour ma demande ${request.category} à ${request.city} sur ArtisanConnect.`);
+                    const decided = response.status === 'accepted' || response.status === 'rejected';
+                    const isExpanded = expandedResponses[responseKey] ?? false;
+                    const message = response.message ?? '';
+                    const preview = message.length > 260 && !isExpanded ? `${message.slice(0, 260)}...` : message;
+
+                    return (
+                      <div key={responseKey} className="rounded-md bg-stone-50 p-3 text-sm">
+                        <p className="font-medium">
+                          {response.artisan?.name ?? 'Artisan'}
+                          {response.price ? ` · ${response.price} FCFA` : ''}
+                          {response.days ? ` · ${response.days} jours` : ''}
+                        </p>
+
+                        {message ? (
+                          <div className="mt-2">
+                            <p className="whitespace-pre-wrap text-stone-600">{preview}</p>
+                            {message.length > 260 ? (
+                              <button
+                                type="button"
+                                onClick={() => setExpandedResponses((current) => ({ ...current, [responseKey]: !isExpanded }))}
+                                className="mt-2 text-xs font-medium text-amber-800 underline"
+                              >
+                                {isExpanded ? 'Voir moins' : 'Voir plus'}
+                              </button>
+                            ) : null}
+                          </div>
+                        ) : null}
+
+                        {response.status === 'accepted' ? (
+                          <p className="mt-3 rounded-sm bg-emerald-100 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-800">Proposition acceptée</p>
+                        ) : response.status === 'rejected' ? (
+                          <p className="mt-3 rounded-sm bg-red-100 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-red-800">Proposition refusée</p>
+                        ) : (
+                          <p className="mt-3 rounded-sm bg-amber-100 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-800">En attente de votre décision</p>
+                        )}
+
+                        {!decided ? (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <button onClick={() => void decide(request.id, response.artisanId, 'accepted')} className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700">Accepter</button>
+                            <button onClick={() => void decide(request.id, response.artisanId, 'rejected')} className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">Refuser</button>
+                          </div>
+                        ) : null}
+
+                        {href ? (
+                          <a href={href} target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700">Contacter sur WhatsApp</a>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </article>
+          )) : <p className="text-sm text-stone-600">Aucune demande publiée pour le moment.</p>}
+        </section>
       )}
     </div>
   );
