@@ -35,6 +35,9 @@ function CustomerRequestsContent() {
   const [category, setCategory] = useState(searchParams.get('category') ?? '');
   const [city, setCity] = useState(searchParams.get('city') ?? '');
   const [neighborhood, setNeighborhood] = useState(searchParams.get('neighborhood') ?? '');
+  const [requestType, setRequestType] = useState<'personal' | 'business'>('personal');
+  const [organizationName, setOrganizationName] = useState('');
+  const [requestedQuantity, setRequestedQuantity] = useState('');
   const [description, setDescription] = useState('');
   const [budgetMin, setBudgetMin] = useState('');
   const [budgetMax, setBudgetMax] = useState('');
@@ -107,6 +110,9 @@ function CustomerRequestsContent() {
         neighborhood,
         budgetMin: budgetMin ? Number(budgetMin) : undefined,
         budgetMax: budgetMax ? Number(budgetMax) : undefined,
+        requestType,
+        organizationName: requestType === 'business' ? organizationName : undefined,
+        requestedQuantity: requestType === 'business' ? Number(requestedQuantity) : undefined,
         language,
       });
       setDescription(result.content);
@@ -213,6 +219,9 @@ function CustomerRequestsContent() {
         requestedDate: requestedDate || undefined,
         contactPreference,
         contactPhone: contactPreference === 'platform' ? undefined : contactPhone,
+        requestType,
+        organizationName: requestType === 'business' ? organizationName : undefined,
+        requestedQuantity: requestType === 'business' ? Number(requestedQuantity) : undefined,
       });
 
       if (photos.length && created?.id) {
@@ -227,6 +236,8 @@ function CustomerRequestsContent() {
       setBudgetMin('');
       setBudgetMax('');
       setRequestedDate('');
+      setOrganizationName('');
+      setRequestedQuantity('');
       setPhotos([]);
       setNotice((current) => current || (english ? 'Your request has been published. Matching artisans can now reply.' : 'Votre demande a été publiée. Des artisans compatibles pourront vous répondre.'));
       await mutate();
@@ -247,6 +258,33 @@ function CustomerRequestsContent() {
 
       <form onSubmit={submit} className="space-y-5 rounded-lg border border-stone-200 bg-white p-6">
         <p className="text-xs text-stone-600"><span className="text-red-700" aria-hidden="true">*</span> {english ? 'Required field' : 'Champ obligatoire'}</p>
+        <fieldset>
+          <legend className="block text-sm font-medium text-stone-700">{english ? 'Who is this request for?' : 'Pour qui est cette demande ?'}</legend>
+          <div className="mt-2 flex flex-wrap gap-3">
+            {([
+              ['personal', english ? 'Personal' : 'Particulier'],
+              ['business', english ? 'Business / B2B' : 'Entreprise / B2B'],
+            ] as const).map(([value, label]) => (
+              <label key={value} className={`flex cursor-pointer items-center gap-2 rounded-md border px-4 py-2 text-sm ${requestType === value ? 'border-amber-700 bg-amber-50' : 'border-stone-200'}`}>
+                <input type="radio" name="request-type" value={value} checked={requestType === value} onChange={() => setRequestType(value)} />
+                {label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        {requestType === 'business' ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="request-organization" className="block text-sm font-medium text-stone-700">{english ? 'Company or organization *' : 'Entreprise ou organisation *'}</label>
+              <input id="request-organization" required value={organizationName} onChange={(event) => setOrganizationName(event.target.value)} className="field mt-1" />
+            </div>
+            <div>
+              <label htmlFor="request-quantity" className="block text-sm font-medium text-stone-700">{english ? 'Quantity needed *' : 'Quantité souhaitée *'}</label>
+              <input id="request-quantity" required type="number" min="1" step="1" value={requestedQuantity} onChange={(event) => setRequestedQuantity(event.target.value)} className="field mt-1" />
+            </div>
+            <p className="text-xs text-stone-500 sm:col-span-2">{english ? 'Your brief will be reviewed by the ArtisanConnect team before selected artisans are contacted.' : 'Votre brief sera vérifié par l’équipe ArtisanConnect avant la sélection des artisans à contacter.'}</p>
+          </div>
+        ) : null}
         <div className="grid gap-4 sm:grid-cols-2">
           <div><label htmlFor="request-category" className="block text-sm font-medium text-stone-700">{english ? 'Trade or category *' : 'Métier ou catégorie *'}</label><input id="request-category" required value={category} onChange={(event) => setCategory(event.target.value)} placeholder={english ? 'Carpentry, sewing, plumbing…' : 'Menuiserie, couture, plomberie…'} className="field mt-1" /></div>
           <div><label htmlFor="request-city" className="block text-sm font-medium text-stone-700">{english ? 'City *' : 'Ville *'}</label><input id="request-city" required value={city} onChange={(event) => setCity(event.target.value)} placeholder="Douala, Yaoundé…" className="field mt-1" /></div>
@@ -321,6 +359,8 @@ function CustomerRequestsContent() {
                 <h3 className="font-semibold">{request.category} · {request.city}</h3>
                 <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-medium text-stone-700">{statusLabel(request.status)}</span>
               </div>
+
+              {request.requestType === 'business' ? <p className="text-xs font-medium text-amber-800">{english ? 'Business brief' : 'Brief professionnel'} · {request.organizationName} · {request.requestedQuantity} {english ? 'units' : 'unités'}</p> : null}
 
               <p className="mt-2 text-sm text-stone-600">{request.description}</p>
 
@@ -402,6 +442,8 @@ function CustomerRequestsContent() {
                 </div>
               </div>
 
+              {request.requestType === 'business' ? <p className="text-xs font-medium text-amber-800">Brief professionnel · {request.organizationName} · {request.requestedQuantity} unités</p> : null}
+
               <p className="mt-2 text-sm text-stone-600">{request.description}</p>
 
               {request.adminReply ? (
@@ -416,7 +458,7 @@ function CustomerRequestsContent() {
                   <h4 className="text-sm font-semibold text-stone-900">Réponses des artisans</h4>
                   {request.responses.map((response, index) => {
                     const responseKey = `${request.id}-${index}`;
-                    const href = whatsappHref(response.artisan?.whatsappPhone ?? response.artisan?.phone, `Bonjour ${response.artisan?.name ?? 'artisan'}, je réponds à votre proposition pour ma demande ${request.category} à ${request.city} sur ArtisanConnect.`);
+                    const href = whatsappHref(response.artisan?.whatsappPhone ?? response.artisan?.phone, `Bonjour ${response.artisan?.name ?? 'artisan'}, je réponds à votre proposition pour ma demande ${request.category} à ${request.city} sur ArtisanConnect (réf. ${request.id.slice(0, 8)}).`);
                     const decided = response.status === 'accepted' || response.status === 'rejected';
                     const isExpanded = expandedResponses[responseKey] ?? false;
                     const message = response.message ?? '';
@@ -461,7 +503,7 @@ function CustomerRequestsContent() {
                         ) : null}
 
                         {href ? (
-                          <a href={href} target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700">Contacter sur WhatsApp</a>
+                          <a href={href} target="_blank" rel="noreferrer" onClick={() => trackEvent('whatsapp_click', { targetId: request.id, label: request.category, city: request.city })} className="mt-3 inline-flex rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700">Contacter sur WhatsApp</a>
                         ) : null}
                       </div>
                     );

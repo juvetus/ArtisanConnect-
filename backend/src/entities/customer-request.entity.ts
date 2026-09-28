@@ -1,6 +1,7 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
 export type CustomerRequestStatus = 'new' | 'contacted' | 'in_progress' | 'completed';
+export type CustomerRequestType = 'personal' | 'business';
 export type ContactPreference = 'platform' | 'whatsapp' | 'both';
 export type CustomerRequestPaymentStatus = 'unpaid' | 'pending' | 'paid';
 
@@ -11,6 +12,15 @@ export class CustomerRequest {
 
   @Column()
   clientId: string;
+
+  @Column({ type: 'varchar', default: 'personal' })
+  requestType: CustomerRequestType;
+
+  @Column({ type: 'varchar', nullable: true })
+  organizationName: string | null;
+
+  @Column({ type: 'integer', nullable: true })
+  requestedQuantity: number | null;
 
   @Column()
   category: string;
