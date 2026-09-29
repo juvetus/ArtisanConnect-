@@ -86,6 +86,67 @@ function ShopPaymentForm({ shop, language }: { shop: Shop; language: 'fr' | 'en'
   );
 }
 
+function ChangePasswordForm({ language }: { language: 'fr' | 'en' }) {
+  const { t } = useLanguage();
+  const english = language === 'en';
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [notice, setNotice] = useState('');
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const save = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSaving(true);
+    setNotice('');
+    setError('');
+    try {
+      if (newPassword !== confirmPassword) {
+        throw new Error(t('profile_password_mismatch'));
+      }
+      if (newPassword.length < 8) {
+        throw new Error(english ? 'The new password must be at least 8 characters long.' : 'Le nouveau mot de passe doit comporter au moins 8 caractères.');
+      }
+      await api.changePassword(currentPassword, newPassword);
+      setNotice(t('profile_password_success'));
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (saveError) {
+      setError(saveError instanceof ApiError || saveError instanceof Error ? saveError.message : (english ? 'Could not update the password.' : 'Impossible de mettre à jour le mot de passe.'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <form onSubmit={save} className="space-y-4 rounded-lg border border-stone-200 bg-white p-6">
+      <div>
+        <h2 className="font-semibold text-stone-900">{t('profile_password_title')}</h2>
+        <p className="mt-1 text-sm text-stone-600">{t('profile_password_subtitle')}</p>
+      </div>
+      <div>
+        <label htmlFor="profile-current-password" className="block text-sm font-medium text-stone-700">{t('profile_password_current')}</label>
+        <input id="profile-current-password" type="password" required autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} className="field mt-1" />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label htmlFor="profile-new-password" className="block text-sm font-medium text-stone-700">{t('profile_password_new')}</label>
+          <input id="profile-new-password" type="password" required minLength={8} autoComplete="new-password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} className="field mt-1" />
+        </div>
+        <div>
+          <label htmlFor="profile-confirm-password" className="block text-sm font-medium text-stone-700">{t('profile_password_confirm')}</label>
+          <input id="profile-confirm-password" type="password" required minLength={8} autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} className="field mt-1" />
+        </div>
+      </div>
+      {notice ? <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">{notice}</p> : null}
+      {error ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
+      <button type="submit" disabled={saving} className="rounded-md bg-amber-700 px-5 py-2.5 font-medium text-white hover:bg-amber-800 disabled:opacity-60">{saving ? t('profile_password_saving') : t('profile_password_submit')}</button>
+    </form>
+  );
+}
+
 function ProfileForm({ user }: { user: User }) {
   const { updateUser } = useAuth();
   const { t, language } = useLanguage();
@@ -221,6 +282,7 @@ function ProfileForm({ user }: { user: User }) {
           <button type="button" onClick={() => router.back()} className="rounded-md border border-stone-300 px-5 py-2.5 text-sm font-medium text-stone-700 hover:bg-stone-50">{t('profile_back')}</button>
         </div>
       </form>
+      <ChangePasswordForm language={language} />
       {user.role === 'artisan' ? (
         <section className="space-y-4">
           <div>

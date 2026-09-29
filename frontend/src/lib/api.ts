@@ -87,6 +87,9 @@ export const api = {
 
   resetPassword: (token: string, password: string) => post<{ success: boolean; message: string }>('/auth/reset-password', { token, password }),
 
+  changePassword: (currentPassword: string, newPassword: string) =>
+    post<{ success: boolean; message: string }>('/users/me/change-password', { currentPassword, newPassword }),
+
   assistantGenerate: (data: { task: string; input: string; language?: 'fr' | 'en'; context?: string }) =>
     post<{ content: string; provider: 'ai' | 'local' }>('/assistant/generate', data),
 

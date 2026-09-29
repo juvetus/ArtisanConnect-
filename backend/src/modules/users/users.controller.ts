@@ -1,4 +1,4 @@
-﻿import { BadRequestException, Controller, Get, Param, Patch, Body, ForbiddenException, NotFoundException, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
+﻿import { BadRequestException, Controller, Get, Param, Patch, Body, ForbiddenException, NotFoundException, Post, UnauthorizedException, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UsersService } from './users.service.js';
 import { Public } from '../auth/public.decorator.js';
@@ -26,6 +26,27 @@ export class UsersController {
     } catch {
       throw new BadRequestException('La photo n’a pas pu être téléversée.');
     }
+  }
+
+  @Post('me/change-password')
+  async changePassword(
+    @CurrentUser() currentUser: AuthUser,
+    @Body() body: { currentPassword?: string; newPassword?: string },
+  ) {
+    const currentPassword = body?.currentPassword ?? '';
+    const newPassword = body?.newPassword ?? '';
+    if (!currentPassword || !newPassword) {
+      throw new BadRequestException('Le mot de passe actuel et le nouveau mot de passe sont requis.');
+    }
+    if (newPassword.length < 8) {
+      throw new BadRequestException('Le nouveau mot de passe doit comporter au moins 8 caractères.');
+    }
+    const user = await this.usersService.findByIdWithPassword(currentUser.id);
+    if (!user) throw new NotFoundException('Utilisateur introuvable');
+    const isValid = await this.usersService.validatePassword(user, currentPassword);
+    if (!isValid) throw new UnauthorizedException('Le mot de passe actuel est incorrect.');
+    await this.usersService.resetPassword(user.id, newPassword);
+    return { success: true, message: 'Mot de passe mis à jour avec succès.' };
   }
 
   @Public()
