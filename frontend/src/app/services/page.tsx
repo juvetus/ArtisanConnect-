@@ -162,37 +162,53 @@ export default function ServicesCatalogPage() {
           const description = service.description.replace(/\*\*/g, '').replace(/^#+\s*/gm, '').trim();
           const quoteHref = `/customer-requests?category=${encodeURIComponent(service.category)}${service.artisan?.location ? `&city=${encodeURIComponent(service.artisan.location)}` : ''}`;
           return (
-            <article key={service.id} className="relative flex flex-col overflow-hidden rounded-lg border border-stone-200 bg-white shadow-xs">
+            <article key={service.id} className="group relative flex flex-col overflow-hidden rounded-lg border border-stone-200 bg-white shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-200 hover:shadow-lg">
               {isDemo ? <DemoBadge className="absolute right-2 top-2 z-10 shadow" /> : null}
-              <div className="relative aspect-[4/3] bg-stone-100">
-                {imageUrl ? <Image src={resolveMediaUrl(imageUrl)} alt={service.title} fill unoptimized sizes="(max-width: 768px) 100vw, 33vw" className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-sm font-medium text-stone-500">{categoryLabel(service.category)}</div>}
+              <div className="relative aspect-[4/3] overflow-hidden bg-stone-100">
+                {imageUrl ? <Image src={resolveMediaUrl(imageUrl)} alt={service.title} fill unoptimized sizes="(max-width: 768px) 100vw, 33vw" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center text-sm font-medium text-stone-500">{categoryLabel(service.category)}</div>}
               </div>
               <div className="flex flex-1 flex-col p-5">
-              {service.sponsoredUntil && new Date(service.sponsoredUntil) > new Date() ? <span className="mb-2 inline-block self-start rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">★ Mis en avant</span> : null}
-              {isWoman && (
-                <span className="mb-2 inline-block self-start rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-800">
-                  {t('badge_women_empowerment')}
-                </span>
-              )}
-              {isCoop && (
-                <span className="mb-2 inline-block self-start rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-semibold text-indigo-800">
-                  {t('badge_coop')}
-                </span>
-              )}
+              {(isWoman || isCoop || (service.sponsoredUntil && new Date(service.sponsoredUntil) > new Date())) ? (
+                <div className="mb-2 flex flex-wrap gap-1.5">
+                  {service.sponsoredUntil && new Date(service.sponsoredUntil) > new Date() ? <span className="inline-block rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">★ Mis en avant</span> : null}
+                  {isWoman && (
+                    <span className="inline-block rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-800">
+                      {t('badge_women_empowerment')}
+                    </span>
+                  )}
+                  {isCoop && (
+                    <span className="inline-block rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-semibold text-indigo-800">
+                      {t('badge_coop')}
+                    </span>
+                  )}
+                </div>
+              ) : null}
               <div className="flex-1">
-                <p className="text-xs font-medium uppercase tracking-wide text-amber-700">{categoryLabel(service.category)}</p>
-                <h2 className="mt-2 line-clamp-2 text-xl font-semibold text-stone-900">{service.title}</h2>
+                <span className="inline-block rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-amber-700">{categoryLabel(service.category)}</span>
+                <h2 className="mt-2 line-clamp-2 text-xl font-semibold text-stone-900 transition-colors group-hover:text-amber-800">{service.title}</h2>
                 <p className="mt-3 min-h-20 line-clamp-4 text-sm leading-6 text-stone-600">{description}</p>
                 <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2 border-t border-stone-100 pt-3">
                   <p className="text-lg font-bold text-stone-950">{priceLabel}</p>
                   <p className="text-sm text-stone-600">{t('service_estimated_days', { days: service.estimatedDays })}</p>
                 </div>
-                <p className="mt-2 text-sm text-stone-600">{service.averageRating ? `★ ${service.averageRating}/5` : t('service_no_rating')} <span className="text-stone-400">{t('service_reviews_count', { count: service.reviewCount ?? 0 })}</span></p>
+                <div className="mt-2 flex items-center gap-1.5 text-sm text-stone-600">
+                  {service.averageRating ? (
+                    <span className="flex items-center gap-0.5 text-amber-500" aria-hidden>
+                      {Array.from({ length: 5 }, (_, index) => (
+                        <svg key={index} viewBox="0 0 20 20" fill={index < Math.round(service.averageRating ?? 0) ? 'currentColor' : 'none'} stroke="currentColor" className="h-3.5 w-3.5">
+                          <path strokeWidth="1.2" strokeLinejoin="round" d="M10 1.5l2.6 5.27 5.82.85-4.21 4.1 1 5.79L10 14.9l-5.21 2.74 1-5.79-4.21-4.1 5.82-.85z" />
+                        </svg>
+                      ))}
+                    </span>
+                  ) : null}
+                  <span className={service.averageRating ? 'font-medium text-stone-700' : ''}>{service.averageRating ? `${service.averageRating}/5` : t('service_no_rating')}</span>
+                  <span className="text-stone-400">{t('service_reviews_count', { count: service.reviewCount ?? 0 })}</span>
+                </div>
                 <p className="mt-2 truncate text-xs text-stone-500">{service.artisan?.name ?? (english ? 'Local artisan' : 'Artisan local')}{service.artisan?.location ? ` · ${service.artisan.location}` : ''}</p>
               </div>
               <div className={`mt-5 grid gap-2 ${user?.role === 'artisan' || isDemo ? 'grid-cols-1' : 'grid-cols-2'}`}>
-                <Link href={`/services/${service.id}`} className="rounded-md bg-amber-700 px-3 py-2 text-center text-sm font-medium text-white hover:bg-amber-800">{english ? 'View service' : 'Voir le service'}</Link>
-                {user?.role !== 'artisan' && !isDemo ? <Link href={quoteHref} className="rounded-md border border-amber-300 px-3 py-2 text-center text-sm font-medium text-amber-800 hover:bg-amber-50">{english ? 'Request a quote' : 'Demander un devis'}</Link> : null}
+                <Link href={`/services/${service.id}`} className="rounded-md bg-amber-700 px-3 py-2 text-center text-sm font-medium text-white transition-colors hover:bg-amber-800">{english ? 'View service' : 'Voir le service'}</Link>
+                {user?.role !== 'artisan' && !isDemo ? <Link href={quoteHref} className="rounded-md border border-amber-300 px-3 py-2 text-center text-sm font-medium text-amber-800 transition-colors hover:bg-amber-50">{english ? 'Request a quote' : 'Demander un devis'}</Link> : null}
                 {isDemo ? <p className="text-center text-xs text-stone-500">{english ? 'Demo offer, requests are disabled.' : 'Offre de démonstration, demandes désactivées.'}</p> : null}
               </div>
               </div>
