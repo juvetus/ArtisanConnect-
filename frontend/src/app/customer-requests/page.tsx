@@ -14,6 +14,7 @@ import { useLanguage } from '@/lib/language-context';
 import { DEMO_MODE } from '@/lib/demo-mode';
 import { DemoBadge } from '@/components/DemoBadge';
 import { MOBILE_MONEY_ENABLED } from '@/lib/pilot-capabilities';
+import { formatXAF } from '@/lib/format';
 
 export default function CustomerRequestsPage() {
   return (
@@ -205,6 +206,71 @@ function CustomerRequestsContent() {
     );
   };
 
+  const renderResponseComparison = (request: MyRequest) => {
+    const responses = request.responses ?? [];
+    const contactedCount = Math.max(request.contactedArtisanIds?.length ?? 0, responses.length);
+    const waitingCount = Math.max(0, contactedCount - responses.length);
+    const acceptedResponse = responses.find((response) => response.status === 'accepted');
+
+    return (
+      <section className="mt-4 overflow-hidden rounded-md border border-stone-200" aria-label={english ? 'Quote comparison' : 'Comparaison des propositions'}>
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-stone-50 px-3 py-2">
+          <h4 className="text-sm font-semibold text-stone-900">{english ? 'Quote comparison' : 'Comparaison des propositions'}</h4>
+          <p className="text-xs text-stone-600">
+            {english
+              ? `${contactedCount} contacted · ${responses.length} ${responses.length === 1 ? 'reply' : 'replies'} · ${waitingCount} waiting`
+              : `${contactedCount} sollicité(s) · ${responses.length} réponse(s) · ${waitingCount} en attente`}
+          </p>
+        </div>
+        {responses.length ? (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[520px] text-left text-sm">
+              <thead className="bg-stone-50 text-xs font-medium text-stone-500">
+                <tr>
+                  <th scope="col" className="px-3 py-2">{english ? 'Artisan' : 'Artisan'}</th>
+                  <th scope="col" className="px-3 py-2">{english ? 'Price' : 'Prix'}</th>
+                  <th scope="col" className="px-3 py-2">{english ? 'Lead time' : 'Délai'}</th>
+                  <th scope="col" className="px-3 py-2">{english ? 'Decision' : 'Décision'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {responses.map((response) => (
+                  <tr key={response.artisanId} className="border-t border-stone-100 align-top">
+                    <th scope="row" className="px-3 py-2 font-medium text-stone-800">{response.artisan?.name ?? (english ? 'Artisan' : 'Artisan')}</th>
+                    <td className="px-3 py-2 text-stone-700">{response.price != null ? formatXAF(Number(response.price)) : (english ? 'To discuss' : 'À convenir')}</td>
+                    <td className="px-3 py-2 text-stone-700">{response.days ? (english ? `${response.days} days` : `${response.days} jours`) : '—'}</td>
+                    <td className="px-3 py-2 text-stone-600">
+                      {response.status === 'accepted'
+                        ? (english ? 'Accepted' : 'Acceptée')
+                        : response.status === 'rejected'
+                          ? (english ? 'Declined' : 'Refusée')
+                          : (english ? 'Awaiting decision' : 'En attente')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="px-3 py-3 text-sm text-stone-600">
+            {contactedCount
+              ? (english ? 'No offer received yet. You will see replies here.' : 'Aucune proposition reçue pour le moment. Les réponses apparaîtront ici.')
+              : request.requestType === 'business'
+                ? (english ? 'Your brief is awaiting review before artisans are contacted.' : 'Votre brief attend une vérification avant la sollicitation des artisans.')
+                : (english ? 'No matching artisan has been contacted yet. The team may follow up.' : 'Aucun artisan correspondant n’a encore été sollicité. L’équipe pourra effectuer un suivi.')}
+          </p>
+        )}
+        {acceptedResponse ? (
+          <p className="border-t border-emerald-100 bg-emerald-50 px-3 py-3 text-sm text-emerald-900">
+            {english
+              ? 'You selected this offer. Confirm the handover and cash-payment arrangements directly with the artisan during the pilot.'
+              : 'Vous avez retenu cette proposition. Convenez directement avec l’artisan des modalités de remise et du règlement en espèces pendant le pilote.'}
+          </p>
+        ) : null}
+      </section>
+    );
+  };
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setSaving(true);
@@ -372,6 +438,7 @@ function CustomerRequestsContent() {
                 </div>
               ) : null}
 
+              {renderResponseComparison(request)}
               {request.responses?.length ? (
                 <div className="mt-4 space-y-3 border-t border-stone-100 pt-4">
                   <h4 className="text-sm font-semibold text-stone-900">Artisan responses</h4>
@@ -454,6 +521,7 @@ function CustomerRequestsContent() {
                 </div>
               ) : null}
 
+              {renderResponseComparison(request)}
               {request.responses?.length ? (
                 <div className="mt-4 space-y-3 border-t border-stone-100 pt-4">
                   <h4 className="text-sm font-semibold text-stone-900">Réponses des artisans</h4>

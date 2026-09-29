@@ -54,17 +54,19 @@ Le partenariat peut contribuer aux priorités suivantes :
 
 ## 5. Projet pilote proposé
 
-### Périmètre initial
+### Périmètre de travail à confirmer
 
-- Durée : 6 mois ;
-- Territoires de départ : Yaoundé et Douala ;
-- Cible : 500 artisans ;
+- Test terrain préalable : 5 à 10 artisans, une ville et 2 à 3 métiers, environ une semaine ;
+- Pilote institutionnel initial envisagé : jusqu'à 100 artisans, une ville choisie après examen de l'offre, 2 à 3 métiers et 3 à 6 mois ;
+- Extension éventuelle à 300–500 artisans après évaluation positive et approbation d'un nouveau périmètre ;
 - Priorité : femmes entrepreneures, coopératives, jeunes artisans et artisans accompagnés par les programmes publics ;
 - Clients visés : particuliers, entreprises, institutions et organisateurs d'événements.
 
+Le périmètre commun et les critères de passage sont décrits dans [PLAN_PILOTE_REFERENCE.md](./PLAN_PILOTE_REFERENCE.md). Ces volumes et durées sont des hypothèses de discussion, pas des engagements validés.
+
 ### Déroulement
 
-#### Phase 1 - Préparation, mois 1
+#### Phase 1 - Préparation, selon calendrier convenu
 
 - désignation des points focaux ;
 - sélection des artisans participants ;
@@ -73,7 +75,7 @@ Le partenariat peut contribuer aux priorités suivantes :
 - création d'un tableau de bord de suivi ;
 - validation du protocole de partenariat.
 
-#### Phase 2 - Onboarding, mois 2
+#### Phase 2 - Onboarding, selon calendrier convenu
 
 - ateliers pratiques de prise en main ;
 - création des profils artisans ;
@@ -81,7 +83,7 @@ Le partenariat peut contribuer aux priorités suivantes :
 - aide à la prise de photos et à la rédaction des descriptions ;
 - accompagnement des artisans peu familiers avec le numérique.
 
-#### Phase 3 - Mise en relation commerciale, mois 3 à 5
+#### Phase 3 - Mise en relation commerciale, après validation de la cohorte
 
 - campagne de visibilité auprès des clients ;
 - mise en avant des métiers et quartiers ;
@@ -90,7 +92,7 @@ Le partenariat peut contribuer aux priorités suivantes :
 - assistance WhatsApp et support de proximité ;
 - collecte des retours des artisans et des clients.
 
-#### Phase 4 - Évaluation, mois 6
+#### Phase 4 - Évaluation, à la fin de la période convenue
 
 - rapport de résultats ;
 - analyse des artisans actifs ;
@@ -126,14 +128,14 @@ Le partenariat peut commencer sans financement direct obligatoire :
 
 1. **Partenariat institutionnel** : lettre de soutien et orientation vers les programmes.
 2. **Partenariat technique** : accès à des espaces, formateurs ou réseaux d'artisans.
-3. **Pilote cofinancé** : prise en charge de l'accompagnement de 500 artisans.
+3. **Pilote cofinancé** : prise en charge de l'accompagnement du nombre de bénéficiaires validé au cadrage ; toute extension fera l'objet d'une nouvelle évaluation.
 4. **Programme d'inclusion numérique** : inscription et formation gratuites pour des groupes ciblés.
 5. **Partenariat avec bailleurs** : présentation conjointe du projet à des partenaires techniques et financiers.
 6. **Soutien matériel** : smartphones, connectivité, supports de formation et assistance terrain.
 
-## 8. Budget indicatif du pilote
+## 8. Budget à construire
 
-Le budget définitif doit être construit après validation du périmètre. Les postes à chiffrer sont :
+Aucun montant global n'est validé à ce stade. Le budget sera construit après accord sur le périmètre, selon la fiche [PLAN_PILOTE_REFERENCE.md](./PLAN_PILOTE_REFERENCE.md). Les postes à chiffrer sont :
 
 - développement et maintenance de la plateforme ;
 - hébergement, stockage et sécurité ;
@@ -144,13 +146,13 @@ Le budget définitif doit être construit après validation du périmètre. Les 
 - suivi-évaluation et production des rapports ;
 - coordination du projet.
 
-Il est recommandé de présenter trois scénarios :
+Les scénarios ci-dessous décrivent des tailles possibles et ne constituent pas un devis :
 
 | Scénario | Cible | Objectif |
 |---|---:|---|
-| Minimum | 100 artisans | Tester le dispositif sur un territoire |
-| Pilote recommandé | 500 artisans | Mesurer l'impact commercial et l'adoption |
-| Extension | 1 000 artisans | Préparer le déploiement multi-régional |
+| Test terrain | 5 à 10 artisans | Vérifier les parcours dans une ville et quelques métiers |
+| Pilote initial envisagé | Jusqu'à 100 artisans | Mesurer l'adoption et les mises en relation pendant 3 à 6 mois |
+| Extension éventuelle | 300 à 500 artisans | À étudier après évaluation et validation des capacités |
 
 ## 9. Indicateurs de réussite
 
@@ -206,7 +208,7 @@ Nous sollicitons :
 
 ## 13. Message de synthèse
 
-> ArtisanConnect propose au MINPMEESA un outil pratique pour prolonger l'accompagnement des artisans camerounais par un accès continu aux clients et aux marchés. Le pilote permettra de digitaliser 500 artisans, de valoriser leurs produits et services, et de mesurer concrètement les demandes, contacts et opportunités commerciales générés.
+> ArtisanConnect propose au MINPMEESA d'étudier un pilote progressif pour prolonger l'accompagnement des artisans camerounais par un accès numérique aux clients et aux marchés. Le périmètre, les bénéficiaires, le calendrier, les indicateurs et le budget seront définis conjointement avant tout engagement.
 
 ## 14. Prochaine étape
 

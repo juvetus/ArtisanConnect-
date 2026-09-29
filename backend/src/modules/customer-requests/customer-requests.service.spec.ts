@@ -55,6 +55,7 @@ describe('CustomerRequestsService', () => {
   const notifications = {
     notify: vi.fn().mockResolvedValue(undefined),
     notifyAdmins: vi.fn().mockResolvedValue(undefined),
+    hasRecent: vi.fn().mockResolvedValue(false),
   };
   const storage = { isEnabled: vi.fn().mockReturnValue(true), uploadBuffer: vi.fn() };
   const subscriptions = { findPremiumUserIds: vi.fn().mockResolvedValue(new Set<string>()) };
@@ -77,6 +78,63 @@ describe('CustomerRequestsService', () => {
       subscriptions as never,
       momo as never,
     );
+  });
+
+  it('lists only real targeted requests older than 24 hours with unanswered artisans', async () => {
+    const oldRequest = {
+      id: 'request-old', clientId: 'client-1', status: 'contacted', isDemo: false,
+      createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000),
+      contactedArtisanIds: ['artisan-1', 'artisan-2'],
+      responses: [{ artisanId: 'artisan-1', message: 'Je peux le faire.' }],
+    };
+    requests.find.mockResolvedValue([
+      oldRequest,
+      { ...oldRequest, id: 'request-recent', createdAt: new Date() },
+      { ...oldRequest, id: 'request-demo', isDemo: true },
+      { ...oldRequest, id: 'request-answered', contactedArtisanIds: ['artisan-1'], responses: [{ artisanId: 'artisan-1', message: 'Offre envoyée.' }] },
+    ]);
+    users.find.mockResolvedValue([{ id: 'client-1', name: 'Client test', email: 'client@test.cm' }]);
+    notifications.hasRecent.mockResolvedValue(false);
+
+    const result = await service.findRequestsAwaitingResponseForAdmin();
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      id: 'request-old',
+      pendingArtisanIds: ['artisan-2'],
+      relaunchableArtisanIds: ['artisan-2'],
+      client: { id: 'client-1', name: 'Client test' },
+    });
+  });
+
+  it('reminds only targeted artisans who have not responded and are outside cooldown', async () => {
+    requests.findOne.mockResolvedValue({
+      id: 'request-1', status: 'contacted', isDemo: false,
+      createdAt: new Date(Date.now() - 48 * 60 * 60 * 1000),
+      contactedArtisanIds: ['artisan-replied', 'artisan-pending', 'artisan-recently-reminded'],
+      responses: [{ artisanId: 'artisan-replied', message: 'Je réponds demain.' }],
+      category: 'menuiserie', city: 'Douala', neighborhood: 'Akwa',
+    });
+    notifications.hasRecent.mockImplementation(async (artisanId: string) => artisanId === 'artisan-recently-reminded');
+
+    const result = await service.remindUnansweredArtisans('request-1');
+
+    expect(result).toEqual({ success: true, notifiedCount: 1, pendingCount: 2 });
+    expect(notifications.notify).toHaveBeenCalledOnce();
+    expect(notifications.notify).toHaveBeenCalledWith(expect.objectContaining({
+      recipientId: 'artisan-pending',
+      relatedId: 'request-1',
+    }));
+  });
+
+  it('does not send a follow-up before 24 hours', async () => {
+    requests.findOne.mockResolvedValue({
+      id: 'request-recent', status: 'contacted', isDemo: false,
+      createdAt: new Date(), contactedArtisanIds: ['artisan-1'], responses: [],
+    });
+
+    await expect(service.remindUnansweredArtisans('request-recent')).rejects.toThrow('après 24 heures');
+    expect(notifications.notify).not.toHaveBeenCalled();
   });
 
   it('bloque la publication d’une demande en mode démonstration avant toute écriture', async () => {

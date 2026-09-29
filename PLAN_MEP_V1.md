@@ -44,14 +44,9 @@ Services Render prévus :
 
 ### 3.1 Migrations de base de données
 
-Le backend utilise actuellement `synchronize=false` lorsque `NODE_ENV=production`, mais aucune commande de migration TypeORM n'est encore définie dans le projet.
+Le backend dispose de migrations TypeORM importées explicitement dans `backend/src/database/database.module.ts`. Lorsque `DB_SYNCHRONIZE=false`, `migrationsRun` lance les migrations au démarrage de l'API. La dernière migration enregistrée dans ce module doit correspondre au commit déployé.
 
-Avant la production, choisir l'une des options suivantes :
-
-1. **Recommandée :** ajouter des migrations TypeORM et exécuter les migrations avant le démarrage de l'API.
-2. Utiliser temporairement `DB_SYNCHRONIZE=true` uniquement sur une base neuve de préproduction, puis revenir à `false` avant la production.
-
-Ne pas activer `synchronize=true` sur une base de production contenant des données importantes.
+Avant tout déploiement, vérifier que la base ciblée est sauvegardée, que `DB_SYNCHRONIZE=false` et que les migrations applicables sont incluses. Contrôler les journaux de démarrage et le schéma après migration, en commençant par staging. Ne pas activer `DB_SYNCHRONIZE=true` sur une base contenant des données importantes : cette option désactive l'exécution automatique des migrations dans la configuration actuelle.
 
 ### 3.2 Stockage des fichiers
 
@@ -112,7 +107,7 @@ Variables obligatoires :
 | `DB_USERNAME` | fourni par PostgreSQL Render |
 | `DB_PASSWORD` | fourni par PostgreSQL Render |
 | `DB_DATABASE` | fourni par PostgreSQL Render |
-| `DB_SYNCHRONIZE` | `true` uniquement pour initialiser la base pilote neuve |
+| `DB_SYNCHRONIZE` | `false` ; migrations TypeORM exécutées au démarrage |
 | `FRONTEND_URL` | domaine HTTPS réel du frontend |
 | `CLOUDINARY_CLOUD_NAME` | nom du cloud Cloudinary |
 | `CLOUDINARY_API_KEY` | clé API Cloudinary |
@@ -258,7 +253,7 @@ Après déploiement :
 
 - La page d'accueil se charge sans erreur console.
 - Le catalogue est visible.
-- Le blog et les 14 articles sont accessibles.
+- Le blog et tous les articles déclarés dans `blogArticles` sont accessibles.
 - Les images de couverture se chargent.
 - Les liens MINPMEESA du blog fonctionnent.
 - Le changement FR/EN fonctionne.

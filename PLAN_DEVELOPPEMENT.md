@@ -51,8 +51,11 @@ Parcours :
 - [x] Score de correspondance catégorie/ville/boutique vérifiée.
 - [x] Attribution de chaque demande à 5 artisans pertinents au maximum.
 - [x] Notification e-mail des artisans ciblés.
+- [x] Brief entreprise B2B avec organisation et quantité, conservé en revue admin avant transmission.
+- [x] Suggestions d'artisans pour l'admin et assignation explicite de 1 à 5 artisans.
+- [x] Référence de demande dans les messages WhatsApp et mesure du clic comme mise en relation, pas comme vente.
 - [x] Statuts de la demande : nouvelle, contactée, en cours, terminée.
-- [ ] Matching avancé par disponibilité et statut Premium.
+- [x] Score intégrant la disponibilité déclarée; Premium départage les candidats à score égal uniquement.
 - [x] Écran client de création de demande.
 - [x] Écran vendeur des demandes ouvertes.
 - [x] Réponse vendeur avec prix, délai et commentaire.
@@ -103,6 +106,7 @@ Avant facturation :
 - [ ] Tester la valeur avec le pilote.
 - [ ] Mesurer les commandes générées.
 - [x] Définir les plans et limites (5 annonces actives en gratuit, illimité en Premium).
+- [x] Plafond Starter actuel : 3 annonces actives; ne pas reprendre l'ancienne valeur de 5.
 - [x] Ajouter abonnements et facturation MoMo.
 - [ ] Prévoir annulation et remboursement.
 

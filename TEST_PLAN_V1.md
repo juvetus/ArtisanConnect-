@@ -16,7 +16,10 @@ Ce plan couvre le parcours nominal ainsi que les contrôles de sécurité et de 
 - Création, soumission et validation d'un service.
 - Notifications destinées aux artisans, clients et administrateurs.
 - Création d'une commande produit.
+- Demande de service, complément demandé et nouvelle validation après réponse du client.
+- Demande B2B, sélection manuelle des artisans et suivi de mise en relation WhatsApp.
 - Paiement simulé Orange Money.
+- Facture client après confirmation d'un paiement réussi.
 - Estimation et suivi de livraison simulée.
 - Avis après commande.
 - Blog public et pages statiques principales.
@@ -152,6 +155,7 @@ Données service :
 - Les tables existent.
 - Les colonnes et relations principales sont présentes.
 - Le type de notification `service_review` existe après synchronisation du schéma.
+- En préproduction, les migrations sont exécutées avec `DB_SYNCHRONIZE=false`; aucun test avec commandes actives ne cible la base de production.
 
 ## 6. Scénario B - Inscription et authentification
 
@@ -383,9 +387,13 @@ Faire progresser la commande selon le workflow prévu : acceptation, préparatio
 
 - Le paiement passe au statut attendu.
 - Le montant est égal au montant de la commande.
-- La commission et le montant artisan sont cohérents.
+- En mock/sandbox, la commission est de 0 FCFA et aucun argent réel n'est encaissé ou reversé.
+- En paiement cash, la commission est de 0 FCFA.
+- Le test unitaire du calcul live vérifie 5 % arrondis à l'entier pour un paiement mobile confirmé et réellement encaissé; cette valeur n'implique pas un versement automatique au vendeur.
+- Une facture client est émise après confirmation du paiement réussi, pour le total de vente et la TVA configurée, sans ajout de la commission artisan.
+- Aucun reçu/facture de paiement confirmé n'est émis pour une transaction échouée ou encore en attente.
 - Une notification de paiement est créée.
-- Le reversement simulé ne révèle aucune donnée sensible.
+- Le workflow de libération mock ne révèle aucune donnée sensible et ne prétend pas effectuer un reversement réel.
 
 ## 12. Scénario H - Livraison simulée
 
@@ -433,7 +441,7 @@ Faire progresser la commande selon le workflow prévu : acceptation, préparatio
 
 **Résultat attendu**
 
-- Les 14 articles sont accessibles depuis la page blog.
+- Tous les articles présents dans la source `blogArticles` sont accessibles, y compris le nouvel article MINPMEESA–Union européenne en français et en anglais.
 - Chaque article possède un titre, un résumé, une date, une image et un texte alternatif.
 - Les sources officielles sont visibles sous forme de liens.
 - Les liens CODEPA et types de foires MINPMEESA fonctionnent.
@@ -505,7 +513,41 @@ Pages prioritaires :
 - Le menu mobile fonctionne.
 - Le changement FR/EN ne casse pas la mise en page.
 
-## 17. Contrôles de sécurité minimaux
+## 17. Scénario M - Complément d'une demande de service
+
+**Action**
+
+1. Créer une commande de service comme client.
+2. Depuis l'administration, demander un complément avec un motif.
+3. Ouvrir la demande comme client, compléter l'objectif du projet, le budget et le mode/adresse de remise, puis la renvoyer.
+4. Tenter aussi de renvoyer une demande appartenant à un autre client et de soumettre un objectif de moins de 50 caractères.
+
+**Résultat attendu**
+
+- La demande passe à `details_requested` avec le motif visible par le client.
+- Seul le client propriétaire peut la renvoyer; la demande d'un autre client est refusée.
+- Les champs obligatoires et validations de budget/adresse sont appliqués.
+- Après renvoi, le statut repasse à `pending_admin_validation`, le feedback précédent est effacé et l'administration reçoit une notification de revalidation.
+
+## 18. Scénario N - Brief B2B et mise en relation
+
+**Action**
+
+1. Soumettre une demande B2B avec organisation, quantité, métier, ville et description.
+2. Vérifier le brief dans l'administration et charger les artisans suggérés.
+3. Sélectionner un à cinq artisans pertinents, puis transmettre le brief.
+4. Vérifier les demandes reçues par les artisans sélectionnés et par un artisan non sélectionné.
+5. Ouvrir le lien WhatsApp associé et consulter ensuite l'évènement de suivi.
+
+**Résultat attendu**
+
+- Organisation et quantité sont conservées et affichées dans la revue admin.
+- Aucun artisan ne reçoit le brief avant sélection admin; la sélection est limitée à cinq.
+- Seuls les artisans sélectionnés voient la demande B2B.
+- Le suivi `whatsapp_click` indique une mise en relation/clic, pas une vente ou une commande confirmée.
+- Si aucune correspondance n'est sélectionnée, le brief reste en revue et peut recevoir une réponse administrative.
+
+## 19. Contrôles de sécurité minimaux
 
 - Les endpoints admin refusent un utilisateur non admin.
 - Les données KYC ne sont jamais exposées sur les pages publiques.
@@ -516,7 +558,7 @@ Pages prioritaires :
 - Les fichiers envoyés sont limités aux formats et tailles prévus.
 - Les identifiants de production ne sont pas commités dans le dépôt.
 
-## 18. Critères de sortie V1
+## 20. Critères de sortie V1
 
 La V1 peut être considérée comme prête pour une démonstration contrôlée lorsque :
 
@@ -526,12 +568,13 @@ La V1 peut être considérée comme prête pour une démonstration contrôlée l
 - le parcours boutique KYC est validé ;
 - le parcours service et notification admin est validé ;
 - le parcours commande, paiement mock et livraison mock est validé ;
+- les parcours de complément de demande de service et de revue B2B sont validés ;
 - les notifications sont isolées par utilisateur ;
 - les pages principales sont utilisables sur mobile et desktop ;
 - aucun secret de production n'est utilisé en local ;
 - les anomalies bloquantes sont corrigées ou documentées.
 
-## 19. Tableau de suivi
+## 21. Tableau de suivi
 
 | ID | Scénario | Statut | Observations |
 | --- | --- | --- | --- |
@@ -547,9 +590,11 @@ La V1 peut être considérée comme prête pour une démonstration contrôlée l
 | J | Blog et SEO | À exécuter |  |
 | K | Notifications | À exécuter |  |
 | L | Responsive et bilingue | À exécuter |  |
+| M | Complément d'une demande de service | À exécuter |  |
+| N | Brief B2B et mise en relation | À exécuter |  |
 | S | Sécurité minimale | À exécuter |  |
 
-## 20. Rapport d'anomalie
+## 22. Rapport d'anomalie
 
 Pour chaque anomalie, noter :
 
@@ -567,7 +612,9 @@ Sévérité : Bloquante / Majeure / Mineure
 Statut : Ouverte / En cours / Corrigée / Vérifiée
 ```
 
-## 21. Exécution locale du 12 septembre 2026
+## 23. Rapport historique d'exécution locale du 12 septembre 2026
+
+Ces résultats sont un relevé historique, pas une validation de l'état actuel. Rejouer les contrôles techniques et les scénarios concernés avant toute décision GO du pilote; le périmètre produit a évolué depuis ce relevé.
 
 ### Contrôles exécutés
 
@@ -594,7 +641,10 @@ Les contrôles automatisés sont au vert. Les scénarios qui nécessitent des co
 - notification `service_review` lors de la soumission d'un service ;
 - commande client complète ;
 - paiement Orange Money mock ;
+- facture après confirmation du paiement ;
 - livraison mock ;
+- complément d'une demande de service ;
+- revue admin d'un brief B2B et mesure des clics WhatsApp ;
 - upload d'une image produit et d'un document KYC Cloudinary sur l'environnement déployé.
 
 Le retour HTTP 404 sur `GET /blog` est normal : `/blog` est une route frontend Next.js et non une route de l'API NestJS.
