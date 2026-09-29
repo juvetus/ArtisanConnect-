@@ -12,6 +12,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { ReviewSection } from '@/components/ReviewSection';
 import type { Order } from '@/lib/types';
 import { CARRIER_ENABLED, CARRIER_SIMULATION_MODE, MOBILE_MONEY_ENABLED, MOBILE_MONEY_TEST_MODE } from '@/lib/pilot-capabilities';
+import { ListingOffersPanel } from '@/components/ListingOffersPanel';
 
 function whatsappNumber(phone: string) {
   const digits = phone.replace(/\D/g, '');
@@ -142,6 +143,7 @@ export default function OrdersPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">{t('orders_page_title')}</h1>
+      <ListingOffersPanel audience="buyer" />
 
       {orders.length === 0 ? (
         <div className="rounded-lg border border-stone-200 bg-white p-8 text-center">

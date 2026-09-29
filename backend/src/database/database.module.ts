@@ -30,7 +30,10 @@ import {
   Report,
   AnalyticsEvent,
   Invoice,
+  ListingOffer,
 } from '../entities/index.js';
+import { ListingOffers1760800000000 } from './migrations/1760800000000-listing-offers.js';
+import { ListingOfferNegotiation1760900000000 } from './migrations/1760900000000-listing-offer-negotiation.js';
 import { PilotTrustFeatures1758200000000 } from './migrations/1758200000000-pilot-trust-features.js';
 import { CustomerRequestStatuses1758300000000 } from './migrations/1758300000000-customer-request-statuses.js';
 import { AnalyticsEvents1758400000000 } from './migrations/1758400000000-analytics-events.js';
@@ -69,9 +72,9 @@ import { ServicePriceNullable1760700000000 } from './migrations/1760700000000-se
         username: configService.get('DB_USERNAME', 'artisan'),
         password: configService.get('DB_PASSWORD', 'artisan_password_dev'),
         database: configService.get('DB_DATABASE', 'artisan_connect'),
-        entities: [User, Listing, Order, Payment, Review, Message, InstitutionalResource, InstitutionalProgram, ArtisanFormalization, Shop, Notification, Service, ServiceOrder, ServiceQuote, ServicePayment, ServiceReview, ServiceValidationHistory, ProgramApplication, Subscription, SubscriptionPlan, PromotionCode, PromotionRedemption, AiImageGeneration, Payout, CustomerRequest, Report, AnalyticsEvent, Invoice],
+        entities: [User, Listing, Order, Payment, Review, Message, InstitutionalResource, InstitutionalProgram, ArtisanFormalization, Shop, Notification, Service, ServiceOrder, ServiceQuote, ServicePayment, ServiceReview, ServiceValidationHistory, ProgramApplication, Subscription, SubscriptionPlan, PromotionCode, PromotionRedemption, AiImageGeneration, Payout, CustomerRequest, Report, AnalyticsEvent, Invoice, ListingOffer],
         synchronize: configService.get('DB_SYNCHRONIZE', configService.get('NODE_ENV') === 'development' ? 'true' : 'false') === 'true',
-        migrations: [PilotTrustFeatures1758200000000, CustomerRequestStatuses1758300000000, AnalyticsEvents1758400000000, ShopAvailability1758500000000, CustomerRequestAttachments1758600000000, ListingSponsoring1758700000000, UserAvatar1758800000000, ServiceVideos1758900000000, InstitutionMedia1759000000000, InstitutionPdfs1759100000000, QuoteDetails1759200000000, ServiceExternalUrls1759300000000, ListingAiImages1759400000000, PromotionCodes1759500000000, PromotionRedemptions1759600000000, PromotionMaxUses1759700000000, AiImageGenerations1759800000000, PromotionPlanRestrictions1759900000000, ServiceSponsoring1760000000000, CustomerRequestPayments1760100000000, CustomerRequestAdminReplies1760200000000, CatalogDemoFlags1760300000000, PilotFunnelProvenance1760400000000, Invoices1760500000000, CustomerRequestBusinessBrief1760600000000, ServicePriceNullable1760700000000],
+        migrations: [PilotTrustFeatures1758200000000, CustomerRequestStatuses1758300000000, AnalyticsEvents1758400000000, ShopAvailability1758500000000, CustomerRequestAttachments1758600000000, ListingSponsoring1758700000000, UserAvatar1758800000000, ServiceVideos1758900000000, InstitutionMedia1759000000000, InstitutionPdfs1759100000000, QuoteDetails1759200000000, ServiceExternalUrls1759300000000, ListingAiImages1759400000000, PromotionCodes1759500000000, PromotionRedemptions1759600000000, PromotionMaxUses1759700000000, AiImageGenerations1759800000000, PromotionPlanRestrictions1759900000000, ServiceSponsoring1760000000000, CustomerRequestPayments1760100000000, CustomerRequestAdminReplies1760200000000, CatalogDemoFlags1760300000000, PilotFunnelProvenance1760400000000, Invoices1760500000000, CustomerRequestBusinessBrief1760600000000, ServicePriceNullable1760700000000, ListingOffers1760800000000, ListingOfferNegotiation1760900000000],
         // En production `synchronize` est désactivé : le schéma évolue uniquement par migrations.
         migrationsRun: configService.get('DB_SYNCHRONIZE', configService.get('NODE_ENV') === 'development' ? 'true' : 'false') !== 'true',
         logging: configService.get('NODE_ENV') === 'development',
@@ -79,7 +82,7 @@ import { ServicePriceNullable1760700000000 } from './migrations/1760700000000-se
         retryDelay: Number(configService.get('DB_RETRY_DELAY', 3000)),
       }),
     }),
-    TypeOrmModule.forFeature([User, Listing, Order, Payment, Review, Message, InstitutionalResource, InstitutionalProgram, ArtisanFormalization, Shop, Notification, Service, ServiceOrder, ServiceQuote, ServicePayment, ServiceReview, ServiceValidationHistory, ProgramApplication, Subscription, SubscriptionPlan, PromotionCode, PromotionRedemption, AiImageGeneration, Payout, CustomerRequest, Report, AnalyticsEvent, Invoice]),
+    TypeOrmModule.forFeature([User, Listing, Order, Payment, Review, Message, InstitutionalResource, InstitutionalProgram, ArtisanFormalization, Shop, Notification, Service, ServiceOrder, ServiceQuote, ServicePayment, ServiceReview, ServiceValidationHistory, ProgramApplication, Subscription, SubscriptionPlan, PromotionCode, PromotionRedemption, AiImageGeneration, Payout, CustomerRequest, Report, AnalyticsEvent, Invoice, ListingOffer]),
   ],
   exports: [TypeOrmModule],
 })

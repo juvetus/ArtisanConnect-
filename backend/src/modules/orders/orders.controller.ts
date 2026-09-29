@@ -6,6 +6,57 @@ import { CurrentUser, type AuthUser } from '../auth/current-user.decorator.js';
 export class OrdersController {
   constructor(private ordersService: OrdersService) {}
 
+  @Post('offers')
+  async createListingOffer(
+    @CurrentUser() user: AuthUser,
+    @Body() body: {
+      listingId: string;
+      quantity: number;
+      offeredUnitPrice: number;
+      message?: string;
+      paymentMethod: 'cash' | 'momo' | 'orange_money';
+      deliveryMethod: 'workshop' | 'home' | 'carrier';
+      deliveryAddress?: string;
+    },
+  ) {
+    if (user.role !== 'client') throw new ForbiddenException('Seuls les acheteurs peuvent proposer un prix');
+    return this.ordersService.createListingOffer(user.id, { ...body, quantity: Number(body.quantity), offeredUnitPrice: Number(body.offeredUnitPrice) });
+  }
+
+  @Get('offers/buyer')
+  async getBuyerListingOffers(@CurrentUser() user: AuthUser) {
+    if (user.role !== 'client') throw new ForbiddenException('Accès réservé aux acheteurs');
+    return this.ordersService.getBuyerListingOffers(user.id);
+  }
+
+  @Get('offers/seller')
+  async getSellerListingOffers(@CurrentUser() user: AuthUser) {
+    if (user.role !== 'artisan') throw new ForbiddenException('Accès réservé aux vendeurs');
+    return this.ordersService.getSellerListingOffers(user.id);
+  }
+
+  @Patch('offers/:id/counter')
+  async counterListingOffer(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() body: { unitPrice: number; message?: string },
+  ) {
+    if (!['client', 'artisan'].includes(user.role)) throw new ForbiddenException('Action réservée à l’acheteur ou au vendeur');
+    return this.ordersService.counterListingOffer(user.id, id, { unitPrice: Number(body.unitPrice), message: body.message });
+  }
+
+  @Patch('offers/:id/accept')
+  async acceptListingOffer(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    if (!['client', 'artisan'].includes(user.role)) throw new ForbiddenException('Action réservée à l’acheteur ou au vendeur');
+    return this.ordersService.acceptListingOffer(user.id, id);
+  }
+
+  @Patch('offers/:id/reject')
+  async rejectListingOffer(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    if (!['client', 'artisan'].includes(user.role)) throw new ForbiddenException('Action réservée à l’acheteur ou au vendeur');
+    return this.ordersService.rejectListingOffer(user.id, id);
+  }
+
   @Post()
   async createOrder(
     @CurrentUser() user: AuthUser,

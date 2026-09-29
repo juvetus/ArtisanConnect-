@@ -253,6 +253,27 @@ export interface Order {
   createdAt: string;
 }
 
+export interface ListingOffer {
+  id: string;
+  buyerId: string;
+  sellerId: string;
+  listingId: string;
+  buyer?: User;
+  seller?: User;
+  listing?: Listing;
+  quantity: number;
+  offeredUnitPrice: string | number;
+  message?: string | null;
+  status: 'pending' | 'accepted' | 'rejected';
+  lastProposedBy: 'buyer' | 'seller';
+  negotiationHistory: { proposedBy: 'buyer' | 'seller'; unitPrice: string | number; message: string | null; createdAt: string }[];
+  paymentMethod: 'cash' | 'momo' | 'orange_money';
+  deliveryMethod: DeliveryMethod;
+  deliveryAddress?: string | null;
+  orderId?: string | null;
+  createdAt: string;
+}
+
 export interface Payment {
   id: string;
   orderId: string;

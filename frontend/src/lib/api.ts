@@ -1,4 +1,4 @@
-import type { AdminOverview, AdminSubscription, AnalyticsFunnel, ArtisanFormalization, AuthSession, CustomerRequestStatus, InstitutionDashboard, InstitutionalProgram, InstitutionalResource, Listing, Message, NotificationsResponse, Order, Paginated, Payment, ProgramApplication, ProgramApplicationStatus, ProgramType, PublicArtisan, Report, ReportReason, ReportStatus, ReportTargetType, ResourceType, Review, Role, Service, ServiceReview, Shop, ShopType, Thread, User } from './types';
+import type { AdminOverview, AdminSubscription, AnalyticsFunnel, ArtisanFormalization, AuthSession, CustomerRequestStatus, InstitutionDashboard, InstitutionalProgram, InstitutionalResource, Listing, ListingOffer, Message, NotificationsResponse, Order, Paginated, Payment, ProgramApplication, ProgramApplicationStatus, ProgramType, PublicArtisan, Report, ReportReason, ReportStatus, ReportTargetType, ResourceType, Review, Role, Service, ServiceReview, Shop, ShopType, Thread, User } from './types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
@@ -197,6 +197,23 @@ export const api = {
     deliveryLatitude?: number;
     deliveryLongitude?: number;
   }) => post<Order>('/orders', data),
+
+  createListingOffer: (data: {
+    listingId: string;
+    quantity: number;
+    offeredUnitPrice: number;
+    message?: string;
+    paymentMethod: 'cash' | 'momo' | 'orange_money';
+    deliveryMethod: 'workshop' | 'home' | 'carrier';
+    deliveryAddress?: string;
+  }) => post<ListingOffer>('/orders/offers', data),
+
+  buyerListingOffers: () => request<ListingOffer[]>('/orders/offers/buyer'),
+  sellerListingOffers: () => request<ListingOffer[]>('/orders/offers/seller'),
+  counterListingOffer: (id: string, unitPrice: number, message?: string) =>
+    patch<ListingOffer>(`/orders/offers/${id}/counter`, { unitPrice, message }),
+  acceptListingOffer: (id: string) => patch<Order>(`/orders/offers/${id}/accept`, {}),
+  rejectListingOffer: (id: string) => patch<ListingOffer>(`/orders/offers/${id}/reject`, {}),
 
   buyerOrders: (buyerId: string) => request<Paginated<Order>>(`/orders/buyer/${buyerId}`),
 
