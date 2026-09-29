@@ -52,6 +52,7 @@ function CustomerRequestsContent() {
   const [suggestingRequest, setSuggestingRequest] = useState(false);
   const [payment, setPayment] = useState<Record<string, { method: 'momo' | 'cash'; phone: string }>>({});
   const [expandedResponses, setExpandedResponses] = useState<Record<string, boolean>>({});
+  const [collapsedRequests, setCollapsedRequests] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (user?.role === 'client') {
@@ -420,13 +421,27 @@ function CustomerRequestsContent() {
       {english ? (
         <section className="space-y-3">
           <h2 className="text-xl font-semibold text-stone-900">My requests</h2>
-          {requests?.length ? requests.map((request) => (
+          {requests?.length ? requests.map((request) => {
+            const collapsed = collapsedRequests[request.id] ?? false;
+            return (
             <article key={request.id} className="rounded-lg border border-stone-200 bg-white p-5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => setCollapsedRequests((current) => ({ ...current, [request.id]: !collapsed }))}
+                aria-expanded={!collapsed}
+                className="flex w-full flex-wrap items-center justify-between gap-3 text-left"
+              >
                 <h3 className="font-semibold">{request.category} · {request.city}</h3>
-                <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-medium text-stone-700">{statusLabel(request.status)}</span>
-              </div>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-medium text-stone-700">{statusLabel(request.status)}</span>
+                  <svg className={`h-4 w-4 shrink-0 text-stone-500 transition-transform ${collapsed ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </button>
 
+              {!collapsed ? (
+              <>
               {request.requestType === 'business' ? <p className="text-xs font-medium text-amber-800">{english ? 'Business brief' : 'Brief professionnel'} · {request.organizationName} · {request.requestedQuantity} {english ? 'units' : 'unités'}</p> : null}
 
               <p className="mt-2 text-sm text-stone-600">{request.description}</p>
@@ -490,18 +505,33 @@ function CustomerRequestsContent() {
               {request.status !== 'completed' ? (
                 <button onClick={() => void complete(request.id)} className="mt-4 text-xs font-medium text-stone-500 underline">Mark as completed</button>
               ) : null}
+              </>
+              ) : null}
             </article>
-          )) : <p className="text-sm text-stone-600">No requests published yet.</p>}
+            );
+          }) : <p className="text-sm text-stone-600">No requests published yet.</p>}
         </section>
       ) : null}
 
       {!english && (
         <section className="space-y-3">
           <h2 className="text-xl font-semibold text-stone-900">Mes demandes</h2>
-          {requests?.length ? requests.map((request) => (
+          {requests?.length ? requests.map((request) => {
+            const collapsed = collapsedRequests[request.id] ?? false;
+            return (
             <article key={request.id} className="rounded-lg border border-stone-200 bg-white p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <h3 className="font-semibold">{request.category} · {request.city}</h3>
+                <button
+                  type="button"
+                  onClick={() => setCollapsedRequests((current) => ({ ...current, [request.id]: !collapsed }))}
+                  aria-expanded={!collapsed}
+                  className="flex items-center gap-2 text-left"
+                >
+                  <svg className={`h-4 w-4 shrink-0 text-stone-500 transition-transform ${collapsed ? '' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                  <h3 className="font-semibold">{request.category} · {request.city}</h3>
+                </button>
                 <div className="flex items-center gap-3">
                   <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-medium text-stone-700">{CUSTOMER_REQUEST_STATUS_LABELS[request.status] ?? request.status}</span>
                   {request.status !== 'completed' ? (
@@ -510,6 +540,8 @@ function CustomerRequestsContent() {
                 </div>
               </div>
 
+              {!collapsed ? (
+              <>
               {request.requestType === 'business' ? <p className="text-xs font-medium text-amber-800">Brief professionnel · {request.organizationName} · {request.requestedQuantity} unités</p> : null}
 
               <p className="mt-2 text-sm text-stone-600">{request.description}</p>
@@ -579,8 +611,11 @@ function CustomerRequestsContent() {
                   })}
                 </div>
               ) : null}
+              </>
+              ) : null}
             </article>
-          )) : <p className="text-sm text-stone-600">Aucune demande publiée pour le moment.</p>}
+            );
+          }) : <p className="text-sm text-stone-600">Aucune demande publiée pour le moment.</p>}
         </section>
       )}
     </div>
