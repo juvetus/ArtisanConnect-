@@ -44,6 +44,13 @@ export class UsersService {
     return this.usersRepository.findOne({ where: { id } });
   }
 
+  async findByIdWithPassword(id: string): Promise<User | null> {
+    return this.usersRepository.findOne({
+      where: { id },
+      select: { id: true, email: true, name: true, role: true, gender: true, passwordHash: true, isActive: true, verifiedEmail: true },
+    });
+  }
+
   async findByVerificationToken(token: string): Promise<User | null> {
     return this.usersRepository.findOne({
       where: { emailVerificationToken: token },
