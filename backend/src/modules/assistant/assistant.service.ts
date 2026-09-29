@@ -25,7 +25,7 @@ const TASK_INSTRUCTIONS: Record<AssistantTask, string> = {
   presentation: 'Rédige une présentation professionnelle courte de l’artisan ou de la structure.',
   profil: 'Crée un pack de profil artisan avec les sections suivantes : 1) description professionnelle claire et vendeuse de 150 mots maximum, 2) liste structurée des services proposés, 3) conseils de prix prudents en FCFA en expliquant les facteurs qui les font varier et sans inventer de tarifs locaux, 4) réponse automatique WhatsApp polie et professionnelle, 5) mini-texte pour réseaux sociaux. Utilise seulement les informations fournies; signale les informations manquantes par [à préciser]. Ton professionnel, simple et adapté au Cameroun.',
   demande_client: 'Aide un client à clarifier sa demande de service. Réécris son texte en français simple et précis, en conservant strictement les faits fournis. N’invente ni dimensions, ni matériaux, ni budget, ni délai. Termine par une courte liste de questions facultatives si des détails importants manquent. Retourne un brouillon à relire, pas un message envoyé.',
-  reponse_opportunite: 'Aide un artisan à rédiger un brouillon de réponse poli, professionnel et humain à la demande client fournie. Réponds au besoin précis, indique une prochaine étape ou une question utile. N’invente aucun prix, délai, disponibilité, certification ou engagement. Ne prétends pas avoir déjà envoyé le message.',
+  reponse_opportunite: 'Aide un artisan à rédiger un brouillon de réponse à la demande client fournie. Sois court et précis : 4 phrases maximum, 60 mots maximum, une seule idée par phrase. Va droit au but (accusé de réception du besoin, une question ou une prochaine étape utile), sans formule de politesse longue ni répétition. Termine par une signature avec le prénom/nom fourni dans le contexte, sans l’inventer s’il est absent. N’invente aucun prix, délai, disponibilité, certification ou engagement. Ne prétends pas avoir déjà envoyé le message.',
   listing_description: 'Rédige une description claire et attractive pour une annonce artisanale. Mets en avant uniquement les caractéristiques, matières, dimensions, usages et détails fournis. N’invente ni origine, ni certification, ni disponibilité, ni garantie. Reste concret et concis.',
   service_description: 'Rédige une description claire et professionnelle d’un service artisanal. Explique le besoin auquel il répond, les étapes ou livrables connus, et les informations à fournir pour demander un devis. N’invente ni tarifs, ni délais, ni qualifications.',
   institution_resource: 'Améliore la description d’une ressource institutionnelle destinée aux artisans. Indique clairement le contenu, le public visé et son utilité à partir des faits fournis. N’invente ni organisme partenaire, ni financement, ni condition d’accès.',
@@ -38,6 +38,11 @@ const TASK_INSTRUCTIONS: Record<AssistantTask, string> = {
   siarc: 'Rédige un texte de présentation adapté à un dossier ou stand SIARC, mettant en valeur le savoir-faire camerounais.',
   correction: 'Corrige l’orthographe, la grammaire et la ponctuation sans changer le sens ni le ton.',
   traduction: 'Traduis fidèlement entre français et anglais. Retourne uniquement le texte traduit.',
+};
+
+/** Limite la longueur de génération pour les tâches qui doivent rester courtes (évite les réponses trop verbeuses). */
+const TASK_MAX_TOKENS: Partial<Record<AssistantTask, number>> = {
+  reponse_opportunite: 160,
 };
 
 @Injectable()
@@ -111,6 +116,7 @@ export class AssistantService {
       body: JSON.stringify({
         model,
         temperature: 0.7,
+        ...(TASK_MAX_TOKENS[input.task] ? { max_tokens: TASK_MAX_TOKENS[input.task] } : {}),
         messages: [
           { role: 'system', content: `Tu es l’assistant IA ArtisanConnect, spécialisé dans l’artisanat camerounais. ${TASK_INSTRUCTIONS[input.task]} Réponds en ${language === 'en' ? 'anglais' : 'français'}. Sois concret, honnête et adapté aux petits budgets. N’invente jamais un prix, une certification ou une information absente.` },
           { role: 'user', content: `${input.context ? `Contexte : ${input.context}\n\n` : ''}${input.input}` },
