@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
 
@@ -15,6 +16,10 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
+  const [verificationMode, setVerificationMode] = useState<'email' | 'phone' | null>(null);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [verificationMessage, setVerificationMessage] = useState('');
+  const [verificationPending, setVerificationPending] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,10 +33,54 @@ export default function LoginPage() {
     try {
       await login(value, password);
       router.push('/');
-    } catch {
-      setError('Email ou mot de passe incorrect / Incorrect email or password.');
+    } catch (err) {
+      if (err instanceof ApiError && err.message.includes('adresse email')) {
+        setVerificationMode('email');
+        setError(t('login_verify_email_required'));
+      } else if (err instanceof ApiError && err.message.includes('numéro de téléphone')) {
+        setVerificationMode('phone');
+        setError(t('login_verify_phone_required'));
+      } else {
+        setVerificationMode(null);
+        setError('Email ou mot de passe incorrect / Incorrect email or password.');
+      }
     } finally {
       setPending(false);
+    }
+  };
+
+  const resendVerification = async () => {
+    if (!verificationMode) return;
+    setVerificationPending(true);
+    setVerificationMessage('');
+    try {
+      if (verificationMode === 'email') {
+        await api.resendVerification(identifier.trim());
+        setVerificationMessage(t('email_verification_sent'));
+      } else {
+        const result = await api.resendPhoneVerification(identifier.trim());
+        setVerificationMessage(result.developmentOtp
+          ? `${result.message} Code de test : ${result.developmentOtp}`
+          : t('login_verification_sent'));
+      }
+    } catch (err) {
+      setVerificationMessage(err instanceof ApiError ? err.message : t('email_verification_error'));
+    } finally {
+      setVerificationPending(false);
+    }
+  };
+
+  const verifyPhoneAndLogin = async () => {
+    setVerificationPending(true);
+    setVerificationMessage('');
+    try {
+      await api.verifyPhone(identifier.trim(), verificationCode);
+      await login(identifier.trim(), password);
+      router.push('/');
+    } catch (err) {
+      setVerificationMessage(err instanceof ApiError ? err.message : t('email_verification_error'));
+    } finally {
+      setVerificationPending(false);
     }
   };
 
@@ -84,6 +133,18 @@ export default function LoginPage() {
         </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}
+
+        {verificationMode ? <section className="space-y-3 rounded-md border border-amber-200 bg-amber-50 p-4" aria-live="polite">
+          {verificationMode === 'phone' ? <>
+            <label htmlFor="verification-code" className="block text-sm font-medium text-stone-800">{t('login_phone_code')}</label>
+            <input id="verification-code" inputMode="numeric" autoComplete="one-time-code" value={verificationCode} onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, '').slice(0, 6))} className="w-full rounded-md border border-stone-300 px-3 py-2" />
+            <button type="button" onClick={() => void verifyPhoneAndLogin()} disabled={verificationPending || verificationCode.length !== 6} className="w-full rounded-md bg-green-700 py-2 text-sm font-medium text-white disabled:opacity-60">{t('login_verify_phone')}</button>
+          </> : null}
+          <button type="button" onClick={() => void resendVerification()} disabled={verificationPending} className="w-full rounded-md border border-amber-700 px-3 py-2 text-sm font-medium text-amber-900 disabled:opacity-60">
+            {verificationPending ? t('action_loading') : verificationMode === 'email' ? t('email_verification_resend') : t('login_phone_resend')}
+          </button>
+          {verificationMessage ? <p className="text-sm text-stone-700">{verificationMessage}</p> : null}
+        </section> : null}
 
         <button
           type="submit"

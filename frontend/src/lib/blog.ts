@@ -34,6 +34,98 @@ export type BlogArticle = {
 
 export const blogArticles: BlogArticle[] = [
   {
+    slug: 'cooperation-cameroun-union-europeenne-pme-artisanat',
+    category: { fr: 'Actualités', en: 'News' },
+    title: {
+      fr: 'Coopération Cameroun–Union européenne : une nouvelle dynamique pour les PME, l’économie sociale et l’artisanat',
+      en: 'Cameroon–European Union cooperation: new momentum for SMEs, the social economy and crafts',
+    },
+    excerpt: {
+      fr: 'À la suite d’une audience avec l’ambassadrice de l’Union européenne, le MINPMEESA met en avant la compétitivité, la transformation productive, la digitalisation et l’accès au financement.',
+      en: 'Following a meeting with the European Union Ambassador, MINPMEESA highlighted competitiveness, productive transformation, digitalisation and access to finance.',
+    },
+    coverImage: '/images/blog-catalogue-cooperative.png',
+    coverAlt: { fr: 'Artisanes réunies autour d’un projet collectif', en: 'Women artisans working together on a collective project' },
+    sources: [
+      { label: 'MINPMEESA - Coopération Cameroun–Union européenne', url: 'https://www.minpmeesa.cm/site/cooperation-cameroun-union-europeenne-une-nouvelle-dynamique-pour-les-pme-leconomie-sociale-et-lartisanat/' },
+      { label: 'Délégation de l’Union européenne au Cameroun', url: 'https://www.eeas.europa.eu/delegations/cameroon_en' },
+    ],
+    author: 'L’équipe ArtisanConnect',
+    publishedAt: '2026-09-29',
+    readingTime: 4,
+    keywords: ['coopération Cameroun Union européenne', 'MINPMEESA PME', 'artisanat Cameroun', 'économie sociale Cameroun', 'digitalisation PME'],
+    sections: {
+      fr: [
+        {
+          heading: 'Une audience consacrée au partenariat économique',
+          paragraphs: [
+            'Dans une publication datée du 14 septembre 2026, le MINPMEESA rapporte une audience entre le ministre Achille Bassilekin III et Veronika Bošković Pohar, nouvelle ambassadrice et cheffe de la Délégation de l’Union européenne au Cameroun. La rencontre a porté sur la consolidation de la coopération en faveur des PME, de l’économie sociale et de l’artisanat.',
+            'Parmi les sujets cités figurent le renforcement de la compétitivité des entreprises camerounaises, la transformation productive, la digitalisation, l’accès au financement, le développement des chaînes de valeur et la valorisation du potentiel artisanal.',
+          ],
+        },
+        {
+          heading: 'Des instruments de coopération déjà mobilisés',
+          paragraphs: [
+            'Le MINPMEESA cite plusieurs initiatives auxquelles l’Union européenne a contribué au fil des années, dont la Bourse de Sous-Traitance et de Partenariat (BSTP), les Centres de Formalités de Création d’Entreprises (CFCE), e-Régulation, le PMEAA, le DACC et le PASAPE. La publication mentionne également de nouveaux programmes, notamment le PAD-CV, le Programme d’accélération numérique du Cameroun et Digital Business Boost for Africa.',
+            'Le ministère présente l’enjeu comme la transformation de ces instruments en leviers de productivité et de création de valeur pour les PME, les acteurs de l’économie sociale et les artisans. La publication ne précise toutefois pas, pour chaque dispositif, les modalités d’accès, les bénéficiaires admissibles, les montants disponibles ou un calendrier de candidature.',
+          ],
+        },
+        {
+          heading: 'Ce que les PME et les artisans peuvent préparer',
+          paragraphs: ['Sans présumer de l’ouverture d’un financement ou d’un appel, les entreprises et ateliers peuvent renforcer leur préparation en :'],
+          bullets: [
+            'mettant à jour leur présentation, leurs coordonnées et leurs documents de formalisation ;',
+            'décrivant leur capacité de production, leurs délais et les marchés qu’ils peuvent servir ;',
+            'documentant leurs produits, services, chaînes d’approvisionnement et besoins de digitalisation ;',
+            'rassemblant des éléments vérifiables sur les emplois, les revenus, les bénéficiaires et l’impact social ;',
+            'surveillant les annonces officielles du MINPMEESA et de la Délégation de l’Union européenne au Cameroun.',
+          ],
+        },
+        {
+          heading: 'Vérifier les modalités avant toute démarche',
+          paragraphs: [
+            'Une orientation de coopération ne signifie pas qu’un guichet de financement est ouvert ni qu’une entreprise est automatiquement éligible. Avant de transmettre des documents ou de payer des frais, consultez l’avis officiel correspondant et vérifiez l’organisme porteur, les critères, les dates et les coordonnées de contact.',
+            'ArtisanConnect relaie cette actualité à titre informatif. La plateforme n’est pas l’organisatrice des dispositifs cités et ne garantit ni financement, ni sélection, ni partenariat commercial.',
+          ],
+        },
+      ],
+      en: [
+        {
+          heading: 'A meeting focused on economic partnership',
+          paragraphs: [
+            'In a publication dated 14 September 2026, MINPMEESA reported a meeting between Minister Achille Bassilekin III and Veronika Bošković Pohar, the new Ambassador and Head of the European Union Delegation to Cameroon. The meeting focused on strengthening cooperation for SMEs, the social economy and crafts.',
+            'Topics cited included improving the competitiveness of Cameroonian businesses, productive transformation, digitalisation, access to finance, value-chain development and unlocking the potential of the craft sector.',
+          ],
+        },
+        {
+          heading: 'Cooperation instruments already in place',
+          paragraphs: [
+            'MINPMEESA lists several initiatives supported by the European Union over the years, including the Subcontracting and Partnership Exchange (BSTP), Business Creation Formalities Centres (CFCE), e-Regulation, PMEAA, DACC and PASAPE. The publication also mentions newer programmes, including PAD-CV, Cameroon’s Digital Acceleration Programme and Digital Business Boost for Africa.',
+            'The ministry describes the challenge as turning these instruments into drivers of productivity and value creation for SMEs, social-economy actors and craftspeople. However, the publication does not give eligibility rules, available funding amounts or application timelines for each initiative.',
+          ],
+        },
+        {
+          heading: 'How SMEs and artisans can prepare',
+          paragraphs: ['Without assuming that a grant or application call is currently open, businesses and workshops can improve their readiness by:'],
+          bullets: [
+            'updating their business profile, contact details and formalisation documents;',
+            'describing production capacity, lead times and the markets they can serve;',
+            'documenting products, services, supply chains and digitalisation needs;',
+            'gathering verifiable information on jobs, income, beneficiaries and social impact;',
+            'monitoring official announcements from MINPMEESA and the EU Delegation to Cameroon.',
+          ],
+        },
+        {
+          heading: 'Check the official terms before applying',
+          paragraphs: [
+            'A cooperation priority does not mean that a funding window is open or that a business is automatically eligible. Before sharing documents or paying fees, check the relevant official notice and verify the organising body, criteria, dates and contact details.',
+            'ArtisanConnect shares this update for information only. The platform does not organise the programmes mentioned and does not guarantee funding, selection or a commercial partnership.',
+          ],
+        },
+      ],
+    },
+  },
+  {
     slug: 'appel-100-heroines-systemes-agroalimentaires-cameroun',
     category: { fr: 'Opportunités', en: 'Opportunities' },
     title: {

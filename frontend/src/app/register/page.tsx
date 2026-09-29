@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
@@ -12,7 +11,6 @@ import { PHONE_COUNTRIES } from '@/lib/countries';
 export default function RegisterPage() {
   const { register } = useAuth();
   const { t } = useLanguage();
-  const router = useRouter();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [contactType, setContactType] = useState<'email' | 'phone'>('email');
@@ -22,6 +20,10 @@ export default function RegisterPage() {
   const [phoneOtpExpected, setPhoneOtpExpected] = useState<string | null>(null);
   const [phoneAccountCreated, setPhoneAccountCreated] = useState(false);
   const [phoneVerified, setPhoneVerified] = useState(false);
+  const [emailAccountCreated, setEmailAccountCreated] = useState(false);
+  const [verificationEmailSent, setVerificationEmailSent] = useState(false);
+  const [emailResending, setEmailResending] = useState(false);
+  const [emailResendMessage, setEmailResendMessage] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<Role>('client');
@@ -44,7 +46,8 @@ export default function RegisterPage() {
         setPhoneOtpExpected(result.developmentOtp ?? null);
         return;
       }
-      router.push(role === 'artisan' ? '/dashboard' : '/');
+      setVerificationEmailSent(result.verificationEmailSent === true);
+      setEmailAccountCreated(true);
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.status === 409) {
@@ -69,6 +72,20 @@ export default function RegisterPage() {
       setPhoneVerified(true);
     } catch (error) {
       setError(error instanceof ApiError ? error.message : 'Code de vérification invalide ou expiré.');
+    }
+  };
+
+  const resendEmailVerification = async () => {
+    setEmailResending(true);
+    setEmailResendMessage('');
+    try {
+      const result = await api.resendVerification(email.trim());
+      setVerificationEmailSent(true);
+      setEmailResendMessage(result.message);
+    } catch (err) {
+      setEmailResendMessage(err instanceof ApiError ? err.message : t('email_verification_error'));
+    } finally {
+      setEmailResending(false);
     }
   };
 
@@ -107,8 +124,8 @@ export default function RegisterPage() {
 
         <fieldset className="grid grid-cols-2 gap-2">
           <legend className="mb-2 text-sm font-medium">{t('register_with')}</legend>
-          <button type="button" onClick={() => setContactType('email')} className={`rounded-md border px-3 py-2 text-sm ${contactType === 'email' ? 'border-amber-600 bg-amber-50' : 'border-stone-300'}`}>Email</button>
-          <button type="button" onClick={() => setContactType('phone')} className={`rounded-md border px-3 py-2 text-sm ${contactType === 'phone' ? 'border-amber-600 bg-amber-50' : 'border-stone-300'}`}>{t('register_phone')}</button>
+          <button type="button" onClick={() => setContactType('email')} className={`min-h-12 rounded-md border px-3 py-2 text-sm ${contactType === 'email' ? 'border-amber-600 bg-amber-50' : 'border-stone-300'}`}>Email</button>
+          <button type="button" onClick={() => setContactType('phone')} className={`min-h-12 rounded-md border px-3 py-2 text-sm ${contactType === 'phone' ? 'border-amber-600 bg-amber-50' : 'border-stone-300'}`}>{t('register_phone')}</button>
         </fieldset>
 
         <div>
@@ -196,10 +213,10 @@ export default function RegisterPage() {
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
-        {phoneVerified ? <div role="status" className="space-y-3 rounded-md border border-green-200 bg-green-50 p-4"><p className="text-sm font-medium text-green-800">{t('register_phone_success', { phone: `${phoneCountry}${phone}` })}</p><Link href="/login" className="block w-full rounded-md bg-green-700 py-2 text-center font-medium text-white">{t('register_login_link')}</Link></div> : phoneAccountCreated ? <div className="space-y-3 rounded-md bg-amber-50 p-4"><p role="status" className="text-sm font-medium text-stone-800">{t('register_phone_created')}</p>{phoneOtpExpected ? <p className="text-sm text-stone-700">{t('register_phone_test_code')} <strong>{phoneOtpExpected}</strong></p> : null}<input value={phoneOtp} onChange={(e) => setPhoneOtp(e.target.value)} placeholder={t('register_phone_code_placeholder')} inputMode="numeric" className="w-full rounded-md border border-stone-300 px-3 py-2" /><button type="button" onClick={() => void verifyPhone()} className="w-full rounded-md bg-green-700 py-2 font-medium text-white">{t('register_phone_verify')}</button></div> : <button
+        {phoneVerified ? <div role="status" className="space-y-3 rounded-md border border-green-200 bg-green-50 p-4"><p className="text-sm font-medium text-green-800">{t('register_phone_success', { phone: `${phoneCountry}${phone}` })}</p><Link href="/login" className="block w-full rounded-md bg-green-700 py-2 text-center font-medium text-white">{t('register_login_link')}</Link></div> : phoneAccountCreated ? <div className="space-y-3 rounded-md bg-amber-50 p-4"><p role="status" className="text-sm font-medium text-stone-800">{t('register_phone_created')}</p>{phoneOtpExpected ? <p className="text-sm text-stone-700">{t('register_phone_test_code')} <strong>{phoneOtpExpected}</strong></p> : null}<input value={phoneOtp} onChange={(e) => setPhoneOtp(e.target.value)} placeholder={t('register_phone_code_placeholder')} inputMode="numeric" className="w-full rounded-md border border-stone-300 px-3 py-2" /><button type="button" onClick={() => void verifyPhone()} className="w-full rounded-md bg-green-700 py-2 font-medium text-white">{t('register_phone_verify')}</button></div> : emailAccountCreated ? <div role="status" className="space-y-3 rounded-md border border-amber-200 bg-amber-50 p-4"><p className="text-sm font-medium text-stone-800">{verificationEmailSent ? t('register_email_created') : t('register_email_send_failed')}</p>{emailResendMessage ? <p className="text-sm text-stone-700">{emailResendMessage}</p> : null}<button type="button" onClick={() => void resendEmailVerification()} disabled={emailResending} className="w-full rounded-md bg-amber-700 py-2 font-medium text-white disabled:opacity-60">{emailResending ? t('action_loading') : t('register_email_resend')}</button></div> : <button
           type="submit"
           disabled={pending}
-          className="w-full rounded-md bg-amber-700 py-2 font-medium text-white hover:bg-amber-800 disabled:opacity-60"
+          className="min-h-12 w-full rounded-md bg-amber-700 py-2 font-medium text-white hover:bg-amber-800 disabled:opacity-60"
         >
           {pending ? t('action_loading') : t('register_submit')}
         </button>}

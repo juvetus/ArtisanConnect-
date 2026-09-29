@@ -38,6 +38,12 @@ export class AuthController {
   }
 
   @Public()
+  @Post('resend-phone-verification')
+  async resendPhoneVerification(@Body() body: { phone: string }) {
+    return this.authService.resendPhoneVerification(body.phone);
+  }
+
+  @Public()
   @Post('resend-verification')
   async resendVerification(@Body() body: { email?: string }, @Req() req: Request) {
     const user = (req as unknown as { user?: { id: string } }).user;
