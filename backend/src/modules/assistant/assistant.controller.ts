@@ -2,10 +2,11 @@ import { BadRequestException, Body, Controller, Get, Post, UploadedFile, UseInte
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CurrentUser, type AuthUser } from '../auth/current-user.decorator.js';
 import { AssistantService, type AssistantTask } from './assistant.service.js';
+import { UsersService } from '../users/users.service.js';
 
 @Controller('assistant')
 export class AssistantController {
-  constructor(private readonly assistant: AssistantService) {}
+  constructor(private readonly assistant: AssistantService, private readonly usersService: UsersService) {}
 
   @Post('generate')
   generate(@CurrentUser() user: AuthUser, @Body() body: { task: AssistantTask; input: string; language?: 'fr' | 'en'; context?: string }) {
@@ -31,12 +32,14 @@ export class AssistantController {
   }
 
   @Post('suggest-opportunity-reply')
-  suggestOpportunityReply(@CurrentUser() user: AuthUser, @Body() body: { description: string; category: string; city: string; neighborhood?: string | null; budgetMin?: number | null; budgetMax?: number | null; requestedDate?: string | null; language?: 'fr' | 'en' }) {
+  async suggestOpportunityReply(@CurrentUser() user: AuthUser, @Body() body: { description: string; category: string; city: string; neighborhood?: string | null; budgetMin?: number | null; budgetMax?: number | null; requestedDate?: string | null; language?: 'fr' | 'en' }) {
     if (user.role !== 'artisan') throw new BadRequestException('Cette suggestion est réservée aux artisans');
     if (!body.description?.trim() || !body.category?.trim() || !body.city?.trim()) {
       throw new BadRequestException('La demande client est incomplète');
     }
+    const artisan = await this.usersService.findById(user.id);
     const context = [
+      artisan?.name ? `Signe la réponse avec ce prénom/nom : ${artisan.name}` : '',
       `Métier demandé : ${body.category}`,
       `Ville : ${body.city}`,
       body.neighborhood ? `Quartier : ${body.neighborhood}` : '',

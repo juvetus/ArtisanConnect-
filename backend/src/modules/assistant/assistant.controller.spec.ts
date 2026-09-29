@@ -3,7 +3,8 @@ import { AssistantController } from './assistant.controller.js';
 
 describe('AssistantController role-scoped text suggestions', () => {
   const assistant = { generate: vi.fn().mockResolvedValue({ content: 'Suggestion', provider: 'ai' }) };
-  const controller = new AssistantController(assistant as never);
+  const usersService = { findById: vi.fn().mockResolvedValue({ name: 'Artisan Test' }) };
+  const controller = new AssistantController(assistant as never, usersService as never);
 
   beforeEach(() => vi.clearAllMocks());
 
