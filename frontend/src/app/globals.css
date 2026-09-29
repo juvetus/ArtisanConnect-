@@ -4,6 +4,12 @@
   --font-sans: var(--font-geist-sans);
 }
 
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="hidden"]),
+select,
+textarea {
+  min-height: 3rem;
+}
+
 .field {
   width: 100%;
   border: 1px solid rgb(214 211 209);

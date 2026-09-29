@@ -148,7 +148,7 @@ export function Header() {
               )}
               {user.role === 'admin' && (
                 <Link href="/admin/customer-requests" className={navLinkClass('/admin/customer-requests')}>
-                  Demandes sans artisan
+                  {language === 'en' ? 'Unmatched requests' : 'Demandes sans artisan'}
                 </Link>
               )}
               {user.role === 'artisan' && (

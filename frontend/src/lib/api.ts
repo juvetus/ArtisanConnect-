@@ -71,11 +71,13 @@ const delete_ = <T>(path: string) =>
 
 export const api = {
   register: (data: { email?: string; phone?: string; password: string; name: string; role: Role; gender?: 'female' | 'male' | 'cooperative' | 'other' }) =>
-    post<User & { developmentOtp?: string; accountStatus?: string }>('/auth/register', data),
+    post<User & { developmentOtp?: string; accountStatus?: string; verificationEmailSent?: boolean }>('/auth/register', data),
 
   login: (data: { identifier: string; password: string }) => post<AuthSession>('/auth/login', data),
 
   verifyPhone: (phone: string, code: string) => post<{ success: boolean; message: string; user: User }>('/auth/verify-phone', { phone, code }),
+
+  resendPhoneVerification: (phone: string) => post<{ success: boolean; message: string; developmentOtp?: string }>('/auth/resend-phone-verification', { phone }),
 
   verifyEmail: (token: string) => post<{ success: boolean; message: string; user: User }>('/auth/verify-email', { token }),
 

@@ -8,6 +8,7 @@ import { EmailService } from '../email/email.service.js';
 import type { User } from '../../entities/user.entity.js';
 import { isDemoMode } from '../../demo-mode.js';
 import { SmsService } from '../sms/sms.service.js';
+import { isEmail } from 'class-validator';
 
 @Injectable()
 export class AuthService {
@@ -56,7 +57,11 @@ export class AuthService {
   }
 
   async register(contact: { email?: string; phone?: string }, password: string, name: string, role: 'artisan' | 'client' | 'institution' = 'client', gender?: 'female' | 'male' | 'cooperative' | 'other') {
-    const email = contact.email?.trim().toLowerCase() || null;
+    const rawEmail = typeof contact.email === 'string' ? contact.email.trim() : '';
+    if (rawEmail && (rawEmail.length > 254 || !isEmail(rawEmail, { require_tld: true, allow_ip_domain: false }))) {
+      throw new BadRequestException('Adresse email invalide. Vérifiez son format.');
+    }
+    const email = rawEmail.toLowerCase() || null;
     const phone = contact.phone ? this.normalizePhone(contact.phone) : null;
     if (!email && !phone) throw new BadRequestException('Un email ou un numéro de téléphone est requis');
     const existing = email ? await this.usersService.findByEmail(email) : await this.usersService.findByPhone(phone!);
@@ -72,13 +77,13 @@ export class AuthService {
     }
     if (phone) await this.usersService.update(user.id, { phone, whatsappPhone: phone });
 
-    // Envoi de l'email de confirmation en arrière-plan sans bloquer l'inscription
+    let verificationEmailSent = false;
     let developmentOtp: string | undefined;
     if (phone) {
       developmentOtp = await this.sendPhoneVerificationForUser(user.id, phone);
     } else {
       try {
-        await this.sendVerificationEmailForUser(user);
+        verificationEmailSent = await this.sendVerificationEmailForUser(user);
       } catch (error) {
         this.logger.error(`Erreur lors de l'envoi du mail de vérification : ${(error as Error).message}`);
       }
@@ -93,6 +98,7 @@ export class AuthService {
       gender: user.gender,
       verifiedEmail: false,
       verifiedPhone: false,
+      ...(email ? { verificationEmailSent } : {}),
       isActive: role !== 'institution',
       ...(role === 'institution' ? { accountStatus: 'pending_review' as const } : {}),
       ...(developmentOtp ? { developmentOtp } : {}),
@@ -104,7 +110,8 @@ export class AuthService {
     if (!trimmed.includes('@') && !trimmed.startsWith('+') && !trimmed.startsWith('00')) {
       throw new BadRequestException("L'indicatif du pays est obligatoire pour un numéro de téléphone (ex. +237...).");
     }
-    const normalized = identifier.includes('@') ? identifier.toLowerCase().trim() : this.normalizePhone(identifier);
+    const usesEmail = trimmed.includes('@');
+    const normalized = usesEmail ? trimmed.toLowerCase() : this.normalizePhone(trimmed);
     const user = await this.usersService.findByIdentifierWithPassword(normalized);
     
     if (!user || !user.isActive) {
@@ -114,6 +121,13 @@ export class AuthService {
     const isPasswordValid = await this.usersService.validatePassword(user, password);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (usesEmail && !user.verifiedEmail) {
+      throw new UnauthorizedException('Veuillez vérifier votre adresse email avant de vous connecter. Vous pouvez demander un nouveau lien de confirmation.');
+    }
+    if (!usesEmail && !user.verifiedPhone) {
+      throw new UnauthorizedException('Veuillez vérifier votre numéro de téléphone avant de vous connecter.');
     }
 
     const payload = { sub: user.id, email: user.email, role: user.role };
@@ -146,6 +160,29 @@ export class AuthService {
     }
     await this.smsService.sendOtp(phone, code);
     return undefined;
+  }
+
+  async resendPhoneVerification(phone: string) {
+    const genericMessage = 'Si ce numéro correspond à un compte non vérifié, un code sera envoyé si aucun code actif n’est déjà valide.';
+    if (typeof phone !== 'string' || !phone.trim()) {
+      throw new BadRequestException('Le numéro de téléphone est requis.');
+    }
+
+    const normalizedPhone = this.normalizePhone(phone);
+    const user = await this.usersService.findByPhone(normalizedPhone);
+    if (!user || user.verifiedPhone) return { success: true, message: genericMessage };
+
+    const verification = await this.usersService.findByPhoneVerification(user.id);
+    if (verification?.phoneVerificationExpires && verification.phoneVerificationExpires > new Date()) {
+      return { success: true, message: genericMessage };
+    }
+
+    const developmentOtp = await this.sendPhoneVerificationForUser(user.id, normalizedPhone);
+    return {
+      success: true,
+      message: genericMessage,
+      ...(developmentOtp ? { developmentOtp } : {}),
+    };
   }
 
   async verifyPhone(phone: string, code: string) {
