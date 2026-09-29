@@ -64,18 +64,19 @@ ArtisanConnect est une plateforme qui relie directement l'offre locale à la dem
 
 ## 5. Projet pilote proposé
 
-### Périmètre
+### Périmètre à confirmer
 
-- Durée : 6 à 12 mois ;
-- Territoires de départ : Yaoundé, Douala et une zone complémentaire choisie avec le partenaire ;
-- Cible : 500 artisans, jeunes, femmes entrepreneures, coopératives et bénéficiaires de programmes d'inclusion économique ;
+- Test terrain préalable : 5 à 10 participants, une ville et 2 à 3 métiers, environ une semaine ;
+- Pilote initial envisagé : jusqu'à 100 artisans ou bénéficiaires, un territoire choisi avec le programme, 2 à 3 métiers et 3 à 6 mois ;
+- Extension éventuelle à 300–500 bénéficiaires après évaluation et accord sur le suivi territorial ;
 - Priorité : acteurs disposant déjà d'un savoir-faire ou d'une activité à commercialiser ;
 - Acheteurs ciblés : ménages, entreprises, institutions, hôtels, restaurants, organisateurs d'événements et diaspora.
 
+Le scénario commun, ses critères de passage et ses précautions de mesure figurent dans [PLAN_PILOTE_REFERENCE.md](./PLAN_PILOTE_REFERENCE.md). Ces volumes sont des hypothèses à discuter, non des engagements acquis.
+
 ### Objectifs
 
-- créer 500 profils professionnels ;
-- publier au moins 1 500 produits et services ;
+- fixer les cibles de profils et d'offres après l'inventaire de l'offre réelle et l'accord sur la cohorte ;
 - générer des demandes de devis et contacts qualifiés ;
 - mesurer la conversion entre accompagnement, visibilité et opportunité commerciale ;
 - identifier les obstacles numériques, financiers et logistiques ;
@@ -167,9 +168,9 @@ Trois scénarios peuvent être proposés :
 
 | Scénario | Cible | Finalité |
 |---|---:|---|
-| Preuve de concept | 100 bénéficiaires | Tester le parcours dans une zone ciblée |
-| Pilote recommandé | 500 bénéficiaires | Mesurer l'accès au marché et l'impact économique |
-| Extension | 1 500 bénéficiaires | Déployer dans plusieurs régions et programmes |
+| Test terrain | 5 à 10 bénéficiaires | Vérifier les parcours dans une zone ciblée |
+| Pilote initial envisagé | Jusqu'à 100 bénéficiaires | Mesurer l'accès au marché sur 3 à 6 mois |
+| Extension éventuelle | 300 à 500 bénéficiaires | À décider après les résultats et validation des capacités |
 
 ## 10. Indicateurs de réussite
 

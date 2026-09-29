@@ -30,7 +30,7 @@ Le contenu de démarrage est dans `frontend/src/lib/blog.ts`. Chaque article pos
 
 Cette forme permet de commencer sans base de données et de migrer ensuite vers une API sans modifier les composants d’affichage.
 
-## Les quatorze premiers articles
+## Articles publiés et planifiés
 
 | Slug | Titre SEO principal | Intention de recherche |
 | --- | --- | --- |
@@ -48,6 +48,7 @@ Cette forme permet de commencer sans base de données et de migrer ensuite vers 
 | `participation-selection-recompenses-artisans-cameroun` | Participation et récompenses des artisans au Cameroun : comment être sélectionné ? | Expliquer l’inscription BCA, la sélection et les domaines concernés |
 | `codepa-artisanat-africain-papea-cameroun` | CODEPA : comprendre le programme africain de développement et de promotion de l’artisanat | Présenter le CODEPA, le PAPEA et le calendrier MINPMEESA |
 | `types-foires-artisanales-cameroun-siarc` | Types de foires artisanales au Cameroun : de la commune au SIARC | Expliquer le parcours de sélection et les salons internationaux |
+| `cooperation-cameroun-union-europeenne-pme-artisanat` | Coopération Cameroun–Union européenne : une nouvelle dynamique pour les PME, l’économie sociale et l’artisanat | Résumer l’actualité officielle et présenter les axes de coopération sans supposer qu’un financement est ouvert |
 
 Les titres sont volontairement descriptifs et contiennent les requêtes locales principales. Les prochains contenus pourront viser des requêtes plus précises par ville et par filière : vannerie à Bamenda, textile à Foumban, bijoux à Douala, décoration à Yaoundé, etc.
 

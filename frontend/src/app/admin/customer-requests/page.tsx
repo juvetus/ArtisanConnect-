@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
 
 type UnmatchedRequest = NonNullable<Awaited<ReturnType<typeof api.getAdminUnmatchedCustomerRequests>>>[number];
+type FollowUpRequest = NonNullable<Awaited<ReturnType<typeof api.getAdminRequestsAwaitingResponses>>>[number];
 
 export default function AdminCustomerRequestsPage() {
   const { user, ready } = useAuth();
@@ -20,9 +21,15 @@ export default function AdminCustomerRequestsPage() {
   const [candidates, setCandidates] = useState<Record<string, { id: string; name?: string | null; location?: string | null }[]>>({});
   const [selectedArtisans, setSelectedArtisans] = useState<Record<string, string[]>>({});
   const [candidateLoadingId, setCandidateLoadingId] = useState<string | null>(null);
+  const [followUpSendingId, setFollowUpSendingId] = useState<string | null>(null);
   const { data: requests, isLoading, mutate } = useSWR(
     user?.role === 'admin' ? 'admin-unmatched-customer-requests' : null,
     api.getAdminUnmatchedCustomerRequests,
+  );
+  const { data: followUps, isLoading: followUpsLoading, mutate: mutateFollowUps } = useSWR(
+    user?.role === 'admin' ? 'admin-customer-request-follow-ups' : null,
+    api.getAdminRequestsAwaitingResponses,
+    { refreshInterval: 60000 },
   );
 
   useEffect(() => {
@@ -77,14 +84,30 @@ export default function AdminCustomerRequestsPage() {
     }
   };
 
+  const remindArtisans = async (request: FollowUpRequest) => {
+    setFollowUpSendingId(request.id);
+    setNotice('');
+    try {
+      const result = await api.remindAdminRequestArtisans(request.id);
+      setNotice(english
+        ? `Reminder sent to ${result.notifiedCount} artisan(s).`
+        : `Relance envoyée à ${result.notifiedCount} artisan(s).`);
+      await mutateFollowUps();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : (english ? 'Could not send the reminder.' : 'Impossible d’envoyer la relance.'));
+    } finally {
+      setFollowUpSendingId(null);
+    }
+  };
+
   if (!ready || user?.role !== 'admin') return null;
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <header>
         <p className="text-sm font-medium uppercase tracking-wide text-amber-700">{english ? 'Administration' : 'Administration'}</p>
-        <h1 className="mt-1 text-2xl font-semibold text-stone-900">{english ? 'Request review and B2B briefs' : 'Revue des demandes et briefs B2B'}</h1>
-        <p className="mt-2 text-sm text-stone-600">{english ? 'Review business briefs, choose matching artisans, or reply when no match is available.' : 'Vérifiez les briefs d’entreprise, choisissez les artisans adaptés ou répondez lorsqu’aucune correspondance n’est disponible.'}</p>
+        <h1 className="mt-1 text-2xl font-semibold text-stone-900">{english ? 'Customer request follow-up' : 'Suivi des demandes clients'}</h1>
+        <p className="mt-2 text-sm text-stone-600">{english ? 'Handle unmatched requests and B2B briefs, and remind artisans when a targeted request has waited over 24 hours.' : 'Traitez les demandes sans correspondant et les briefs B2B; relancez les artisans lorsqu’une demande ciblée attend depuis plus de 24 heures.'}</p>
       </header>
       {notice ? <p role="status" className="rounded-md border border-stone-200 bg-white px-4 py-3 text-sm text-stone-700">{notice}</p> : null}
       {isLoading ? <p className="text-sm text-stone-600">{english ? 'Loading requests…' : 'Chargement des demandes…'}</p> : null}
@@ -166,6 +189,56 @@ export default function AdminCustomerRequestsPage() {
           </article>
         ))}
       </div>
+
+      <section className="space-y-3 border-t border-stone-200 pt-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-lg font-semibold text-stone-900">{english ? 'Waiting for artisan replies (24h+)' : 'En attente de réponse (24 h et plus)'}</h2>
+          <p className="text-xs text-stone-500">{english ? 'A reminder can be sent once every 24 hours per artisan and request.' : 'Une relance est possible toutes les 24 h par artisan et par demande.'}</p>
+        </div>
+        {followUpsLoading ? <p className="text-sm text-stone-600">{english ? 'Loading follow-ups…' : 'Chargement des relances…'}</p> : null}
+        {!followUpsLoading && !followUps?.length ? <p className="rounded-md border border-stone-200 bg-white p-4 text-sm text-stone-600">{english ? 'No targeted requests are waiting for a reply.' : 'Aucune demande ciblée n’attend actuellement de réponse.'}</p> : null}
+        <div className="space-y-3">
+          {followUps?.map((request) => {
+            const recentlyReminded = request.pendingArtisanIds.length - request.relaunchableArtisanIds.length;
+            return (
+              <article key={request.id} className="space-y-3 border-b border-stone-200 bg-white py-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">{request.category} · {request.city}{request.neighborhood ? ` · ${request.neighborhood}` : ''}</p>
+                    <h3 className="mt-1 font-semibold text-stone-900">{request.client?.name ?? (english ? 'Client' : 'Client')}</h3>
+                    <p className="mt-1 text-xs text-stone-500">{english ? `Waiting over 24 hours · received ${new Date(request.createdAt).toLocaleString('en-US')}` : `En attente depuis plus de 24 h · reçue le ${new Date(request.createdAt).toLocaleString('fr-FR')}`}</p>
+                  </div>
+                  <p className="text-sm font-medium text-stone-700">
+                    {english
+                      ? `${request.responses.length} reply/replies · ${request.pendingArtisanIds.length} awaiting`
+                      : `${request.responses.length} réponse(s) · ${request.pendingArtisanIds.length} en attente`}
+                  </p>
+                </div>
+                <p className="whitespace-pre-wrap text-sm text-stone-700">{request.description}</p>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-sm text-stone-600">
+                    {english ? 'Awaiting: ' : 'En attente : '}
+                    {request.pendingArtisans.map((artisan) => artisan.name ?? (english ? 'Artisan' : 'Artisan')).join(', ')}
+                    {recentlyReminded > 0 ? ` · ${english ? `${recentlyReminded} reminded recently` : `${recentlyReminded} déjà relancé(s), délai de 24 h en cours`}` : ''}
+                  </p>
+                  <button
+                    type="button"
+                    disabled={!request.relaunchableArtisanIds.length || followUpSendingId === request.id}
+                    onClick={() => void remindArtisans(request)}
+                    className="rounded-md bg-amber-700 px-3 py-2 text-sm font-medium text-white hover:bg-amber-800 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-600"
+                  >
+                    {followUpSendingId === request.id
+                      ? (english ? 'Sending…' : 'Envoi…')
+                      : request.relaunchableArtisanIds.length
+                        ? (english ? `Remind ${request.relaunchableArtisanIds.length} artisan(s)` : `Relancer ${request.relaunchableArtisanIds.length} artisan(s)`)
+                        : (english ? 'Recently reminded' : 'Déjà relancé')}
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </section>
     </div>
   );
 }

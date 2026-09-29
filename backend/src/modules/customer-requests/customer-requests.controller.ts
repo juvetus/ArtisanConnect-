@@ -37,6 +37,18 @@ export class CustomerRequestsController {
   }
 
   @UseGuards(AdminGuard)
+  @Get('admin/awaiting-responses')
+  awaitingResponsesForAdmin() {
+    return this.service.findRequestsAwaitingResponseForAdmin();
+  }
+
+  @UseGuards(AdminGuard)
+  @Post('admin/:id/remind-unanswered')
+  remindUnansweredArtisans(@Param('id') id: string) {
+    return this.service.remindUnansweredArtisans(id);
+  }
+
+  @UseGuards(AdminGuard)
   @Get('admin/:id/artisan-candidates')
   artisanCandidatesForAdmin(@Param('id') id: string) {
     return this.service.findBusinessCandidatesForAdmin(id);

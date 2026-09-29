@@ -66,18 +66,19 @@ Les artisans camerounais produisent des biens et services de qualité, mais renc
 
 ## 5. Pilote proposé
 
-### Périmètre
+### Périmètre à confirmer
 
-- Durée : 6 mois ;
-- Territoires : Yaoundé et Douala, avec extension possible à une ville artisanale supplémentaire ;
-- Cible : 300 vendeurs et artisans ;
+- Test terrain préalable : 5 à 10 vendeurs/artisans, une ville et 2 à 3 métiers, environ une semaine ;
+- Pilote initial envisagé : jusqu'à 100 vendeurs/artisans, une ville choisie selon l'offre, 2 à 3 métiers et 3 à 6 mois ;
+- Extension éventuelle à 300 vendeurs/artisans après évaluation et nouvelle validation du périmètre ;
 - Produits prioritaires : artisanat, décoration, textile, poterie, vannerie, produits transformés et services artisanaux ;
 - Acheteurs ciblés : ménages, entreprises, hôtels, restaurants, institutions, organisateurs d'événements et diaspora.
 
+Ce périmètre est une hypothèse à confirmer avec le ministère et les vendeurs participants; voir [PLAN_PILOTE_REFERENCE.md](./PLAN_PILOTE_REFERENCE.md).
+
 ### Objectifs du pilote
 
-- publier au moins 1 000 produits et services ;
-- obtenir au moins 2 000 consultations de fiches ;
+- définir les cibles de publication et de consultation après l'état des lieux de l'offre réelle ;
 - générer des demandes de devis et contacts vérifiables ;
 - tester des campagnes « Made in Cameroon » ;
 - identifier les catégories et zones présentant la plus forte demande ;
@@ -141,7 +142,7 @@ ArtisanConnect peut intégrer, selon les règles validées avec le ministère :
 
 1. **Partenariat institutionnel** : soutien officiel et mise en relation avec les réseaux commerciaux.
 2. **Campagne Made in Cameroon** : vitrine numérique de produits artisanaux sélectionnés.
-3. **Pilote cofinancé** : inscription et accompagnement gratuits pour 300 vendeurs.
+3. **Pilote cofinancé** : inscription et accompagnement gratuits pour le nombre de vendeurs convenu au cadrage.
 4. **Partenariat événementiel** : catalogue numérique associé à un salon, une foire ou une campagne commerciale.
 5. **Partenariat technique** : formation, contenus, expertise qualité et commerce électronique.
 6. **Partenariat avec bailleurs** : montage d'un projet commun sur l'accès au marché et la digitalisation.
@@ -165,9 +166,9 @@ Trois scénarios peuvent être proposés :
 
 | Scénario | Cible | Usage |
 |---|---:|---|
-| Test local | 50 vendeurs | Valider le parcours et les critères qualité |
-| Pilote recommandé | 300 vendeurs | Tester l'accès au marché et les campagnes commerciales |
-| Déploiement élargi | 1 000 vendeurs | Couvrir plusieurs villes et catégories |
+| Test terrain | 5 à 10 vendeurs | Valider le parcours et les critères qualité |
+| Pilote initial envisagé | Jusqu'à 100 vendeurs | Tester l'accès au marché et les campagnes pendant 3 à 6 mois |
+| Extension éventuelle | 300 vendeurs | Envisager plusieurs villes après évaluation |
 
 ## 10. Indicateurs de réussite
 

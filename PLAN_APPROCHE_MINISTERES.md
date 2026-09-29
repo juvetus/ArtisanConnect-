@@ -13,19 +13,15 @@ Elle permet :
 
 ArtisanConnect ne doit pas demander aux ministères de financer simplement une application. La demande doit porter sur un **pilote public mesurable**, destiné à résoudre un problème précis : faire passer les artisans de l'accompagnement à l'accès réel au marché.
 
-## 2. Demande financière recommandée
+## 2. Phasage et cadre financier
 
-Présenter trois niveaux pour laisser au partenaire le choix :
+Utiliser [PLAN_PILOTE_REFERENCE.md](./PLAN_PILOTE_REFERENCE.md) comme source commune pour le périmètre et les critères de passage :
 
-| Niveau | Montant indicatif | Résultat |
-|---|---:|---|
-| Test initial | 15 à 25 M FCFA | 100 artisans, 3 à 6 mois |
-| Pilote recommandé | 50 à 75 M FCFA | 500 artisans, 12 mois |
-| Extension | 150 à 250 M FCFA | 1 500 à 3 000 artisans, plusieurs régions |
+- test terrain : 5 à 10 artisans, une ville et 2 à 3 métiers, environ une semaine ;
+- pilote institutionnel initial envisagé : jusqu'à 100 artisans, une ville à confirmer, 2 à 3 métiers et 3 à 6 mois ;
+- extension de 300 à 500 artisans seulement après évaluation positive et accord du partenaire.
 
-Le montant à présenter en priorité peut être fixé à **60 M FCFA pour 500 artisans pendant 12 mois**.
-
-Ce montant reste indicatif. Il devra être ajusté avec un budget détaillé, les règles de passation applicables et la contribution éventuelle de chaque partenaire.
+Aucun montant n'est validé. Ne pas envoyer les anciennes fourchettes ou le montant de 60 M FCFA comme une demande budgétaire ferme. Préparer d'abord un budget détaillé à partir du nombre de bénéficiaires, des coûts de terrain, de formation, de support, de sécurité, de communication, de suivi-évaluation et des contributions respectives. Les montants ne seront communiqués qu'après validation interne et vérification des règles de passation applicables.
 
 ## 3. Stratégie par ministère
 
@@ -62,7 +58,7 @@ Un pilote ArtisanConnect pour :
 
 ### Phrase de rendez-vous
 
-> Nous souhaitons proposer un pilote de digitalisation commerciale de 500 artisans afin de mesurer concrètement ce qui se passe après l'accompagnement : visibilité, demandes de devis, contacts clients et opportunités de revenus.
+> Nous souhaitons d'abord échanger avec vos services sur un test terrain limité, puis étudier un pilote de digitalisation commerciale dont la taille, la durée et les indicateurs seraient définis conjointement selon les capacités d'accompagnement et les besoins identifiés.
 
 ### Indicateurs à mettre en avant
 

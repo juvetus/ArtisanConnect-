@@ -1,10 +1,12 @@
 import { Injectable, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan, MoreThan } from 'typeorm';
+import { Repository, In, LessThan, MoreThan } from 'typeorm';
 import { Notification, type NotificationType } from '../../entities/notification.entity.js';
 import { User } from '../../entities/user.entity.js';
 import { EmailService } from '../email/email.service.js';
 import { WhatsAppService } from '../whatsapp/whatsapp.service.js';
+
+export const CUSTOMER_REQUEST_FOLLOW_UP_NOTIFICATION_TITLE = 'Rappel : demande client en attente';
 
 @Injectable()
 export class NotificationsService {
@@ -134,13 +136,13 @@ export class NotificationsService {
 
   async unreadOpportunityCount(recipientId: string): Promise<number> {
     return this.notificationsRepository.count({
-      where: { recipientId, read: false, title: 'Nouvelle demande client pour vous' },
+      where: { recipientId, read: false, title: In(['Nouvelle demande client pour vous', CUSTOMER_REQUEST_FOLLOW_UP_NOTIFICATION_TITLE]) },
     });
   }
 
   async markOpportunityNotificationsRead(recipientId: string): Promise<void> {
     await this.notificationsRepository.update(
-      { recipientId, read: false, title: 'Nouvelle demande client pour vous' },
+      { recipientId, read: false, title: In(['Nouvelle demande client pour vous', CUSTOMER_REQUEST_FOLLOW_UP_NOTIFICATION_TITLE]) },
       { read: true },
     );
   }

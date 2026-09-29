@@ -4,7 +4,7 @@ import { In, IsNull, Repository } from 'typeorm';
 import { isDemoMode } from '../../demo-mode.js';
 import { CustomerRequest, Listing, Service, ServiceReview, Shop, User } from '../../entities/index.js';
 import type { ContactPreference, CustomerRequestType } from '../../entities/customer-request.entity.js';
-import { NotificationsService } from '../notifications/notifications.service.js';
+import { CUSTOMER_REQUEST_FOLLOW_UP_NOTIFICATION_TITLE, NotificationsService } from '../notifications/notifications.service.js';
 import { StorageService } from '../storage/storage.service.js';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service.js';
 import { MomoService } from '../momo/momo.service.js';
@@ -13,6 +13,7 @@ import { MomoService } from '../momo/momo.service.js';
 const MAX_TARGETED_ARTISANS = 5;
 const MAX_REQUEST_PHOTOS = 5;
 const ALLOWED_PHOTO_MIME = ['image/jpeg', 'image/png', 'image/webp'];
+const CUSTOMER_REQUEST_FOLLOW_UP_DELAY_HOURS = 24;
 
 function normalize(value?: string | null): string {
   return (value ?? '').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim();
@@ -295,6 +296,93 @@ export class CustomerRequestsService {
         ? { id: clientsById.get(request.clientId)!.id, name: clientsById.get(request.clientId)!.name, email: clientsById.get(request.clientId)!.email }
         : null,
     }));
+  }
+
+  async findRequestsAwaitingResponseForAdmin() {
+    const cutoff = new Date(Date.now() - CUSTOMER_REQUEST_FOLLOW_UP_DELAY_HOURS * 60 * 60 * 1000);
+    const requests = await this.requests.find({
+      where: { status: In(['new', 'contacted']) },
+      order: { createdAt: 'ASC' },
+      take: 200,
+    });
+    const awaiting = requests
+      .filter((request) => request.isDemo !== true && request.createdAt <= cutoff)
+      .map((request) => {
+        const contactedArtisanIds = request.contactedArtisanIds ?? [];
+        const respondedIds = new Set((request.responses ?? []).map((response) => response.artisanId));
+        return {
+          request,
+          contactedArtisanIds,
+          pendingArtisanIds: contactedArtisanIds.filter((artisanId) => !respondedIds.has(artisanId)),
+        };
+      })
+      .filter((item) => item.pendingArtisanIds.length > 0);
+    const pendingArtisanIds = [...new Set(awaiting.flatMap((item) => item.pendingArtisanIds))];
+    const [clients, artisans] = awaiting.length
+      ? await Promise.all([
+          this.users.find({ where: awaiting.map(({ request }) => ({ id: request.clientId })) }),
+          this.users.find({ where: pendingArtisanIds.map((id) => ({ id })) }),
+        ])
+      : [[], []];
+    const clientsById = new Map(clients.map((client) => [client.id, client]));
+    const artisansById = new Map(artisans.map((artisan) => [artisan.id, artisan]));
+
+    return Promise.all(awaiting.map(async ({ request, contactedArtisanIds, pendingArtisanIds }) => {
+      const reminderStates = await Promise.all(pendingArtisanIds.map(async (artisanId) => ({
+        artisanId,
+        recentlyReminded: await this.notifications.hasRecent(
+          artisanId,
+          request.id,
+          CUSTOMER_REQUEST_FOLLOW_UP_NOTIFICATION_TITLE,
+          cutoff,
+        ),
+      })));
+      return {
+        ...request,
+        contactedArtisanIds,
+        pendingArtisanIds,
+        relaunchableArtisanIds: reminderStates.filter((state) => !state.recentlyReminded).map((state) => state.artisanId),
+        pendingArtisans: pendingArtisanIds.map((artisanId) => ({
+          id: artisanId,
+          name: artisansById.get(artisanId)?.name ?? null,
+        })),
+        client: clientsById.get(request.clientId)
+          ? { id: clientsById.get(request.clientId)!.id, name: clientsById.get(request.clientId)!.name, email: clientsById.get(request.clientId)!.email }
+          : null,
+      };
+    }));
+  }
+
+  async remindUnansweredArtisans(requestId: string) {
+    const request = await this.requests.findOne({ where: { id: requestId } });
+    if (!request) throw new NotFoundException('Demande introuvable');
+    if (request.isDemo === true) throw new BadRequestException('Les demandes de démonstration ne peuvent pas être relancées');
+    if (!['new', 'contacted'].includes(request.status)) throw new BadRequestException('Cette demande n’est plus en attente de réponse');
+
+    const cutoff = new Date(Date.now() - CUSTOMER_REQUEST_FOLLOW_UP_DELAY_HOURS * 60 * 60 * 1000);
+    if (request.createdAt > cutoff) throw new BadRequestException('La relance est disponible après 24 heures sans réponse');
+
+    const respondedIds = new Set((request.responses ?? []).map((response) => response.artisanId));
+    const pendingArtisanIds = (request.contactedArtisanIds ?? []).filter((artisanId) => !respondedIds.has(artisanId));
+    const eligibleArtisanIds = await Promise.all(pendingArtisanIds.map(async (artisanId) => (
+      await this.notifications.hasRecent(artisanId, request.id, CUSTOMER_REQUEST_FOLLOW_UP_NOTIFICATION_TITLE, cutoff)
+        ? null
+        : artisanId
+    )));
+    const recipients = eligibleArtisanIds.filter((artisanId): artisanId is string => artisanId !== null);
+    if (!recipients.length) throw new BadRequestException('Aucun artisan ne peut être relancé pour le moment');
+
+    const summary = `${request.category} à ${request.neighborhood ? `${request.neighborhood}, ` : ''}${request.city}`;
+    const results = await Promise.allSettled(recipients.map((recipientId) => this.notifications.notify({
+      recipientId,
+      type: 'new_order',
+      title: CUSTOMER_REQUEST_FOLLOW_UP_NOTIFICATION_TITLE,
+      content: `Rappel : une demande client correspondant à votre métier attend toujours votre réponse. ${summary}. Consultez la demande et répondez si vous êtes disponible.`,
+      link: '/artisan/customer-requests',
+      relatedId: request.id,
+    })));
+    const notifiedCount = results.filter((result) => result.status === 'fulfilled').length;
+    return { success: notifiedCount > 0, notifiedCount, pendingCount: pendingArtisanIds.length };
   }
 
   async replyAsAdmin(requestId: string, message: string) {

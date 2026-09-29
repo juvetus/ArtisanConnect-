@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import useSWR from 'swr';
@@ -43,8 +44,15 @@ export function Header() {
     <header className="border-b border-stone-200 bg-white md:fixed md:inset-y-0 md:left-0 md:z-40 md:flex md:w-64 md:flex-col md:border-r md:border-b-0">
       <div className="relative mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-4 px-6 py-4 md:h-full md:min-h-0 md:flex-col md:items-stretch md:justify-start md:gap-6 md:px-4 md:py-6">
         <div className="flex items-center gap-4 md:justify-between">
-          <Link href="/" className="text-lg font-semibold tracking-tight text-stone-900">
-            Artisan<span className="text-amber-700">Connect</span>
+          <Link href="/" aria-label={t('nav_home')} className="block w-[min(52vw,12rem)] shrink-0 md:w-28">
+            <Image
+              src="/images/logo-artisanconnect-horizontal.png"
+              alt="ArtisanConnect"
+              width={950}
+              height={160}
+              priority
+              className="h-auto w-full object-contain"
+            />
           </Link>
 
           {/* Sélecteur de langue bilingue (Cameroun : FR / EN) */}
@@ -92,6 +100,9 @@ export function Header() {
           onClick={() => setMenuOpen(false)}
           className={`${menuOpen ? 'flex' : 'hidden'} order-3 max-h-[calc(100vh-8rem)] min-w-0 w-full min-h-0 flex-col items-stretch gap-1 overflow-auto border-t border-stone-200 pt-3 text-sm md:order-none md:flex md:max-h-none md:w-full md:flex-1 md:flex-col md:items-stretch md:justify-start md:gap-1 md:overflow-y-auto md:border-t-0 md:border-0 md:pt-0 md:text-sm [&>a]:shrink-0 [&>a]:whitespace-nowrap [&>a]:px-2 [&>a]:py-2.5 [&>button]:shrink-0 [&>button]:whitespace-nowrap [&>button]:px-2 [&>button]:py-2.5`}
         >
+          <Link href="/" className={navLinkClass('/')}>
+            {t('nav_home')}
+          </Link>
           <Link href="/annonces" className={navLinkClass('/annonces')}>
             {t('nav_listings')}
           </Link>
@@ -148,7 +159,7 @@ export function Header() {
               )}
               {user.role === 'admin' && (
                 <Link href="/admin/customer-requests" className={navLinkClass('/admin/customer-requests')}>
-                  {language === 'en' ? 'Unmatched requests' : 'Demandes sans artisan'}
+                  {language === 'en' ? 'Request follow-up' : 'Suivi des demandes'}
                 </Link>
               )}
               {user.role === 'artisan' && (
