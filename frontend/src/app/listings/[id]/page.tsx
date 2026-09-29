@@ -288,6 +288,22 @@ export default function ListingPage() {
           <span>{formatXAF(total)}</span>
         </div>
 
+        {!isOwnListing && !isDemoOffer && user?.role === 'client' ? (
+          <details className="mt-4 rounded-md border border-amber-200 bg-amber-50/40">
+            <summary className="cursor-pointer px-3 py-3 text-sm font-semibold text-amber-900">Proposer un prix au vendeur</summary>
+            <div className="space-y-3 border-t border-amber-100 p-3">
+              <p className="text-xs text-stone-600">Votre proposition porte sur le prix unitaire et n’entraîne aucun paiement immédiat.</p>
+              <label htmlFor="offered-unit-price" className="block text-sm font-medium text-stone-700">Prix unitaire proposé (FCFA)</label>
+              <input id="offered-unit-price" type="number" min="1" step="1" value={offeredUnitPrice} onChange={(event) => setOfferedUnitPrice(event.target.value)} className="w-full rounded-md border border-stone-300 bg-white px-3 py-2 outline-none focus:border-amber-600" />
+              <label htmlFor="offer-message" className="block text-sm font-medium text-stone-700">Message au vendeur (facultatif)</label>
+              <textarea id="offer-message" maxLength={500} rows={3} value={offerMessage} onChange={(event) => setOfferMessage(event.target.value)} className="w-full rounded-md border border-stone-300 bg-white px-3 py-2 outline-none focus:border-amber-600" />
+              {offerNotice ? <p role="status" className="text-sm text-stone-700">{offerNotice}</p> : null}
+              <button type="button" onClick={() => void handleOffer()} disabled={offering || listing.stock === 0 || !offeredUnitPrice} className="w-full rounded-md border border-amber-700 px-3 py-2.5 text-sm font-semibold text-amber-900 hover:bg-amber-100 disabled:opacity-60">{offering ? 'Envoi…' : 'Envoyer mon offre'}</button>
+            </div>
+          </details>
+        ) : null}
+        {!isOwnListing && !isDemoOffer && !user ? <Link href="/login" className="mt-4 block text-center text-sm font-medium text-amber-800 underline">Connectez-vous pour proposer un prix</Link> : null}
+
         <section className="mt-6 rounded-md border border-stone-200">
           <button
             type="button"
@@ -465,21 +481,6 @@ export default function ListingPage() {
             {ordering ? 'Commande en cours…' : user ? 'Commander' : 'Se connecter pour commander'}
           </button>
         )}
-        {!isOwnListing && !isDemoOffer && user?.role === 'client' ? (
-          <details className="mt-4 rounded-md border border-amber-200 bg-amber-50/40">
-            <summary className="cursor-pointer px-3 py-3 text-sm font-semibold text-amber-900">Proposer un prix au vendeur</summary>
-            <div className="space-y-3 border-t border-amber-100 p-3">
-              <p className="text-xs text-stone-600">Votre proposition porte sur le prix unitaire et n’entraîne aucun paiement immédiat.</p>
-              <label htmlFor="offered-unit-price" className="block text-sm font-medium text-stone-700">Prix unitaire proposé (FCFA)</label>
-              <input id="offered-unit-price" type="number" min="1" step="1" value={offeredUnitPrice} onChange={(event) => setOfferedUnitPrice(event.target.value)} className="w-full rounded-md border border-stone-300 bg-white px-3 py-2 outline-none focus:border-amber-600" />
-              <label htmlFor="offer-message" className="block text-sm font-medium text-stone-700">Message au vendeur (facultatif)</label>
-              <textarea id="offer-message" maxLength={500} rows={3} value={offerMessage} onChange={(event) => setOfferMessage(event.target.value)} className="w-full rounded-md border border-stone-300 bg-white px-3 py-2 outline-none focus:border-amber-600" />
-              {offerNotice ? <p role="status" className="text-sm text-stone-700">{offerNotice}</p> : null}
-              <button type="button" onClick={() => void handleOffer()} disabled={offering || listing.stock === 0 || !offeredUnitPrice} className="w-full rounded-md border border-amber-700 px-3 py-2.5 text-sm font-semibold text-amber-900 hover:bg-amber-100 disabled:opacity-60">{offering ? 'Envoi…' : 'Envoyer mon offre'}</button>
-            </div>
-          </details>
-        ) : null}
-        {!isOwnListing && !isDemoOffer && !user ? <Link href="/login" className="mt-4 block text-center text-sm font-medium text-amber-800 underline">Connectez-vous pour proposer un prix</Link> : null}
           </>
         )}
       </aside>
