@@ -89,6 +89,7 @@ function ShopPaymentForm({ shop, language }: { shop: Shop; language: 'fr' | 'en'
 function ChangePasswordForm({ language }: { language: 'fr' | 'en' }) {
   const { t } = useLanguage();
   const english = language === 'en';
+  const [open, setOpen] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -121,29 +122,43 @@ function ChangePasswordForm({ language }: { language: 'fr' | 'en' }) {
   };
 
   return (
-    <form onSubmit={save} className="space-y-4 rounded-lg border border-stone-200 bg-white p-6">
-      <div>
-        <h2 className="font-semibold text-stone-900">{t('profile_password_title')}</h2>
-        <p className="mt-1 text-sm text-stone-600">{t('profile_password_subtitle')}</p>
-      </div>
-      <div>
-        <label htmlFor="profile-current-password" className="block text-sm font-medium text-stone-700">{t('profile_password_current')}</label>
-        <input id="profile-current-password" type="password" required autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} className="field mt-1" />
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+    <div className="rounded-lg border border-stone-200 bg-white">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-3 p-6 text-left"
+      >
         <div>
-          <label htmlFor="profile-new-password" className="block text-sm font-medium text-stone-700">{t('profile_password_new')}</label>
-          <input id="profile-new-password" type="password" required minLength={8} autoComplete="new-password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} className="field mt-1" />
+          <h2 className="font-semibold text-stone-900">{t('profile_password_title')}</h2>
+          <p className="mt-1 text-sm text-stone-600">{t('profile_password_subtitle')}</p>
         </div>
-        <div>
-          <label htmlFor="profile-confirm-password" className="block text-sm font-medium text-stone-700">{t('profile_password_confirm')}</label>
-          <input id="profile-confirm-password" type="password" required minLength={8} autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} className="field mt-1" />
-        </div>
-      </div>
-      {notice ? <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">{notice}</p> : null}
-      {error ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
-      <button type="submit" disabled={saving} className="rounded-md bg-amber-700 px-5 py-2.5 font-medium text-white hover:bg-amber-800 disabled:opacity-60">{saving ? t('profile_password_saving') : t('profile_password_submit')}</button>
-    </form>
+        <svg className={`h-5 w-5 shrink-0 text-stone-500 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open ? (
+        <form onSubmit={save} className="space-y-4 border-t border-stone-200 p-6">
+          <div>
+            <label htmlFor="profile-current-password" className="block text-sm font-medium text-stone-700">{t('profile_password_current')}</label>
+            <input id="profile-current-password" type="password" required autoComplete="current-password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} className="field mt-1" />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="profile-new-password" className="block text-sm font-medium text-stone-700">{t('profile_password_new')}</label>
+              <input id="profile-new-password" type="password" required minLength={8} autoComplete="new-password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} className="field mt-1" />
+            </div>
+            <div>
+              <label htmlFor="profile-confirm-password" className="block text-sm font-medium text-stone-700">{t('profile_password_confirm')}</label>
+              <input id="profile-confirm-password" type="password" required minLength={8} autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} className="field mt-1" />
+            </div>
+          </div>
+          {notice ? <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">{notice}</p> : null}
+          {error ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
+          <button type="submit" disabled={saving} className="rounded-md bg-amber-700 px-5 py-2.5 font-medium text-white hover:bg-amber-800 disabled:opacity-60">{saving ? t('profile_password_saving') : t('profile_password_submit')}</button>
+        </form>
+      ) : null}
+    </div>
   );
 }
 
