@@ -9,7 +9,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { DemoBadge } from '@/components/DemoBadge';
 import { isDemoContent } from '@/lib/demo-mode';
-import { CARRIER_SIMULATION_MODE } from '@/lib/pilot-capabilities';
+import { CARRIER_ENABLED, CARRIER_SIMULATION_MODE } from '@/lib/pilot-capabilities';
 import type { Service } from '@/lib/types';
 import { whatsappHref } from '@/lib/whatsapp';
 import { trackEvent } from '@/lib/analytics';
@@ -206,10 +206,10 @@ export default function ServiceOrderPage() {
               <select id="deliveryMethod" required value={deliveryMethod} onChange={(event) => setDeliveryMethod(event.target.value as typeof deliveryMethod)} className="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2">
                 <option value="workshop">Retrait à l’atelier</option>
                 <option value="home">Livraison à domicile</option>
-                <option value="carrier">{CARRIER_SIMULATION_MODE ? 'Transporteur (simulation)' : 'Transporteur'}</option>
+                <option value="carrier" disabled={!CARRIER_ENABLED}>{CARRIER_ENABLED && CARRIER_SIMULATION_MODE ? 'Transporteur (simulation)' : CARRIER_ENABLED ? 'Transporteur' : 'Transporteur — bientôt disponible'}</option>
               </select>
             </div>
-            {deliveryMethod === 'carrier' && CARRIER_SIMULATION_MODE ? <p role="note" className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Le transporteur est simulé; aucune course réelle n’est réservée. Confirmez directement avec l’artisan le lieu, le coût et la remise.</p> : null}
+            {!CARRIER_ENABLED ? <p role="note" className="rounded-md border border-stone-200 bg-stone-100 p-3 text-sm text-stone-600">Transporteur bientôt disponible.</p> : deliveryMethod === 'carrier' && CARRIER_SIMULATION_MODE ? <p role="note" className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Le transporteur est simulé; aucune course réelle n’est réservée. Confirmez directement avec l’artisan le lieu, le coût et la remise.</p> : null}
             {deliveryMethod !== 'workshop' ? <div><label htmlFor="deliveryAddress" className="block text-sm font-medium text-stone-700">Adresse du lieu *</label><textarea id="deliveryAddress" required value={deliveryAddress} onChange={(event) => setDeliveryAddress(event.target.value)} rows={2} placeholder="Ville, quartier, repères..." className="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2" /></div> : null}
             {deliveryMethod !== 'workshop' ? <div><p className="mb-2 text-sm font-medium text-stone-700">Position du lieu</p><LocationPicker latitude={deliveryLatitude} longitude={deliveryLongitude} onChange={([lat, lng]) => { setDeliveryLatitude(lat); setDeliveryLongitude(lng); }} /></div> : null}
 

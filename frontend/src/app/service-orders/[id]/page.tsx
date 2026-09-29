@@ -7,7 +7,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import type { ServiceOrder, ServicePayment, ServiceQuote, ServiceReview } from '@/lib/types';
 import { whatsappHref } from '@/lib/whatsapp';
-import { CARRIER_SIMULATION_MODE, MOBILE_MONEY_TEST_MODE } from '@/lib/pilot-capabilities';
+import { CARRIER_ENABLED, CARRIER_SIMULATION_MODE, MOBILE_MONEY_TEST_MODE } from '@/lib/pilot-capabilities';
 import { useLanguage } from '@/lib/language-context';
 
 export default function ServiceOrderQuotePage() {
@@ -281,8 +281,9 @@ export default function ServiceOrderQuotePage() {
                 <select id="revision-delivery" value={revisionDeliveryMethod} onChange={(event) => setRevisionDeliveryMethod(event.target.value as 'home' | 'workshop' | 'carrier')} className="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2">
                   <option value="workshop">{english ? 'Workshop pickup' : 'Retrait à l’atelier'}</option>
                   <option value="home">{english ? 'Home delivery' : 'À domicile'}</option>
-                  <option value="carrier">{english ? 'Carrier delivery' : 'Par transporteur'}</option>
+                  <option value="carrier" disabled={!CARRIER_ENABLED}>{CARRIER_ENABLED ? (english ? 'Carrier delivery' : 'Par transporteur') : (english ? 'Carrier delivery — coming soon' : 'Transporteur — bientôt disponible')}</option>
                 </select>
+                {!CARRIER_ENABLED ? <p role="note" className="mt-1 text-xs text-stone-500">{english ? 'Carrier delivery coming soon.' : 'Transporteur bientôt disponible.'}</p> : null}
               </div>
             </div>
             {revisionDeliveryMethod !== 'workshop' ? (
