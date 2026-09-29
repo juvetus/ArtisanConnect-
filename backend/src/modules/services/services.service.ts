@@ -33,6 +33,15 @@ export class ServicesService {
     private readonly subscriptionsService: SubscriptionsService,
   ) {}
 
+  /** Un service doit annoncer un montant fixe ou une fourchette (min et/ou max), jamais aucun des deux. */
+  private assertValidPricing(data: { price?: number | null; priceMin?: number | null; priceMax?: number | null }) {
+    const hasFixedPrice = data.price !== undefined && data.price !== null;
+    const hasRange = (data.priceMin !== undefined && data.priceMin !== null) || (data.priceMax !== undefined && data.priceMax !== null);
+    if (!hasFixedPrice && !hasRange) {
+      throw new BadRequestException('Indiquez un montant fixe ou une fourchette de prix (min et/ou max).');
+    }
+  }
+
   async createService(artisanId: string, data: {
     title: string;
     description: string;
@@ -46,6 +55,7 @@ export class ServicesService {
     videoUrls?: string[];
     externalUrls?: string[];
   }) {
+    this.assertValidPricing(data);
     const service = this.servicesRepository.create({
       ...data,
       artisan: { id: artisanId } as User,
@@ -122,6 +132,9 @@ export class ServicesService {
     }
 
     Object.assign(service, data);
+    if ('price' in data || 'priceMin' in data || 'priceMax' in data) {
+      this.assertValidPricing(service);
+    }
     if (service.status !== 'draft') {
       service.status = 'pending_validation';
       service.validationFeedback = null;
