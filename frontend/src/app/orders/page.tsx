@@ -11,7 +11,7 @@ import { formatXAF } from '@/lib/format';
 import { StatusBadge } from '@/components/StatusBadge';
 import { ReviewSection } from '@/components/ReviewSection';
 import type { Order } from '@/lib/types';
-import { CARRIER_SIMULATION_MODE, MOBILE_MONEY_TEST_MODE } from '@/lib/pilot-capabilities';
+import { CARRIER_ENABLED, CARRIER_SIMULATION_MODE, MOBILE_MONEY_ENABLED, MOBILE_MONEY_TEST_MODE } from '@/lib/pilot-capabilities';
 
 function whatsappNumber(phone: string) {
   const digits = phone.replace(/\D/g, '');
@@ -203,7 +203,7 @@ export default function OrdersPage() {
                 </p>
                 {order.deliveryMethod === 'carrier' && (
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-stone-600">
-                    {CARRIER_SIMULATION_MODE ? <p role="note" className="w-full rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">{t('carrier_simulation_notice')}</p> : null}
+                    {!CARRIER_ENABLED ? <p role="note" className="w-full rounded-md border border-stone-200 bg-stone-100 p-2 text-xs text-stone-600">{t('carrier_coming_soon')}</p> : CARRIER_SIMULATION_MODE ? <p role="note" className="w-full rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">{t('carrier_simulation_notice')}</p> : null}
                     {order.deliveryTrackingId ? (
                       <>
                         <span>{t('orders_tracking')} {CARRIER_SIMULATION_MODE ? (english ? 'Simulation' : 'Simulation') : (order.deliveryCarrier || 'Gozem')} : {order.deliveryStatus}</span>
@@ -214,7 +214,7 @@ export default function OrdersPage() {
                         )}
                         <button
                           onClick={() => void refreshCarrierDelivery(order)}
-                          disabled={busyId === order.id}
+                          disabled={!CARRIER_ENABLED || busyId === order.id}
                           className="rounded-md border border-stone-200 px-3 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-60"
                         >
                           {t('orders_refresh')}
@@ -223,8 +223,8 @@ export default function OrdersPage() {
                     ) : (
                       <button
                         onClick={() => void startCarrierDelivery(order)}
-                        disabled={busyId === order.id}
-                        className="rounded-md bg-stone-900 px-3 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:opacity-60"
+                        disabled={!CARRIER_ENABLED || busyId === order.id}
+                        className="rounded-md bg-stone-900 px-3 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {CARRIER_SIMULATION_MODE ? (english ? 'Simulate carrier request' : 'Simuler la demande transporteur') : t('orders_request_carrier')}
                       </button>
@@ -259,7 +259,7 @@ export default function OrdersPage() {
 
                 {(order.paymentMethod === 'momo' || order.paymentMethod === 'orange_money') && order.status !== 'cancelled' && (
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {MOBILE_MONEY_TEST_MODE ? <p role="note" className="w-full rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">{t('payment_test_mode_notice')}</p> : null}
+                    {!MOBILE_MONEY_ENABLED ? <p role="note" className="w-full rounded-md border border-stone-200 bg-stone-100 p-2 text-xs text-stone-600">{t('mobile_money_coming_soon')}</p> : MOBILE_MONEY_TEST_MODE ? <p role="note" className="w-full rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">{t('payment_test_mode_notice')}</p> : null}
                     {order.paymentMethod === 'momo' && order.payment?.status === 'pending' && order.status === 'pending' && (
                       <div className="flex w-full flex-wrap items-start gap-2">
                         <div>
@@ -269,6 +269,7 @@ export default function OrdersPage() {
                             type="tel"
                             value={momoPhones[order.id] ?? user.phone ?? ''}
                             onChange={(event) => setMomoPhones((current) => ({ ...current, [order.id]: event.target.value }))}
+                            disabled={!MOBILE_MONEY_ENABLED}
                             placeholder="237699000000"
                             className="w-44 rounded-md border border-stone-200 px-3 py-2 text-sm outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-100"
                           />
@@ -276,8 +277,8 @@ export default function OrdersPage() {
                         </div>
                         <button
                           onClick={() => void payWithMomo(order)}
-                          disabled={busyId === order.id}
-                          className="rounded-md bg-orange-600 px-3 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-60"
+                          disabled={!MOBILE_MONEY_ENABLED || busyId === order.id}
+                          className="rounded-md bg-orange-600 px-3 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {MOBILE_MONEY_TEST_MODE ? (english ? 'Run MoMo test' : 'Lancer le test MoMo') : t('orders_pay_momo')}
                         </button>
@@ -286,8 +287,8 @@ export default function OrdersPage() {
                     {order.paymentMethod === 'orange_money' && order.payment?.status === 'pending' && order.status === 'pending' && (
                       <button
                         onClick={() => void payWithOrangeMoney(order)}
-                        disabled={busyId === order.id}
-                        className="rounded-md bg-orange-600 px-3 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-60"
+                        disabled={!MOBILE_MONEY_ENABLED || busyId === order.id}
+                        className="rounded-md bg-orange-600 px-3 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {MOBILE_MONEY_TEST_MODE ? (english ? 'Run Orange Money test' : 'Lancer le test Orange Money') : t('orders_pay_orange')}
                       </button>

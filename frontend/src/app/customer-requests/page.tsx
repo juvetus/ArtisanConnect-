@@ -13,6 +13,7 @@ import { CUSTOMER_REQUEST_STATUS_LABELS } from '@/lib/types';
 import { useLanguage } from '@/lib/language-context';
 import { DEMO_MODE } from '@/lib/demo-mode';
 import { DemoBadge } from '@/components/DemoBadge';
+import { MOBILE_MONEY_ENABLED } from '@/lib/pilot-capabilities';
 
 export default function CustomerRequestsPage() {
   return (
@@ -163,7 +164,7 @@ function CustomerRequestsContent() {
     if (!accepted || (request.status !== 'in_progress' && request.paymentStatus !== 'paid')) return null;
 
     const amount = accepted.price;
-    const choice = payment[request.id] ?? { method: 'momo' as const, phone: user.phone ?? '' };
+    const choice = payment[request.id] ?? { method: MOBILE_MONEY_ENABLED ? 'momo' as const : 'cash' as const, phone: user.phone ?? '' };
 
     if (request.paymentStatus === 'paid') {
       return <p className="mt-4 rounded-md border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-800">{english ? `Payment of ${request.paymentAmount} XAF confirmed. Thank you!` : `Paiement de ${request.paymentAmount} FCFA confirmé. Merci !`}</p>;
@@ -177,8 +178,8 @@ function CustomerRequestsContent() {
     if (request.paymentStatus === 'pending') {
       return (
         <div className="mt-4 space-y-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm">
-          <p className="text-amber-900">{english ? `Approve the MoMo payment request for ${request.paymentAmount} XAF on your phone, then verify it.` : `Validez la demande de paiement MoMo de ${request.paymentAmount} FCFA sur votre téléphone, puis vérifiez.`}</p>
-          <button type="button" onClick={() => void runPayment(() => api.confirmCustomerRequestMomo(request.id), english ? 'Payment verified.' : 'Paiement vérifié.')} className="rounded-md bg-amber-700 px-3 py-1.5 font-medium text-white hover:bg-amber-800">{english ? 'Verify payment' : 'Vérifier le paiement'}</button>
+          <p className="text-amber-900">{!MOBILE_MONEY_ENABLED ? (english ? 'Mobile payment coming soon. Please settle this payment directly with the artisan.' : 'Paiement mobile bientôt disponible. Veuillez régler directement avec l’artisan.') : english ? `Approve the MoMo payment request for ${request.paymentAmount} XAF on your phone, then verify it.` : `Validez la demande de paiement MoMo de ${request.paymentAmount} FCFA sur votre téléphone, puis vérifiez.`}</p>
+          {MOBILE_MONEY_ENABLED ? <button type="button" onClick={() => void runPayment(() => api.confirmCustomerRequestMomo(request.id), english ? 'Payment verified.' : 'Paiement vérifié.')} className="rounded-md bg-amber-700 px-3 py-1.5 font-medium text-white hover:bg-amber-800">{english ? 'Verify payment' : 'Vérifier le paiement'}</button> : null}
         </div>
       );
     }
@@ -188,9 +189,9 @@ function CustomerRequestsContent() {
         <p className="font-semibold text-stone-900">{english ? `Work delivered: pay ${amount} XAF to ${accepted.artisan?.name ?? 'the artisan'}` : `Travail livré : payer ${amount} FCFA à ${accepted.artisan?.name ?? 'l’artisan'}`}</p>
         <div className="flex flex-wrap gap-4">
           {([['momo', 'MTN MoMo'], ['cash', english ? 'Cash' : 'Espèces']] as const).map(([value, label]) => (
-            <label key={value} className="flex items-center gap-2">
-              <input type="radio" name={`pay-${request.id}`} checked={choice.method === value} onChange={() => setPayment((current) => ({ ...current, [request.id]: { ...choice, method: value } }))} />
-              {label}
+            <label key={value} className={`flex items-center gap-2 ${value === 'momo' && !MOBILE_MONEY_ENABLED ? 'cursor-not-allowed text-stone-500' : 'cursor-pointer'}`}>
+              <input type="radio" name={`pay-${request.id}`} checked={choice.method === value} disabled={value === 'momo' && !MOBILE_MONEY_ENABLED} onChange={() => setPayment((current) => ({ ...current, [request.id]: { ...choice, method: value } }))} />
+              {label}{value === 'momo' && !MOBILE_MONEY_ENABLED ? ` — ${english ? 'coming soon' : 'bientôt disponible'}` : ''}
             </label>
           ))}
         </div>
@@ -199,7 +200,7 @@ function CustomerRequestsContent() {
         ) : (
           <p className="text-stone-600">{english ? 'Give the cash to the artisan; they will confirm receipt.' : 'Remettez les espèces à l’artisan : il confirmera la réception.'}</p>
         )}
-        <button type="button" onClick={() => void runPayment(() => api.payCustomerRequest(request.id, { method: choice.method, payerPhone: choice.method === 'momo' ? choice.phone : undefined }), choice.method === 'momo' ? (english ? 'MoMo request sent. Approve it on your phone.' : 'Demande de paiement MoMo envoyée. Validez-la sur votre téléphone.') : (english ? 'Cash payment reported to the artisan.' : 'Paiement en espèces signalé à l’artisan.'))} className="rounded-md bg-blue-700 px-4 py-2 font-medium text-white hover:bg-blue-800">{english ? `Pay ${amount} XAF` : `Payer ${amount} FCFA`}</button>
+        <button type="button" onClick={() => void runPayment(() => api.payCustomerRequest(request.id, { method: choice.method, payerPhone: choice.method === 'momo' ? choice.phone : undefined }), choice.method === 'momo' ? (english ? 'MoMo request sent. Approve it on your phone.' : 'Demande de paiement MoMo envoyée. Validez-la sur votre téléphone.') : (english ? 'Cash payment reported to the artisan.' : 'Paiement en espèces signalé à l’artisan.'))} disabled={choice.method === 'momo' && !MOBILE_MONEY_ENABLED} className="rounded-md bg-blue-700 px-4 py-2 font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-stone-400">{english ? `Pay ${amount} XAF` : `Payer ${amount} FCFA`}</button>
       </div>
     );
   };

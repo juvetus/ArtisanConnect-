@@ -13,7 +13,7 @@ import { trackEvent } from '@/lib/analytics';
 import { categoryLabel } from '@/lib/categories';
 import { formatXAF } from '@/lib/format';
 import { isDemoContent } from '@/lib/demo-mode';
-import { CARRIER_SIMULATION_MODE, MOBILE_MONEY_TEST_MODE } from '@/lib/pilot-capabilities';
+import { CARRIER_ENABLED, CARRIER_SIMULATION_MODE, MOBILE_MONEY_ENABLED, MOBILE_MONEY_TEST_MODE } from '@/lib/pilot-capabilities';
 import { resolveMediaUrl } from '@/lib/media';
 import { whatsappHref } from '@/lib/whatsapp';
 import { DemoBadge } from '@/components/DemoBadge';
@@ -64,9 +64,11 @@ export default function ListingPage() {
   useEffect(() => {
     if (!listing) return;
     const payments = listing.acceptedPaymentMethods?.length ? listing.acceptedPaymentMethods : ['cash', 'momo', 'orange_money'] as const;
+    const availablePayments = payments.filter((method) => method === 'cash' || MOBILE_MONEY_ENABLED);
     const deliveries = listing.deliveryMethods?.length ? listing.deliveryMethods : ['workshop', 'home', 'carrier'] as const;
-    if (!payments.includes(paymentMethod)) setPaymentMethod(payments[0]);
-    if (!deliveries.includes(deliveryMethod)) setDeliveryMethod(deliveries[0]);
+    const availableDeliveries = deliveries.filter((method) => method !== 'carrier' || CARRIER_ENABLED);
+    if (!availablePayments.includes(paymentMethod)) setPaymentMethod(availablePayments[0] ?? 'cash');
+    if (!availableDeliveries.includes(deliveryMethod)) setDeliveryMethod(availableDeliveries[0] ?? 'workshop');
   }, [listing, paymentMethod, deliveryMethod]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -76,6 +78,18 @@ export default function ListingPage() {
       return;
     }
     if (!listing) return;
+    const orderPayments = listing.acceptedPaymentMethods?.length ? listing.acceptedPaymentMethods : ['cash', 'momo', 'orange_money'] as const;
+    const orderDeliveries = listing.deliveryMethods?.length ? listing.deliveryMethods : ['workshop', 'home', 'carrier'] as const;
+    const availablePayments = orderPayments.filter((method) => method === 'cash' || MOBILE_MONEY_ENABLED);
+    const availableDeliveries = orderDeliveries.filter((method) => method !== 'carrier' || CARRIER_ENABLED);
+    if (!availablePayments.includes(paymentMethod)) {
+      setError(t('mobile_money_coming_soon'));
+      return;
+    }
+    if (!availableDeliveries.includes(deliveryMethod)) {
+      setError(t('carrier_coming_soon'));
+      return;
+    }
     if (paymentMethod === 'momo' && !payerPhone.trim()) {
       setError('Veuillez saisir votre numéro MoMo.');
       return;
@@ -139,6 +153,10 @@ export default function ListingPage() {
   const total = Number(listing.price) * quantity;
   const acceptedPayments = listing.acceptedPaymentMethods?.length ? listing.acceptedPaymentMethods : ['cash', 'momo', 'orange_money'] as const;
   const acceptedDeliveries = listing.deliveryMethods?.length ? listing.deliveryMethods : ['workshop', 'home', 'carrier'] as const;
+  const availablePayments = acceptedPayments.filter((method) => method === 'cash' || MOBILE_MONEY_ENABLED);
+  const availableDeliveries = acceptedDeliveries.filter((method) => method !== 'carrier' || CARRIER_ENABLED);
+  const hasAvailablePayment = availablePayments.length > 0;
+  const hasAvailableDelivery = availableDeliveries.length > 0;
   const paymentLabel = paymentMethod === 'cash' ? 'Espèces' : paymentMethod === 'momo' ? 'MoMo' : 'Orange Money';
   const deliveryLabel = deliveryMethod === 'home' ? 'Livraison à domicile' : deliveryMethod === 'carrier' ? 'Transporteur' : "Retrait à l'atelier";
   const sellerWhatsapp = whatsappHref(listing.seller?.whatsappPhone ?? listing.seller?.phone, `Bonjour ${listing.seller?.name ?? ''}, je suis intéressé par votre annonce « ${listing.title} » sur ArtisanConnect.`);
@@ -258,32 +276,34 @@ export default function ListingPage() {
                   <span className="block text-xs text-stone-500">À la remise de la commande</span>
                 </span>
               </label>}
-              {acceptedPayments.includes('momo') && <label className="flex cursor-pointer items-center gap-3 rounded-md border border-stone-200 p-3 text-sm hover:border-orange-500">
+              <label className={`flex items-center gap-3 rounded-md border p-3 text-sm ${MOBILE_MONEY_ENABLED ? 'cursor-pointer border-stone-200 hover:border-orange-500' : 'cursor-not-allowed border-stone-200 bg-stone-100 text-stone-500'}`}>
                 <input
                   type="radio"
                   name="paymentMethod"
                   value="momo"
                   checked={paymentMethod === 'momo'}
                   onChange={() => setPaymentMethod('momo')}
+                  disabled={!MOBILE_MONEY_ENABLED}
                 />
                 <span>
-                  <strong>{MOBILE_MONEY_TEST_MODE ? 'MoMo — test/sandbox' : 'Payer avec MoMo'}</strong>
-                  <span className="block text-xs text-stone-500">{MOBILE_MONEY_TEST_MODE ? 'Aucune somme réelle ne sera encaissée par ce parcours.' : 'Suivez les instructions affichées pour autoriser le paiement.'}</span>
+                  <strong>MoMo</strong>
+                  <span className="block text-xs text-stone-500">{MOBILE_MONEY_ENABLED ? (MOBILE_MONEY_TEST_MODE ? t('payment_test_mode_notice') : t('payment_live_notice')) : t('mobile_money_coming_soon')}</span>
                 </span>
-              </label>}
-              {acceptedPayments.includes('orange_money') && <label className="flex cursor-pointer items-center gap-3 rounded-md border border-stone-200 p-3 text-sm hover:border-orange-500">
+              </label>
+              <label className={`flex items-center gap-3 rounded-md border p-3 text-sm ${MOBILE_MONEY_ENABLED ? 'cursor-pointer border-stone-200 hover:border-orange-500' : 'cursor-not-allowed border-stone-200 bg-stone-100 text-stone-500'}`}>
                 <input
                   type="radio"
                   name="paymentMethod"
                   value="orange_money"
                   checked={paymentMethod === 'orange_money'}
                   onChange={() => setPaymentMethod('orange_money')}
+                  disabled={!MOBILE_MONEY_ENABLED}
                 />
                 <span>
-                  <strong>{MOBILE_MONEY_TEST_MODE ? 'Orange Money — test' : 'Orange Money'}</strong>
-                  <span className="block text-xs text-stone-500">{MOBILE_MONEY_TEST_MODE ? 'Mode simulé : aucun paiement réel.' : 'Suivez les instructions affichées pour autoriser le paiement.'}</span>
+                  <strong>Orange Money</strong>
+                  <span className="block text-xs text-stone-500">{MOBILE_MONEY_ENABLED ? (MOBILE_MONEY_TEST_MODE ? t('payment_test_mode_notice') : t('payment_live_notice')) : t('mobile_money_coming_soon')}</span>
                 </span>
-              </label>}
+              </label>
             </fieldset>
           )}
         </section>
@@ -330,19 +350,20 @@ export default function ListingPage() {
                   <span className="block text-xs text-stone-500">Adresse complète et repère requis</span>
                 </span>
               </label>}
-              {acceptedDeliveries.includes('carrier') && <label className="flex cursor-pointer items-center gap-3 rounded-md border border-stone-200 p-3 text-sm hover:border-amber-600">
+              <label className={`flex items-center gap-3 rounded-md border p-3 text-sm ${CARRIER_ENABLED ? 'cursor-pointer border-stone-200 hover:border-amber-600' : 'cursor-not-allowed border-stone-200 bg-stone-100 text-stone-500'}`}>
                 <input
                   type="radio"
                   name="deliveryMethod"
                   value="carrier"
                   checked={deliveryMethod === 'carrier'}
                   onChange={() => setDeliveryMethod('carrier')}
+                  disabled={!CARRIER_ENABLED}
                 />
                 <span>
-                  <strong>{CARRIER_SIMULATION_MODE ? 'Transporteur — simulation' : 'Transporteur'}</strong>
-                  <span className="block text-xs text-stone-500">{CARRIER_SIMULATION_MODE ? 'Aucune course réelle n’est réservée par cette option.' : 'Suivi fourni par le transporteur sélectionné.'}</span>
+                  <strong>Transporteur</strong>
+                  <span className="block text-xs text-stone-500">{CARRIER_ENABLED ? (CARRIER_SIMULATION_MODE ? t('carrier_simulation_notice') : 'Suivi fourni par le transporteur sélectionné.') : t('carrier_coming_soon')}</span>
                 </span>
-              </label>}
+              </label>
             </fieldset>
           )}
         </section>
@@ -384,6 +405,8 @@ export default function ListingPage() {
             ? t('cash_handover_notice')
             : MOBILE_MONEY_TEST_MODE ? t('payment_test_mode_notice') : t('payment_live_notice')}
         </div>
+        {!hasAvailablePayment ? <p role="note" className="mt-3 rounded-md border border-stone-200 bg-stone-100 p-3 text-sm text-stone-600">{t('mobile_money_coming_soon')}</p> : null}
+        {!hasAvailableDelivery ? <p role="note" className="mt-3 rounded-md border border-stone-200 bg-stone-100 p-3 text-sm text-stone-600">{t('carrier_coming_soon')}</p> : null}
         {deliveryMethod === 'carrier' && CARRIER_SIMULATION_MODE ? <p role="note" className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{t('carrier_simulation_notice')}</p> : null}
 
         {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
@@ -395,7 +418,7 @@ export default function ListingPage() {
         ) : (
           <button
             onClick={handleOrder}
-            disabled={ordering || listing.stock === 0 || !ready}
+            disabled={ordering || listing.stock === 0 || !ready || !hasAvailablePayment || !hasAvailableDelivery}
             className="mt-6 w-full rounded-md bg-amber-700 py-3 font-medium text-white hover:bg-amber-800 disabled:opacity-60"
           >
             {ordering ? 'Commande en cours…' : user ? 'Commander' : 'Se connecter pour commander'}

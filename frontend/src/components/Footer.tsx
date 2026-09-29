@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useLanguage } from '@/lib/language-context';
 
 export function Footer() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   return (
     <footer className="border-t border-stone-200 bg-stone-900 text-stone-300">
@@ -19,6 +19,7 @@ export function Footer() {
           <p className="font-medium text-white">{t('footer_explore')}</p>
           <div className="mt-2 flex flex-col gap-1 text-sm">
             <Link href="/services" className="hover:text-white">{t('nav_services')}</Link>
+            <Link href="/tarifs" className="hover:text-white">{language === 'en' ? 'Pricing' : 'Tarifs'}</Link>
             <Link href="/" className="hover:text-white">{t('nav_listings')}</Link>
             <Link href="/how-it-works" className="hover:text-white">{t('nav_how_it_works')}</Link>
             <Link href="/contact" className="hover:text-white">{t('nav_contact')}</Link>

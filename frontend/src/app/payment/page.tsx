@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
-import { MOBILE_MONEY_TEST_MODE } from '@/lib/pilot-capabilities';
+import { MOBILE_MONEY_ENABLED, MOBILE_MONEY_TEST_MODE } from '@/lib/pilot-capabilities';
 import { trackEvent } from '@/lib/analytics';
 
 export default function PaymentPage() {
@@ -51,6 +51,7 @@ function PaymentPageContent() {
   }, [ready, requestedPlan, router, user]);
 
   const handlePay = async () => {
+    if (!MOBILE_MONEY_ENABLED) return;
     if (!selectedPlanId) {
       setError('Veuillez choisir un plan.');
       return;
@@ -132,8 +133,8 @@ function PaymentPageContent() {
         <div className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-6 shadow-sm">
           <p className="text-sm font-medium text-amber-700 uppercase tracking-[0.18em]">{MOBILE_MONEY_TEST_MODE ? 'Mode test' : 'Paiement'}</p>
           <h3 className="mt-3 text-2xl font-semibold text-stone-900">Payer avec MoMo</h3>
-          <p role="note" className="mt-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
-            {MOBILE_MONEY_TEST_MODE ? 'Sandbox/mock : aucune somme réelle ne sera encaissée. N’effectuez pas de transfert réel à la suite de ce test.' : 'Suivez les instructions de paiement et vérifiez la confirmation avant de considérer la transaction comme réglée.'}
+          <p role="note" className={`mt-2 rounded-md border p-3 text-sm ${MOBILE_MONEY_ENABLED ? 'border-amber-200 bg-amber-50 text-amber-950' : 'border-stone-200 bg-stone-100 text-stone-600'}`}>
+            {!MOBILE_MONEY_ENABLED ? 'Paiement mobile bientôt disponible.' : MOBILE_MONEY_TEST_MODE ? 'Sandbox/mock : aucune somme réelle ne sera encaissée. N’effectuez pas de transfert réel à la suite de ce test.' : 'Suivez les instructions de paiement et vérifiez la confirmation avant de considérer la transaction comme réglée.'}
           </p>
 
           <label htmlFor="payerPhone" className="mt-5 block text-sm font-medium text-stone-800">
@@ -144,6 +145,7 @@ function PaymentPageContent() {
             type="tel"
             value={currentPayerPhone}
             onChange={(event) => setPayerPhone(event.target.value)}
+            disabled={!MOBILE_MONEY_ENABLED}
             placeholder="Ex: 237699000000"
             className="mt-2 w-full rounded-md border border-stone-200 px-3 py-2 text-sm outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-100"
           />
@@ -167,10 +169,10 @@ function PaymentPageContent() {
           <button
             type="button"
             onClick={() => void handlePay()}
-            disabled={loading || !selectedPlanId}
-            className="mt-6 w-full rounded-md bg-amber-700 px-4 py-3 text-sm font-medium text-white hover:bg-amber-800 disabled:opacity-60 transition"
+            disabled={!MOBILE_MONEY_ENABLED || loading || !selectedPlanId}
+            className="mt-6 w-full rounded-md bg-amber-700 px-4 py-3 text-sm font-medium text-white hover:bg-amber-800 disabled:cursor-not-allowed disabled:bg-stone-400 disabled:text-stone-100 transition"
           >
-            {loading ? 'Traitement...' : 'Payer avec MoMo'}
+            {!MOBILE_MONEY_ENABLED ? 'Bientôt disponible' : loading ? 'Traitement...' : 'Payer avec MoMo'}
           </button>
 
           {success && (
