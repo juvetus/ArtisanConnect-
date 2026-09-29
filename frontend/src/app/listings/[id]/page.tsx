@@ -36,6 +36,10 @@ export default function ListingPage() {
   const [deliveryMethod, setDeliveryMethod] = useState<'workshop' | 'home' | 'carrier'>('workshop');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [payerPhone, setPayerPhone] = useState('');
+  const [offeredUnitPrice, setOfferedUnitPrice] = useState('');
+  const [offerMessage, setOfferMessage] = useState('');
+  const [offering, setOffering] = useState(false);
+  const [offerNotice, setOfferNotice] = useState('');
   const [paymentOpen, setPaymentOpen] = useState(true);
   const [deliveryOpen, setDeliveryOpen] = useState(true);
   const [ordering, setOrdering] = useState(false);
@@ -132,6 +136,43 @@ export default function ListingPage() {
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'La commande a échoué. Réessayez.');
       setOrdering(false);
+    }
+  };
+
+  const handleOffer = async () => {
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    if (!listing) return;
+    const price = Number(offeredUnitPrice);
+    if (!Number.isInteger(price) || price < 1) {
+      setOfferNotice('Saisissez un prix unitaire entier et positif en FCFA.');
+      return;
+    }
+    if (deliveryMethod !== 'workshop' && !deliveryAddress.trim()) {
+      setOfferNotice('Veuillez saisir une adresse de livraison.');
+      return;
+    }
+    setOffering(true);
+    setOfferNotice('');
+    try {
+      await api.createListingOffer({
+        listingId: listing.id,
+        quantity,
+        offeredUnitPrice: price,
+        message: offerMessage.trim() || undefined,
+        paymentMethod,
+        deliveryMethod,
+        deliveryAddress: deliveryMethod !== 'workshop' ? deliveryAddress : undefined,
+      });
+      setOfferNotice('Offre envoyée au vendeur. Vous serez informé de sa réponse avant tout paiement.');
+      setOfferedUnitPrice('');
+      setOfferMessage('');
+    } catch (err) {
+      setOfferNotice(err instanceof ApiError ? err.message : 'Impossible d’envoyer cette offre.');
+    } finally {
+      setOffering(false);
     }
   };
 
@@ -424,6 +465,21 @@ export default function ListingPage() {
             {ordering ? 'Commande en cours…' : user ? 'Commander' : 'Se connecter pour commander'}
           </button>
         )}
+        {!isOwnListing && !isDemoOffer && user?.role === 'client' ? (
+          <details className="mt-4 rounded-md border border-amber-200 bg-amber-50/40">
+            <summary className="cursor-pointer px-3 py-3 text-sm font-semibold text-amber-900">Proposer un prix au vendeur</summary>
+            <div className="space-y-3 border-t border-amber-100 p-3">
+              <p className="text-xs text-stone-600">Votre proposition porte sur le prix unitaire et n’entraîne aucun paiement immédiat.</p>
+              <label htmlFor="offered-unit-price" className="block text-sm font-medium text-stone-700">Prix unitaire proposé (FCFA)</label>
+              <input id="offered-unit-price" type="number" min="1" step="1" value={offeredUnitPrice} onChange={(event) => setOfferedUnitPrice(event.target.value)} className="w-full rounded-md border border-stone-300 bg-white px-3 py-2 outline-none focus:border-amber-600" />
+              <label htmlFor="offer-message" className="block text-sm font-medium text-stone-700">Message au vendeur (facultatif)</label>
+              <textarea id="offer-message" maxLength={500} rows={3} value={offerMessage} onChange={(event) => setOfferMessage(event.target.value)} className="w-full rounded-md border border-stone-300 bg-white px-3 py-2 outline-none focus:border-amber-600" />
+              {offerNotice ? <p role="status" className="text-sm text-stone-700">{offerNotice}</p> : null}
+              <button type="button" onClick={() => void handleOffer()} disabled={offering || listing.stock === 0 || !offeredUnitPrice} className="w-full rounded-md border border-amber-700 px-3 py-2.5 text-sm font-semibold text-amber-900 hover:bg-amber-100 disabled:opacity-60">{offering ? 'Envoi…' : 'Envoyer mon offre'}</button>
+            </div>
+          </details>
+        ) : null}
+        {!isOwnListing && !isDemoOffer && !user ? <Link href="/login" className="mt-4 block text-center text-sm font-medium text-amber-800 underline">Connectez-vous pour proposer un prix</Link> : null}
           </>
         )}
       </aside>

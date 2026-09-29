@@ -16,6 +16,7 @@ import type { Listing, ListingType, Order, ServiceOrder } from '@/lib/types';
 import { resolveMediaUrl } from '@/lib/media';
 import type { Shop } from '@/lib/types';
 import { whatsappHref } from '@/lib/whatsapp';
+import { ListingOffersPanel } from '@/components/ListingOffersPanel';
 
 export default function DashboardPage() {
   const { user, ready } = useAuth();
@@ -426,6 +427,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-10">
+      <ListingOffersPanel audience="seller" />
       {activeOrders.length + activeServiceOrders.length > 0 && (
         <section aria-live="polite" className="rounded-xl border-2 border-red-300 bg-red-50 p-5 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
