@@ -146,7 +146,7 @@ export default async function ShopPublicPage({ params }: { params: Promise<{ id:
                 <span className="text-sm font-semibold text-amber-700">
                   {service.priceMin && service.priceMax
                     ? `${formatXAF(service.priceMin)} – ${formatXAF(service.priceMax)}`
-                    : service.price !== undefined ? formatXAF(service.price) : 'Sur devis'}
+                    : service.price ? formatXAF(service.price) : 'Sur devis'}
                 </span>
               </li>
             ))}

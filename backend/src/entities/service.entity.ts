@@ -15,8 +15,8 @@ export class Service {
   @Column({ type: 'text' })
   description: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  price: number;
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  price: number | null;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   priceMin: number | null;

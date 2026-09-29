@@ -226,7 +226,7 @@ export class ShopsService {
         id: service.id,
         title: service.title,
         category: service.category,
-        price: Number(service.price),
+        price: service.price === null ? null : Number(service.price),
         priceMin: service.priceMin === null ? null : Number(service.priceMin),
         priceMax: service.priceMax === null ? null : Number(service.priceMax),
         estimatedDays: service.estimatedDays,
