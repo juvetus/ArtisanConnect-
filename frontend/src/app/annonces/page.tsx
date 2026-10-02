@@ -1,26 +1,24 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { ListingCard } from '@/components/ListingCard';
 import { Pagination } from '@/components/Pagination';
 import { api } from '@/lib/api';
 import { useLanguage } from '@/lib/language-context';
 import { CITIES, NEIGHBORHOODS, slugify } from '@/lib/locations';
-import { PRODUCT_CATEGORIES, SERVICE_CATEGORIES, categoryGroups, categoryLabel } from '@/lib/categories';
+import { PRODUCT_CATEGORIES, categoryGroups, categoryLabel } from '@/lib/categories';
 import type { Listing } from '@/lib/types';
 
-type Filters = { q?: string; category?: string; type?: 'product' | 'service'; city?: string; neighborhood?: string; minPrice?: number; maxPrice?: number };
+type Filters = { q?: string; category?: string; city?: string; neighborhood?: string; minPrice?: number; maxPrice?: number };
 
 export default function ListingsPage() {
   const { language } = useLanguage();
-  const router = useRouter();
   const [filters, setFilters] = useState<Filters>({});
   const [draftQuery, setDraftQuery] = useState('');
   const [page, setPage] = useState(0);
   const take = 12;
-  const { data, error, isLoading } = useSWR(['catalog-listings', filters, page], ([, currentFilters, currentPage]) => api.listings({ ...(currentFilters as Filters), skip: (currentPage as number) * take, take }));
+  const { data, error, isLoading } = useSWR(['catalog-listings', filters, page], ([, currentFilters, currentPage]) => api.listings({ ...(currentFilters as Filters), type: 'product', skip: (currentPage as number) * take, take }));
   const [listings, total] = data ?? [[], 0];
   const cityNeighborhoods = filters.city ? NEIGHBORHOODS[slugify(filters.city)] ?? [] : [];
 
@@ -43,17 +41,16 @@ export default function ListingsPage() {
     <div className="space-y-8">
       <header>
         <p className="text-sm font-medium uppercase tracking-wide text-amber-700">{french ? 'Catalogue' : 'Catalog'}</p>
-        <h1 className="mt-1 text-3xl font-semibold text-stone-900">{french ? 'Annonces : produits et services' : 'Listings: products and services'}</h1>
-        <p className="mt-2 text-stone-600">{french ? 'Découvrez les produits et services proposés par les artisans camerounais.' : 'Discover products and services offered by Cameroonian artisans.'}</p>
+        <h1 className="mt-1 text-3xl font-semibold text-stone-900">{french ? 'Produits artisanaux' : 'Artisan products'}</h1>
+        <p className="mt-2 text-stone-600">{french ? 'Découvrez les produits proposés par les artisans camerounais.' : 'Discover products offered by Cameroonian artisans.'}</p>
       </header>
 
       <section className="space-y-4 rounded-xl border border-stone-200 bg-white p-5">
         <form onSubmit={submitSearch} className="flex flex-col gap-2 sm:flex-row">
-          <input value={draftQuery} onChange={(event) => setDraftQuery(event.target.value)} placeholder={french ? 'Rechercher un produit, un service ou un métier...' : 'Search for a product, service or trade...'} className="flex-1 rounded-md border border-stone-300 px-3 py-3 outline-none focus:border-amber-600" />
+          <input value={draftQuery} onChange={(event) => setDraftQuery(event.target.value)} placeholder={french ? 'Rechercher un produit ou un métier...' : 'Search for a product or trade...'} className="flex-1 rounded-md border border-stone-300 px-3 py-3 outline-none focus:border-amber-600" />
           <button type="submit" className="rounded-md bg-stone-900 px-5 py-3 text-sm font-medium text-white hover:bg-stone-800">{french ? 'Rechercher' : 'Search'}</button>
         </form>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <label className="text-sm font-medium text-stone-700">{french ? 'Type' : 'Type'}<select value={filters.type ?? ''} onChange={(event) => { const value = event.target.value; if (value === 'service') { router.push('/services'); return; } updateFilters({ type: (value || undefined) as Filters['type'] }); }} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2"><option value="">{french ? 'Produits' : 'Products'}</option><option value="product">{french ? 'Produits' : 'Products'}</option><option value="service">{french ? 'Voir les services artisanaux' : 'View artisan services'}</option></select></label>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <label className="text-sm font-medium text-stone-700">{french ? 'Ville' : 'City'}<select value={filters.city ?? ''} onChange={(event) => updateFilters({ city: event.target.value || undefined })} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2"><option value="">{french ? 'Toutes les villes' : 'All cities'}</option>{CITIES.map((city) => <option key={city} value={city}>{city}</option>)}</select></label>
           <label className="text-sm font-medium text-stone-700">{french ? 'Quartier' : 'Neighborhood'}<select value={filters.neighborhood ?? ''} disabled={!cityNeighborhoods.length} onChange={(event) => updateFilters({ neighborhood: event.target.value || undefined })} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 disabled:bg-stone-100"><option value="">{french ? 'Tous les quartiers' : 'All neighborhoods'}</option>{cityNeighborhoods.map((neighborhood) => <option key={neighborhood} value={neighborhood}>{neighborhood}</option>)}</select></label>
           <label className="text-sm font-medium text-stone-700">{french ? 'Budget min. (FCFA)' : 'Min. budget (XAF)'}<input type="number" min={0} step={500} value={filters.minPrice ?? ''} onChange={(event) => updateFilters({ minPrice: event.target.value ? Number(event.target.value) : undefined })} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2" /></label>
@@ -64,7 +61,6 @@ export default function ListingsPage() {
           <div className="mt-3 space-y-4">
             {[
               { title: french ? 'Produits' : 'Products', categories: PRODUCT_CATEGORIES },
-              { title: french ? 'Services' : 'Services', categories: SERVICE_CATEGORIES },
             ].map((section) => (
               <div key={section.title}>
                 <h3 className="mb-2 text-sm font-semibold text-stone-700">{section.title}</h3>

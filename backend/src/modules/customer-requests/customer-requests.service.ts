@@ -224,8 +224,10 @@ export class CustomerRequestsService {
    * Sans correspondance, la demande reste visible dans les opportunités plutôt que d'être
    * envoyée à tout le monde.
    */
-  private async selectArtisansForRequest(request: CustomerRequest): Promise<User[]> {
-    const artisans = await this.users.find({ where: { role: 'artisan', isActive: true } });
+  private async selectArtisansForRequest(request: CustomerRequest, candidateArtisanIds?: string[]): Promise<User[]> {
+    const artisans = await this.users.find({
+      where: { role: 'artisan', isActive: true, ...(candidateArtisanIds?.length ? { id: In(candidateArtisanIds) } : {}) },
+    });
     if (!artisans.length) return [];
 
     const artisanIds = artisans.map((artisan) => artisan.id);
@@ -296,6 +298,93 @@ export class CustomerRequestsService {
         ? { id: clientsById.get(request.clientId)!.id, name: clientsById.get(request.clientId)!.name, email: clientsById.get(request.clientId)!.email }
         : null,
     }));
+  }
+
+  /** Match stored unmet requests when new shops, services or listings become available. */
+  async matchUnmatchedRequestsForArtisan(artisanId: string) {
+    if (isDemoMode() || !artisanId) return { matchedRequests: 0, notifiedArtisans: 0 };
+
+    const requests = await this.requests.find({
+      where: { status: 'new' },
+      order: { createdAt: 'ASC' },
+      take: 200,
+    });
+    let matchedRequests = 0;
+    let notifiedArtisans = 0;
+
+    for (const request of requests) {
+      const contactedArtisanIds = request.contactedArtisanIds ?? [];
+      if (request.isDemo === true || request.requestType === 'business' || contactedArtisanIds.includes(artisanId) || contactedArtisanIds.length >= MAX_TARGETED_ARTISANS) continue;
+      const target = (await this.selectArtisansForRequest(request, [artisanId]))[0];
+      if (!target) continue;
+
+      const current = await this.requests.findOne({ where: { id: request.id } });
+      if (!current || current.status !== 'new' || current.requestType === 'business') continue;
+      const currentRecipients = current.contactedArtisanIds ?? [];
+      if (currentRecipients.includes(artisanId) || currentRecipients.length >= MAX_TARGETED_ARTISANS) continue;
+
+      current.contactedArtisanIds = [...currentRecipients, artisanId];
+      await this.requests.save(current);
+      matchedRequests += 1;
+
+      const place = current.neighborhood ? `${current.neighborhood}, ${current.city}` : current.city;
+      const summary = `${current.category} à ${place}${current.requestedDate ? ` (souhaité pour le ${new Date(current.requestedDate).toLocaleDateString('fr-FR')})` : ''} : ${current.description.slice(0, 140)}${current.description.length > 140 ? '…' : ''}`;
+      const title = `Une demande correspond à votre activité à ${current.neighborhood || current.city}`;
+      const query = new URLSearchParams({ category: current.category, city: current.city });
+      if (current.neighborhood) query.set('neighborhood', current.neighborhood);
+
+      const results = await Promise.allSettled([this.notifications.notify({
+        recipientId: artisanId,
+        type: 'new_order',
+        title,
+        content: summary,
+        link: `/artisan/customer-requests?${query}`,
+        relatedId: current.id,
+      })]);
+      notifiedArtisans += results.filter((result) => result.status === 'fulfilled').length;
+    }
+
+    return { matchedRequests, notifiedArtisans };
+  }
+
+  /** Aggregate actual client requests so administrators can prioritize artisan recruitment. */
+  async demandSummaryForAdmin() {
+    const requests = await this.requests.find({
+      where: { requestType: 'personal' },
+      order: { createdAt: 'DESC' },
+      take: 1000,
+    });
+    const byDemand = new Map<string, { category: string; city: string; requests: number; unmatched: number; latestRequestAt: Date }>();
+    let totalRequests = 0;
+    let totalUnmatched = 0;
+
+    for (const request of requests) {
+      if (request.isDemo === true) continue;
+      const key = `${normalize(request.category)}::${normalize(request.city)}`;
+      const group = byDemand.get(key) ?? {
+        category: request.category.trim(),
+        city: request.city.trim(),
+        requests: 0,
+        unmatched: 0,
+        latestRequestAt: request.createdAt,
+      };
+      group.requests += 1;
+      if (!(request.contactedArtisanIds ?? []).length) {
+        group.unmatched += 1;
+        totalUnmatched += 1;
+      }
+      if (request.createdAt > group.latestRequestAt) group.latestRequestAt = request.createdAt;
+      byDemand.set(key, group);
+      totalRequests += 1;
+    }
+
+    return {
+      totalRequests,
+      totalUnmatched,
+      demands: [...byDemand.values()]
+        .sort((first, second) => second.unmatched - first.unmatched || second.requests - first.requests || second.latestRequestAt.getTime() - first.latestRequestAt.getTime())
+        .slice(0, 12),
+    };
   }
 
   async findRequestsAwaitingResponseForAdmin() {

@@ -12,5 +12,6 @@ import { CustomerRequestsService } from './customer-requests.service.js';
   imports: [TypeOrmModule.forFeature([CustomerRequest, User, Listing, Service, ServiceReview, Shop]), NotificationsModule, StorageModule, SubscriptionsModule, MomoModule],
   controllers: [CustomerRequestsController],
   providers: [CustomerRequestsService],
+  exports: [CustomerRequestsService],
 })
 export class CustomerRequestsModule {}

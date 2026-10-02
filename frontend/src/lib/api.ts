@@ -141,6 +141,7 @@ export const api = {
       q?: string;
       category?: string;
       type?: string;
+      audience?: 'women' | 'cooperatives';
       city?: string;
       neighborhood?: string;
       minPrice?: number;
@@ -375,6 +376,13 @@ export const api = {
       category?: string;
       verified?: boolean;
       minRating?: number;
+      availability?: 'available' | 'busy' | 'unavailable';
+      maxPrice?: number;
+      maxResponseMinutes?: number;
+      includeResponseStats?: boolean;
+      latitude?: number;
+      longitude?: number;
+      maxDistanceKm?: number;
     } = {},
   ) => {
     const query = new URLSearchParams();
@@ -385,6 +393,13 @@ export const api = {
     if (params.category) query.set('category', params.category);
     if (params.verified) query.set('verified', 'true');
     if (params.minRating) query.set('minRating', String(params.minRating));
+    if (params.availability) query.set('availability', params.availability);
+    if (params.maxPrice !== undefined) query.set('maxPrice', String(params.maxPrice));
+    if (params.maxResponseMinutes !== undefined) query.set('maxResponseMinutes', String(params.maxResponseMinutes));
+    if (params.includeResponseStats) query.set('responseStats', 'true');
+    if (params.latitude !== undefined) query.set('latitude', String(params.latitude));
+    if (params.longitude !== undefined) query.set('longitude', String(params.longitude));
+    if (params.maxDistanceKm !== undefined) query.set('maxDistanceKm', String(params.maxDistanceKm));
     const suffix = query.toString();
     return request<PublicArtisan[]>(`/shops/public${suffix ? `?${suffix}` : ''}`);
   },
@@ -550,7 +565,7 @@ export const api = {
     request(`/services/category/${category}`),
 
   getService: (id: string) =>
-    request(`/services/${id}`),
+    request<Service>(`/services/${id}`),
 
   createService: (data: { title: string; description: string; price?: number; priceMin?: number; priceMax?: number; estimatedDays: number; category: string; tags?: string[]; fileUrls?: string[]; videoUrls?: string[]; externalUrls?: string[] }) =>
     post(`/services`, data),
@@ -651,6 +666,7 @@ export const api = {
     },
     getMyCustomerRequests: () => request<{ id: string; category: string; city: string; description: string; requestType?: 'personal' | 'business'; organizationName?: string | null; requestedQuantity?: number | null; contactedArtisanIds?: string[] | null; status: CustomerRequestStatus; adminReply?: string | null; adminRepliedAt?: string | null; deliveredAt?: string | null; paymentStatus?: 'unpaid' | 'pending' | 'paid'; paymentMethod?: 'momo' | 'cash' | null; paymentAmount?: number | null; responses?: { artisanId: string; artisan?: { name?: string; phone?: string; whatsappPhone?: string } | null; price?: number; days?: number; message: string; status?: 'accepted' | 'rejected' }[] }[]>('/customer-requests/mine'),
     getAdminUnmatchedCustomerRequests: () => request<{ id: string; category: string; city: string; neighborhood?: string | null; description: string; requestType?: 'personal' | 'business'; organizationName?: string | null; requestedQuantity?: number | null; budgetMin?: number | null; budgetMax?: number | null; requestedDate?: string | null; createdAt: string; contactedArtisanIds?: string[]; adminReply?: string | null; adminRepliedAt?: string | null; client?: { id: string; name?: string | null; email?: string } | null }[]>('/customer-requests/admin/unmatched'),
+    getAdminCustomerRequestDemandSummary: () => request<{ totalRequests: number; totalUnmatched: number; demands: { category: string; city: string; requests: number; unmatched: number; latestRequestAt: string }[] }>('/customer-requests/admin/demand-summary'),
     getAdminRequestsAwaitingResponses: () => request<{ id: string; category: string; city: string; neighborhood?: string | null; description: string; status: CustomerRequestStatus; createdAt: string; contactedArtisanIds: string[]; pendingArtisanIds: string[]; relaunchableArtisanIds: string[]; pendingArtisans: { id: string; name: string | null }[]; responses: { artisanId: string }[]; client: { id: string; name: string | null; email: string } | null }[]>('/customer-requests/admin/awaiting-responses'),
     remindAdminRequestArtisans: (id: string) => post<{ success: boolean; notifiedCount: number; pendingCount: number }>(`/customer-requests/admin/${id}/remind-unanswered`, {}),
     getBusinessRequestArtisanCandidates: (id: string) => request<{ id: string; name?: string | null; location?: string | null }[]>(`/customer-requests/admin/${id}/artisan-candidates`),
@@ -718,6 +734,8 @@ export const api = {
       post(`/service-reviews`, data),
 
     getMyServiceReview: (orderId: string) => request(`/service-reviews/order/${orderId}`),
+
+    serviceReviews: (serviceId: string) => request<Paginated<ServiceReview>>(`/service-reviews/service/${serviceId}`),
 
     getArtisanServiceReviews: (artisanId: string) => request<Paginated<ServiceReview>>(`/service-reviews/recipient/${artisanId}`),
 

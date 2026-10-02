@@ -89,6 +89,13 @@ export class ShopsController {
     @Query('category') category?: string,
     @Query('verified') verified?: string,
     @Query('minRating') minRating?: string,
+    @Query('availability') availability?: string,
+    @Query('maxPrice') maxPrice?: string,
+    @Query('maxResponseMinutes') maxResponseMinutes?: string,
+    @Query('responseStats') responseStats?: string,
+    @Query('latitude') latitude?: string,
+    @Query('longitude') longitude?: string,
+    @Query('maxDistanceKm') maxDistanceKm?: string,
   ) {
     return this.shopsService.findPublicDirectory({
       take: take ? Number(take) : undefined,
@@ -98,6 +105,15 @@ export class ShopsController {
       category,
       verified: verified === 'true',
       minRating: minRating ? Number(minRating) : undefined,
+      availability: availability === 'available' || availability === 'busy' || availability === 'unavailable'
+        ? availability
+        : undefined,
+      maxPrice: maxPrice !== undefined ? Number(maxPrice) : undefined,
+      maxResponseMinutes: maxResponseMinutes !== undefined ? Number(maxResponseMinutes) : undefined,
+      includeResponseStats: responseStats === 'true',
+      latitude: latitude !== undefined ? Number(latitude) : undefined,
+      longitude: longitude !== undefined ? Number(longitude) : undefined,
+      maxDistanceKm: maxDistanceKm !== undefined ? Number(maxDistanceKm) : undefined,
     });
   }
 

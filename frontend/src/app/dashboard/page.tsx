@@ -402,6 +402,7 @@ export default function DashboardPage() {
                 : `${listings.length} / ${planStatus?.listingLimit ?? 5} annonces actives · passez à Premium pour publier sans limite, apparaître en priorité et recevoir plus de demandes.`}
             </p>
           )}
+          <p className="mt-2 text-xs leading-5 text-stone-600">{t('premium_quality_distinction')}</p>
           {planStatus?.premium && daysUntilPlanEnd !== null && daysUntilPlanEnd <= 7 ? (
             <p className="mt-3 rounded-md border border-amber-200 bg-amber-100 px-3 py-2 text-sm text-amber-900">
               Votre abonnement expire {daysUntilPlanEnd <= 0 ? 'aujourd’hui' : `dans ${daysUntilPlanEnd} jour${daysUntilPlanEnd > 1 ? 's' : ''}`}.

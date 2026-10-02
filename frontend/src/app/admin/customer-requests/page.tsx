@@ -26,6 +26,10 @@ export default function AdminCustomerRequestsPage() {
     user?.role === 'admin' ? 'admin-unmatched-customer-requests' : null,
     api.getAdminUnmatchedCustomerRequests,
   );
+  const { data: demandSummary, isLoading: demandSummaryLoading } = useSWR(
+    user?.role === 'admin' ? 'admin-customer-request-demand-summary' : null,
+    api.getAdminCustomerRequestDemandSummary,
+  );
   const { data: followUps, isLoading: followUpsLoading, mutate: mutateFollowUps } = useSWR(
     user?.role === 'admin' ? 'admin-customer-request-follow-ups' : null,
     api.getAdminRequestsAwaitingResponses,
@@ -110,6 +114,27 @@ export default function AdminCustomerRequestsPage() {
         <p className="mt-2 text-sm text-stone-600">{english ? 'Handle unmatched requests and B2B briefs, and remind artisans when a targeted request has waited over 24 hours.' : 'Traitez les demandes sans correspondant et les briefs B2B; relancez les artisans lorsqu’une demande ciblée attend depuis plus de 24 heures.'}</p>
       </header>
       {notice ? <p role="status" className="rounded-md border border-stone-200 bg-white px-4 py-3 text-sm text-stone-700">{notice}</p> : null}
+      <section className="space-y-3 border-y border-stone-200 py-5" aria-labelledby="recruitment-priorities-title">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <div>
+            <h2 id="recruitment-priorities-title" className="text-lg font-semibold text-stone-900">{english ? 'Recruitment priorities' : 'Priorités de recrutement'}</h2>
+            <p className="mt-1 text-sm text-stone-600">{english ? 'Based on real customer quote requests.' : 'D’après les demandes de devis réelles des clients.'}</p>
+          </div>
+          {demandSummary ? <p className="text-sm font-medium text-amber-900">{english ? `${demandSummary.totalUnmatched} still unmatched / ${demandSummary.totalRequests} requests` : `${demandSummary.totalUnmatched} sans artisan / ${demandSummary.totalRequests} demandes`}</p> : null}
+        </div>
+        {demandSummaryLoading ? <p className="text-sm text-stone-500">{english ? 'Loading demand data…' : 'Chargement des demandes…'}</p> : null}
+        {!demandSummaryLoading && !demandSummary?.demands.length ? <p className="text-sm text-stone-500">{english ? 'No real customer demand recorded yet.' : 'Aucune demande client réelle enregistrée pour le moment.'}</p> : null}
+        {demandSummary?.demands.length ? (
+          <ul className="grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+            {demandSummary.demands.map((demand) => (
+              <li key={`${demand.category}-${demand.city}`} className="flex items-center justify-between gap-3 border-b border-stone-100 py-2 text-sm">
+                <span className="min-w-0"><span className="font-medium text-stone-900">{demand.category}</span><span className="text-stone-500"> · {demand.city}</span></span>
+                <span className="shrink-0 text-stone-600">{english ? `${demand.requests} requests` : `${demand.requests} demande(s)`}{demand.unmatched ? <span className="ml-1 font-semibold text-amber-800">({demand.unmatched} {english ? 'unmatched' : 'sans artisan'})</span> : null}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </section>
       {isLoading ? <p className="text-sm text-stone-600">{english ? 'Loading requests…' : 'Chargement des demandes…'}</p> : null}
       {!isLoading && !requests?.length ? <p className="rounded-md border border-stone-200 bg-white p-5 text-sm text-stone-600">{english ? 'No unmatched requests to handle.' : 'Aucune demande sans artisan à traiter.'}</p> : null}
       <div className="space-y-4">

@@ -103,9 +103,6 @@ export function Header() {
           <Link href="/" className={navLinkClass('/')}>
             {t('nav_home')}
           </Link>
-          <Link href="/annonces" className={navLinkClass('/annonces')}>
-            {t('nav_listings')}
-          </Link>
           {user?.role !== 'artisan' ? (
             <Link href="/trouver-un-artisan" className={navLinkClass('/trouver-un-artisan')}>
               {user?.role === 'institution' ? (language === 'en' ? 'Source artisans' : 'Sourcer des artisans') : t('nav_find_artisan')}
@@ -116,6 +113,9 @@ export function Header() {
               {t('nav_services')}
             </Link>
           ) : null}
+          <Link href="/annonces" className={navLinkClass('/annonces')}>
+            {t('nav_products')}
+          </Link>
           {user?.role !== 'artisan' && user?.role !== 'admin' ? (
             <Link href="/how-it-works" className={navLinkClass('/how-it-works')}>
               {t('nav_how_it_works')}
@@ -126,10 +126,16 @@ export function Header() {
               Blog
             </Link>
           ) : null}
-          {!user || (user.role !== 'client' && user.role !== 'artisan' && user.role !== 'institution' && user.role !== 'admin') ? (
-            <Link href="/institutions" className={navLinkClass('/institutions')}>
-              {t('nav_institutions')}
-            </Link>
+          {user?.role !== 'artisan' && user?.role !== 'admin' ? (
+            <details className="group rounded-md text-stone-700 open:bg-stone-50">
+              <summary onClick={(event) => event.stopPropagation()} className={`cursor-pointer list-none rounded-md px-2 py-2.5 hover:bg-stone-100 [&::-webkit-details-marker]:hidden ${pathname.startsWith('/institutions') ? 'bg-amber-50 font-bold text-amber-800 ring-1 ring-amber-200' : ''}`}>
+                {t('nav_organizations')}
+                <span aria-hidden className="ml-2 text-xs text-stone-500">▾</span>
+              </summary>
+              <Link href="/institutions" className={`ml-2 block border-l border-stone-200 pl-3 ${navLinkClass('/institutions')}`}>
+                {t('nav_institutions')}
+              </Link>
+            </details>
           ) : null}
           {!ready ? null : user ? (
             <>
@@ -270,16 +276,16 @@ export function Header() {
           ) : (
             <>
               <Link
+                href="/artisans"
+                className="rounded-md bg-amber-700 px-3 py-2 font-bold text-white hover:bg-amber-800 md:mt-auto"
+              >
+                {t('nav_for_artisans')}
+              </Link>
+              <Link
                 href="/login"
                 className="rounded-md px-3 py-2 text-stone-700 hover:bg-stone-100"
               >
                 {t('nav_login')}
-              </Link>
-              <Link
-                href="/register"
-                className="rounded-md bg-amber-700 px-3 py-2 font-bold text-white hover:bg-amber-800"
-              >
-                {t('nav_register')}
               </Link>
             </>
           )}

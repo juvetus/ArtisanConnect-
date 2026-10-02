@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Comment trouver un artisan au Cameroun | ArtisanConnect',
+  title: 'Votre projet, de la recherche à la réalisation | ArtisanConnect',
   description:
-    'Découvrez comment acheter des produits artisanaux et réserver un service auprès d’artisans camerounais sur ArtisanConnect.',
+    'Décrivez votre besoin, comparez les artisans, recevez un devis, suivez la prestation et partagez votre avis sur ArtisanConnect.',
   keywords: [
     'où trouver artisans Cameroun',
     'plateforme pour artisans au Cameroun',

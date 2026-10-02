@@ -1,5 +1,7 @@
 # Fiche de test - Pilote ArtisanConnect
 
+> **Version de référence actualisée :** utiliser [PLAN_TEST_REPRESENTANT_LOCAL.md](./PLAN_TEST_REPRESENTANT_LOCAL.md) ou son [PDF imprimable](./FICHE_TEST_PILOTE.pdf) pour la recette terrain. Les anciens scénarios Mobile Money et transporteur ci-dessous sont conservés à titre historique et ne doivent pas être exécutés pendant le pilote.
+
 Date : ____ / ____ / ______
 Testeur : ____________________
 Environnement : ☐ Local  ☐ Render préproduction  ☐ Render pilote

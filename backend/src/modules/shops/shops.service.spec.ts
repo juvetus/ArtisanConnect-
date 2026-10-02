@@ -7,6 +7,7 @@ import type { Repository } from 'typeorm';
 import type { Listing } from '../../entities/listing.entity.js';
 import type { ServiceReview } from '../../entities/service-review.entity.js';
 import type { Service } from '../../entities/service.entity.js';
+import { CustomerRequest } from '../../entities/customer-request.entity.js';
 import type { NotificationsService } from '../notifications/notifications.service.js';
 
 describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
@@ -16,7 +17,9 @@ describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
   let mockUsersRepo: Partial<Record<keyof Repository<User>, any>>;
   let mockServiceReviewsRepo: Partial<Record<keyof Repository<ServiceReview>, any>>;
   let mockServicesRepo: Partial<Record<keyof Repository<Service>, any>>;
+  let mockCustomerRequestsRepo: Partial<Record<keyof Repository<CustomerRequest>, any>>;
   let mockSubscriptionsService: { findPremiumUserIds: any };
+  let mockCustomerRequestsService: { matchUnmatchedRequestsForArtisan: any };
   let mockNotificationsService: Partial<NotificationsService>;
 
   beforeEach(() => {
@@ -45,8 +48,16 @@ describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
       find: vi.fn().mockResolvedValue([]),
     };
 
+    mockCustomerRequestsRepo = {
+      find: vi.fn().mockResolvedValue([]),
+    };
+
     mockSubscriptionsService = {
       findPremiumUserIds: vi.fn().mockResolvedValue(new Set<string>()),
+    };
+
+    mockCustomerRequestsService = {
+      matchUnmatchedRequestsForArtisan: vi.fn().mockResolvedValue({ matchedRequests: 0, notifiedArtisans: 0 }),
     };
 
     mockNotificationsService = {
@@ -59,8 +70,10 @@ describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
       mockUsersRepo as Repository<User>,
       mockServiceReviewsRepo as Repository<ServiceReview>,
       mockServicesRepo as Repository<Service>,
+      mockCustomerRequestsRepo as Repository<CustomerRequest>,
       mockNotificationsService as NotificationsService,
       mockSubscriptionsService as never,
+      mockCustomerRequestsService as never,
     );
   });
 
@@ -116,6 +129,61 @@ describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
     expect(withContact?.whatsappPhone).toBe('+237699000001');
     expect(withoutContact?.whatsappPhone).toBeNull();
     expect(withContact).not.toHaveProperty('phone');
+  });
+
+  it('filtre l’annuaire par disponibilité, prix de départ, délai de réponse et rayon', async () => {
+    const makeShop = (sellerKey: string, availability: string, latitude: number, longitude: number) => ({
+      id: `shop-${sellerKey}`, sellerId: `seller-${sellerKey}`, status: 'active', isDemo: false, availability, latitude, longitude,
+      type: 'artisan', kycDocuments: [], identityVerified: false, successfulSales: 0,
+      name: `Atelier ${sellerKey}`, description: 'Menuiserie', city: 'Yaoundé', category: 'menuiserie',
+      createdAt: new Date(), seller: { id: `seller-${sellerKey}`, name: sellerKey, whatsappPhone: null, verifiedPhone: true },
+    });
+    mockShopsRepo.find = vi.fn().mockResolvedValue([
+      makeShop('nearby', 'available', 3.848, 11.502),
+      makeShop('busy', 'busy', 3.848, 11.502),
+      makeShop('expensive', 'available', 3.848, 11.502),
+      makeShop('slow', 'available', 3.848, 11.502),
+      makeShop('far', 'available', 4.5, 11.502),
+    ]);
+    mockListingsRepo.find = vi.fn().mockResolvedValue([
+      { id: 'listing-nearby', shopId: 'shop-nearby', sellerId: 'seller-nearby', price: '25000', imageUrl: null },
+      { id: 'listing-expensive', shopId: 'shop-expensive', sellerId: 'seller-expensive', price: '50000', imageUrl: null },
+      { id: 'listing-slow', shopId: 'shop-slow', sellerId: 'seller-slow', price: '25000', imageUrl: null },
+      { id: 'listing-far', shopId: 'shop-far', sellerId: 'seller-far', price: '25000', imageUrl: null },
+    ]);
+    mockServiceReviewsRepo.createQueryBuilder = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      addSelect: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      groupBy: vi.fn().mockReturnThis(),
+      getRawMany: vi.fn().mockResolvedValue([]),
+    });
+    const requestedAt = new Date('2026-09-01T10:00:00.000Z');
+    mockCustomerRequestsRepo.find = vi.fn().mockResolvedValue([{
+      createdAt: requestedAt,
+      contactedArtisanIds: ['seller-nearby', 'seller-expensive', 'seller-slow', 'seller-far'],
+      responses: [
+        { artisanId: 'seller-nearby', message: 'Devis', createdAt: '2026-09-01T10:30:00.000Z' },
+        { artisanId: 'seller-expensive', message: 'Devis', createdAt: '2026-09-01T10:30:00.000Z' },
+        { artisanId: 'seller-slow', message: 'Devis', createdAt: '2026-09-01T11:30:00.000Z' },
+        { artisanId: 'seller-far', message: 'Devis', createdAt: '2026-09-01T10:30:00.000Z' },
+      ],
+    }]);
+
+    const result = await service.findPublicDirectory({
+      availability: 'available',
+      maxPrice: 30000,
+      maxResponseMinutes: 60,
+      latitude: 3.848,
+      longitude: 11.502,
+      maxDistanceKm: 5,
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ priceFrom: 25000, averageResponseMinutes: 30, distanceKm: 0 });
+
+    const unfiltered = await service.findPublicDirectory({ includeResponseStats: true });
+    expect(unfiltered.find((shop) => shop.id === 'shop-nearby')?.averageResponseMinutes).toBe(30);
   });
 
   it('exclut les boutiques démo et non classées de l’annuaire du mode réel', async () => {
@@ -247,6 +315,7 @@ describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
       id: 'shop-uuid-1',
       name: 'Atelier Bois Noble',
       status: 'pending',
+      isDemo: false,
       sellerId: 'artisan-user-id',
     } as unknown as Shop;
 
@@ -261,6 +330,7 @@ describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
       rejectionReason: undefined,
     });
     expect(reviewed?.status).toBe('active');
+    expect(mockCustomerRequestsService.matchUnmatchedRequestsForArtisan).toHaveBeenCalledWith('artisan-user-id');
   });
 
   it('doit permettre à l’administrateur de rejeter une boutique artisan avec motif', async () => {

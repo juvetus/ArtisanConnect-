@@ -343,6 +343,57 @@ describe('CustomerRequestsService', () => {
     expect(notifications.notify).not.toHaveBeenCalled();
   });
 
+  it('retargets a saved unmatched request when a matching artisan becomes available', async () => {
+    const request = {
+      id: 'request-engineer',
+      clientId: 'client-1',
+      requestType: 'personal',
+      status: 'new',
+      isDemo: false,
+      category: 'Ingénieur en génie civil',
+      city: 'Yaoundé',
+      neighborhood: 'Bastos',
+      description: 'Je cherche un ingénieur en génie civil pour préparer les plans de construction de ma maison.',
+      contactedArtisanIds: [],
+      responses: [],
+      createdAt: new Date(),
+    };
+    requests.find.mockResolvedValue([request]);
+    requests.findOne.mockResolvedValue({ ...request, contactedArtisanIds: [] });
+    requests.save.mockImplementation(async (value) => value);
+    users.find.mockResolvedValue([{ id: 'engineer-1', role: 'artisan', isActive: true, location: 'Yaoundé', name: 'Ingénieur Paul' }]);
+    shops.find.mockResolvedValue([{
+      id: 'shop-engineer', sellerId: 'engineer-1', category: 'Ingénieur en génie civil', city: 'Yaoundé',
+      neighborhood: 'Bastos', availability: 'available', identityVerified: true, verifiedBadge: true, successfulSales: 0,
+    }]);
+    listings.find.mockResolvedValue([]);
+    services.find.mockResolvedValue([]);
+    serviceReviews.find.mockResolvedValue([]);
+    subscriptions.findPremiumUserIds.mockResolvedValue(new Set());
+
+    await expect(service.matchUnmatchedRequestsForArtisan('engineer-1')).resolves.toEqual({ matchedRequests: 1, notifiedArtisans: 1 });
+    expect(requests.save).toHaveBeenCalledWith(expect.objectContaining({ contactedArtisanIds: ['engineer-1'] }));
+    expect(notifications.notify).toHaveBeenCalledWith(expect.objectContaining({
+      recipientId: 'engineer-1',
+      title: 'Une demande correspond à votre activité à Bastos',
+      link: expect.stringContaining('/artisan/customer-requests?'),
+      relatedId: 'request-engineer',
+    }));
+  });
+
+  it('groups real unmet demand by normalized trade and city for recruitment priorities', async () => {
+    requests.find.mockResolvedValue([
+      { requestType: 'personal', isDemo: false, category: 'Plombier', city: 'Douala', createdAt: new Date('2026-09-02'), contactedArtisanIds: [] },
+      { requestType: 'personal', isDemo: false, category: 'plombier', city: 'Douala', createdAt: new Date('2026-09-03'), contactedArtisanIds: ['artisan-1'] },
+      { requestType: 'personal', isDemo: true, category: 'Plombier', city: 'Douala', createdAt: new Date('2026-09-04'), contactedArtisanIds: [] },
+    ]);
+
+    const result = await service.demandSummaryForAdmin();
+
+    expect(result).toMatchObject({ totalRequests: 2, totalUnmatched: 1 });
+    expect(result.demands).toEqual([expect.objectContaining({ category: 'Plombier', city: 'Douala', requests: 2, unmatched: 1 })]);
+  });
+
   it('enregistre la réponse admin et notifie le client', async () => {
     const request = {
       id: 'request-no-match',

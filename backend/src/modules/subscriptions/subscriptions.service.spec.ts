@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { DataSource, Repository } from 'typeorm';
+import { NotFoundException } from '@nestjs/common';
 import { SubscriptionsService } from './subscriptions.service.js';
 import { Subscription, SubscriptionPlan } from '../../entities/index.js';
 
@@ -36,9 +37,51 @@ describe('SubscriptionsService', () => {
 
     const plans = await service.createDefaultPlans();
 
-    expect(plans.map((plan) => plan.slug)).toEqual(['starter', 'visibilite-7', 'local-plus', 'croissance', 'premium-growth']);
-    expect(plans.map((plan) => Number(plan.price))).toEqual([0, 1000, 3000, 5000, 10000]);
-    expect(savedPlans).toHaveLength(5);
+    expect(plans.map((plan) => plan.slug)).toEqual(['starter', 'local-plus', 'premium-growth', 'visibilite-7']);
+    expect(plans.map((plan) => Number(plan.price))).toEqual([0, 3000, 10000, 1000]);
+    expect(plans.map((plan) => plan.name)).toEqual(['Gratuit', 'Pro', 'Premium', 'Boost']);
+    expect(savedPlans).toHaveLength(4);
+  });
+
+  it('désactive Croissance sans supprimer le plan historique', async () => {
+    const retiredPlan = makePlan({ id: 'growth-plan', name: 'Croissance', slug: 'croissance', price: 5000 });
+    const savedPlans: SubscriptionPlan[] = [];
+    const planRepository = {
+      find: vi.fn().mockResolvedValue([retiredPlan]),
+      findOne: vi.fn().mockResolvedValue(null),
+      save: vi.fn(async (plan: SubscriptionPlan) => {
+        savedPlans.push(plan);
+        return plan;
+      }),
+      create: vi.fn((plan) => plan),
+    } as unknown as Repository<SubscriptionPlan>;
+    const service = new SubscriptionsService(
+      {} as Repository<Subscription>,
+      planRepository,
+      {} as DataSource,
+      {} as any,
+    );
+
+    const plans = await service.getPlans();
+
+    expect(plans.map((plan) => plan.slug)).not.toContain('croissance');
+    expect(savedPlans.find((plan) => plan.slug === 'croissance')).toMatchObject({ id: 'growth-plan', isActive: false });
+  });
+
+  it('refuse une souscription à un plan inactif', async () => {
+    const transactionManager = { findOne: vi.fn().mockResolvedValue(makePlan({ slug: 'croissance', isActive: false })) };
+    const dataSource = {
+      transaction: vi.fn(async (callback: (manager: any) => unknown) => callback(transactionManager)),
+    } as unknown as DataSource;
+    const service = new SubscriptionsService(
+      {} as Repository<Subscription>,
+      {} as Repository<SubscriptionPlan>,
+      dataSource,
+      {} as any,
+    );
+
+    await expect(service.createSubscription('artisan-1', 'growth-plan')).rejects.toBeInstanceOf(NotFoundException);
+    expect(transactionManager.findOne).toHaveBeenCalledOnce();
   });
 
   it('applique une politique de mise en avant selon le plan actif', async () => {
