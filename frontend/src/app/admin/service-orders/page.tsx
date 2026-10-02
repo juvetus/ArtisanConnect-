@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
 import type { ServiceOrder } from '@/lib/types';
+import { AiTextSuggestion } from '@/components/AiTextSuggestion';
 
 export default function AdminServiceOrdersPage() {
   const { user, ready } = useAuth();
@@ -102,6 +103,12 @@ export default function AdminServiceOrdersPage() {
             )}
 
             <textarea value={feedback[order.id] || ''} onChange={(event) => setFeedback({ ...feedback, [order.id]: event.target.value })} placeholder={english ? 'Feedback or requested details' : 'Feedback ou précisions demandées'} rows={3} className="mt-5 block w-full rounded-md border border-stone-300 px-3 py-2 text-sm" />
+            <AiTextSuggestion
+              task="reponse_admin"
+              input={feedback[order.id] || ''}
+              context={`Préparer un retour administratif sur une demande de prestation. Service: ${order.service?.title ?? ''}. Métier: ${order.service?.category ?? ''}. Artisan: ${order.artisan?.name ?? ''}. Client: ${order.client?.name ?? ''}. Projet du client: ${order.projectObjective}. Budget déclaré: ${order.budgetMin ?? 'non précisé'}–${order.budgetMax ?? 'non précisé'} FCFA. Aider à demander une précision utile ou formuler un retour factuel, sans inventer de décision ni de délai.`}
+              onApply={(text) => setFeedback((current) => ({ ...current, [order.id]: text }))}
+            />
             <div className="mt-4 flex flex-wrap gap-3">
               <button onClick={() => void act(order.id, 'validate')} className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700">{english ? 'Validate and send' : 'Valider et transmettre'}</button>
               <button onClick={() => void act(order.id, 'request')} className="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700">{english ? 'Request details' : 'Demander précision'}</button>

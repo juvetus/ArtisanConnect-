@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, ForbiddenException, Get, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CurrentUser, type AuthUser } from '../auth/current-user.decorator.js';
 import { AssistantService, type AssistantTask } from './assistant.service.js';
@@ -13,6 +13,18 @@ export class AssistantController {
     if (user.role !== 'artisan') throw new BadRequestException('Assistant réservé aux artisans');
     if (!body.input?.trim()) throw new BadRequestException('Décrivez votre besoin pour commencer');
     return this.assistant.generate(body);
+  }
+
+  @Post('suggest-admin-reply')
+  suggestAdminReply(@CurrentUser() user: AuthUser, @Body() body: { input?: string; context?: string; language?: 'fr' | 'en' }) {
+    if (user.role !== 'admin') throw new ForbiddenException('Cette suggestion est réservée à l’administration.');
+    if (!body.input?.trim() && !body.context?.trim()) throw new BadRequestException('Ajoutez le contexte de la réponse à préparer.');
+    return this.assistant.generate({
+      task: 'reponse_admin',
+      input: (body.input?.trim() || 'Rédige une réponse adaptée au contexte, sans l’envoyer.').slice(0, 3000),
+      context: body.context?.slice(0, 2000),
+      language: body.language,
+    });
   }
 
   @Post('suggest-client-request')

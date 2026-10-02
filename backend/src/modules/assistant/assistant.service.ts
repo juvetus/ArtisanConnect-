@@ -6,7 +6,7 @@ import { Repository } from 'typeorm';
 import { AiImageGeneration } from '../../entities/index.js';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service.js';
 
-export type AssistantTask = 'atelier' | 'presentation' | 'profil' | 'demande_client' | 'reponse_opportunite' | 'listing_description' | 'service_description' | 'institution_resource' | 'institution_program' | 'produit' | 'reponse' | 'devis' | 'whatsapp' | 'bio' | 'siarc' | 'correction' | 'traduction';
+export type AssistantTask = 'atelier' | 'presentation' | 'profil' | 'demande_client' | 'reponse_opportunite' | 'reponse_admin' | 'listing_description' | 'service_description' | 'institution_resource' | 'institution_program' | 'produit' | 'reponse' | 'devis' | 'whatsapp' | 'bio' | 'siarc' | 'correction' | 'traduction';
 
 export interface ArtisanPhotoAnalysis {
   probableTrade: string;
@@ -26,6 +26,7 @@ const TASK_INSTRUCTIONS: Record<AssistantTask, string> = {
   profil: 'Crée un pack de profil artisan avec les sections suivantes : 1) description professionnelle claire et vendeuse de 150 mots maximum, 2) liste structurée des services proposés, 3) conseils de prix prudents en FCFA en expliquant les facteurs qui les font varier et sans inventer de tarifs locaux, 4) réponse automatique WhatsApp polie et professionnelle, 5) mini-texte pour réseaux sociaux. Utilise seulement les informations fournies; signale les informations manquantes par [à préciser]. Ton professionnel, simple et adapté au Cameroun.',
   demande_client: 'Aide un client à clarifier sa demande de service. Réécris son texte en français simple et précis, en conservant strictement les faits fournis. N’invente ni dimensions, ni matériaux, ni budget, ni délai. Termine par une courte liste de questions facultatives si des détails importants manquent. Retourne un brouillon à relire, pas un message envoyé.',
   reponse_opportunite: 'Aide un artisan à rédiger un brouillon de réponse à la demande client fournie. Sois court et précis : 4 phrases maximum, 60 mots maximum, une seule idée par phrase. Va droit au but (accusé de réception du besoin, une question ou une prochaine étape utile), sans formule de politesse longue ni répétition. Termine par une signature avec le prénom/nom fourni dans le contexte, sans l’inventer s’il est absent. N’invente aucun prix, délai, disponibilité, certification ou engagement. Ne prétends pas avoir déjà envoyé le message.',
+  reponse_admin: 'Rédige un brouillon de réponse administrative clair, humain et concis à partir du contexte fourni. Respecte strictement la décision ou l’action choisie par l’administrateur. Pour une demande de précisions, pose seulement des questions utiles; pour un refus ou une révision, explique uniquement les éléments présents dans le contexte. N’invente aucun fait, statut, délai, promesse, prix, artisan disponible ni engagement. Ne prétends jamais que la réponse a été envoyée.',
   listing_description: 'Rédige une description claire et attractive pour une annonce artisanale. Mets en avant uniquement les caractéristiques, matières, dimensions, usages et détails fournis. N’invente ni origine, ni certification, ni disponibilité, ni garantie. Reste concret et concis.',
   service_description: 'Rédige une description claire et professionnelle d’un service artisanal. Explique le besoin auquel il répond, les étapes ou livrables connus, et les informations à fournir pour demander un devis. N’invente ni tarifs, ni délais, ni qualifications.',
   institution_resource: 'Améliore la description d’une ressource institutionnelle destinée aux artisans. Indique clairement le contenu, le public visé et son utilité à partir des faits fournis. N’invente ni organisme partenaire, ni financement, ni condition d’accès.',
@@ -43,6 +44,7 @@ const TASK_INSTRUCTIONS: Record<AssistantTask, string> = {
 /** Limite la longueur de génération pour les tâches qui doivent rester courtes (évite les réponses trop verbeuses). */
 const TASK_MAX_TOKENS: Partial<Record<AssistantTask, number>> = {
   reponse_opportunite: 160,
+  reponse_admin: 180,
 };
 
 @Injectable()
@@ -204,7 +206,7 @@ export class AssistantService {
 
   private fallback(task: AssistantTask, input: string, language: 'fr' | 'en') {
     if (language === 'en') return `ArtisanConnect assistant draft\n\n${input}\n\nPlease adapt this text with your exact prices, location and delivery details.`;
-    const labels: Record<AssistantTask, string> = { atelier: 'Description de l’atelier', presentation: 'Présentation professionnelle', profil: 'Pack de profil artisan', demande_client: 'Aide à préciser une demande', reponse_opportunite: 'Réponse à une opportunité', listing_description: 'Description d’annonce', service_description: 'Description de service', institution_resource: 'Description de ressource', institution_program: 'Présentation de programme', produit: 'Fiche produit', reponse: 'Réponse client', devis: 'Devis simple', whatsapp: 'Message WhatsApp', bio: 'Bio artisan', siarc: 'Présentation SIARC', correction: 'Texte corrigé', traduction: 'Traduction' };
+    const labels: Record<AssistantTask, string> = { atelier: 'Description de l’atelier', presentation: 'Présentation professionnelle', profil: 'Pack de profil artisan', demande_client: 'Aide à préciser une demande', reponse_opportunite: 'Réponse à une opportunité', reponse_admin: 'Brouillon de réponse administrative', listing_description: 'Description d’annonce', service_description: 'Description de service', institution_resource: 'Description de ressource', institution_program: 'Présentation de programme', produit: 'Fiche produit', reponse: 'Réponse client', devis: 'Devis simple', whatsapp: 'Message WhatsApp', bio: 'Bio artisan', siarc: 'Présentation SIARC', correction: 'Texte corrigé', traduction: 'Traduction' };
     return `${labels[task]}\n\n${input}\n\nAdaptez ce brouillon avec vos prix, votre ville et vos délais réels.`;
   }
 }

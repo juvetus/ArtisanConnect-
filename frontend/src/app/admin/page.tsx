@@ -13,6 +13,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { Pagination } from '@/components/Pagination';
 import { ModerationAdmin } from '@/components/ModerationAdmin';
 import { AnalyticsFunnel } from '@/components/AnalyticsFunnel';
+import { AiTextSuggestion } from '@/components/AiTextSuggestion';
 import type { AdminStats, AdminSubscription, ArtisanFormalization, Listing, Order, Role, Shop, User } from '@/lib/types';
 
 interface ServiceDashboardStats {
@@ -80,6 +81,8 @@ export default function AdminPage() {
     kind: 'viewer' as AdminUserKind,
     gender: 'cooperative' as 'female' | 'male' | 'cooperative' | 'other',
   });
+  const [formalizationToReject, setFormalizationToReject] = useState<ArtisanFormalization | null>(null);
+  const [formalizationRejectionDraft, setFormalizationRejectionDraft] = useState('');
   const PAGE_SIZE = 10;
 
   const { data, isLoading, mutate } = useSWR(
@@ -168,9 +171,21 @@ export default function AdminPage() {
   };
 
   const reviewFormalization = async (record: ArtisanFormalization, status: ArtisanFormalization['status']) => {
-    const notes = status === 'rejected' ? prompt('Motif ou correction demandée :') ?? '' : undefined;
-    if (status === 'rejected' && !(notes ?? '').trim()) return;
-    await runAdminAction(() => api.adminReviewFormalization(record.id, status, notes));
+    if (status === 'rejected') {
+      setFormalizationToReject(record);
+      setFormalizationRejectionDraft('');
+      return;
+    }
+    await runAdminAction(() => api.adminReviewFormalization(record.id, status));
+  };
+
+  const confirmFormalizationRejection = async () => {
+    if (!formalizationToReject || !formalizationRejectionDraft.trim()) return;
+    await runAdminAction(async () => {
+      await api.adminReviewFormalization(formalizationToReject.id, 'rejected', formalizationRejectionDraft.trim());
+      setFormalizationToReject(null);
+      setFormalizationRejectionDraft('');
+    });
   };
 
   return (
@@ -283,7 +298,7 @@ export default function AdminPage() {
           pageSize={PAGE_SIZE}
           onPageChange={setShopsPage}
           canDelete={user.role === 'admin'}
-          onReview={async (id, approve) => { await api.adminReviewShop(id, approve); await mutate(); }}
+          onReview={async (id, approve, reason) => { await api.adminReviewShop(id, approve, reason); await mutate(); }}
           onAction={runAdminAction}
         />
       )}
@@ -321,6 +336,17 @@ export default function AdminPage() {
                     </div>
                     {documentUrls.length ? <div className="mt-3 flex flex-wrap gap-2">{documentUrls.map((url, index) => <a key={url} href={url} target="_blank" rel="noreferrer" className="rounded-md border border-stone-300 px-3 py-1.5 text-sm text-amber-800 underline">{english ? 'Document' : 'Justificatif'} {index + 1}</a>)}</div> : <p className="mt-3 text-sm text-stone-500">{english ? 'No supporting document attached.' : 'Aucun justificatif joint.'}</p>}
                     {record.institutionNotes ? <p className="mt-3 rounded-md bg-amber-50 p-3 text-sm text-amber-900">{english ? 'Feedback' : 'Retour'} : {record.institutionNotes}</p> : null}
+                    {formalizationToReject?.id === record.id ? (
+                      <div className="mt-4 space-y-3 rounded-md border border-red-200 bg-red-50/40 p-4">
+                        <label htmlFor={`formalization-rejection-${record.id}`} className="block text-sm font-medium text-stone-800">{english ? 'Reason or correction requested' : 'Motif ou correction demandée'}</label>
+                        <textarea id={`formalization-rejection-${record.id}`} value={formalizationRejectionDraft} onChange={(event) => setFormalizationRejectionDraft(event.target.value)} rows={3} className="w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm" />
+                        <AiTextSuggestion task="reponse_admin" input={formalizationRejectionDraft} context={`Rédiger un motif ou une correction à demander pour le dossier de formalisation de ${record.artisan?.name ?? 'l’artisan'}. Activité: ${record.businessName}. Numéro d’enregistrement fourni: ${record.registrationNumber || 'non fourni'}. Identifiant fiscal fourni: ${record.taxId || 'non fourni'}. Le texte doit demander uniquement des informations manquantes ou incohérentes, sans inventer de règle ni d’exigence administrative.`} onApply={setFormalizationRejectionDraft} />
+                        <div className="flex flex-wrap gap-2">
+                          <button type="button" disabled={!formalizationRejectionDraft.trim()} onClick={() => void confirmFormalizationRejection()} className="rounded-md bg-red-700 px-3 py-2 text-sm font-medium text-white disabled:opacity-50">{english ? 'Confirm rejection' : 'Confirmer le refus'}</button>
+                          <button type="button" onClick={() => setFormalizationToReject(null)} className="rounded-md border border-stone-300 px-3 py-2 text-sm text-stone-700">{english ? 'Cancel' : 'Annuler'}</button>
+                        </div>
+                      </div>
+                    ) : null}
                   </article>
                 );
               })}
@@ -724,7 +750,7 @@ function ShopsAdmin({
   page: number;
   pageSize: number;
   onPageChange: (newPage: number | ((p: number) => number)) => void;
-  onReview: (id: string, approve: boolean) => Promise<void>;
+  onReview: (id: string, approve: boolean, reason?: string) => Promise<void>;
   onAction: (action: () => Promise<unknown>) => Promise<void>;
   canDelete: boolean;
 }) {
@@ -733,6 +759,8 @@ function ShopsAdmin({
   const [activeDoc, setActiveDoc] = useState<{ url: string; label: string; shopName: string } | null>(null);
   const [expandedShops, setExpandedShops] = useState<Record<string, boolean>>({});
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+  const [rejectingShopId, setRejectingShopId] = useState<string | null>(null);
+  const [shopRejectionReason, setShopRejectionReason] = useState('');
 
   useEffect(() => {
     const documentsToLoad = shops
@@ -830,13 +858,7 @@ function ShopsAdmin({
                       >
                         {english ? 'Approve shop' : 'Approuver la boutique'}
                       </button> : null}
-                      <button
-                        onClick={() => {
-                          const reason = prompt(english ? 'Rejection reason (optional):' : 'Motif du rejet (optionnel) :');
-                          if (reason !== null) onReview(shop.id, false);
-                        }}
-                        className="rounded-md bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
-                      >
+                      <button type="button" onClick={() => { setRejectingShopId(shop.id); setShopRejectionReason(''); }} className="rounded-md bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100">
                         {english ? 'Reject' : 'Rejeter'}
                       </button>
                     </div>
@@ -872,6 +894,18 @@ function ShopsAdmin({
                     </div>
                   )}
                 </div>
+
+                {rejectingShopId === shop.id ? (
+                  <div className="space-y-3 rounded-md border border-red-200 bg-red-50/40 p-4">
+                    <label htmlFor={`shop-rejection-${shop.id}`} className="block text-sm font-medium text-stone-800">{english ? 'Rejection reason (optional)' : 'Motif du rejet (facultatif)'}</label>
+                    <textarea id={`shop-rejection-${shop.id}`} value={shopRejectionReason} onChange={(event) => setShopRejectionReason(event.target.value)} rows={3} className="w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm" />
+                    <AiTextSuggestion task="reponse_admin" input={shopRejectionReason} context={`Rédiger un motif administratif factuel et constructif pour la boutique ${shop.name}. Type: ${shop.type}. Métier: ${shop.category || 'non renseigné'}. Localisation: ${[shop.neighborhood, shop.city].filter(Boolean).join(', ') || 'non renseignée'}. Description: ${shop.description}. Expliquer seulement les éléments à corriger ou compléter à partir de ces faits; ne pas inventer de règle, preuve manquante ni délai.`} onApply={setShopRejectionReason} />
+                    <div className="flex flex-wrap gap-2">
+                      <button type="button" onClick={() => void onAction(async () => { await onReview(shop.id, false, shopRejectionReason.trim() || undefined); setRejectingShopId(null); setShopRejectionReason(''); })} className="rounded-md bg-red-700 px-3 py-2 text-sm font-medium text-white">{english ? 'Confirm rejection' : 'Confirmer le refus'}</button>
+                      <button type="button" onClick={() => setRejectingShopId(null)} className="rounded-md border border-stone-300 px-3 py-2 text-sm text-stone-700">{english ? 'Cancel' : 'Annuler'}</button>
+                    </div>
+                  </div>
+                ) : null}
 
                 {/* Galerie des pièces justificatives KYC (Collapsible) */}
                 <div className="rounded-lg border border-stone-200 bg-stone-50 overflow-hidden">
