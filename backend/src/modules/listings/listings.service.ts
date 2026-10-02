@@ -1,9 +1,10 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, MoreThan, Repository } from 'typeorm';
 import { Listing } from '../../entities/index.js';
 import { isDemoMode } from '../../demo-mode.js';
 import { isListingCategoryAllowed } from './listing-category-policy.js';
+import { CustomerRequestsService } from '../customer-requests/customer-requests.service.js';
 
 /** Valeurs par défaut conservées pour les appels internes qui ne fournissent pas de politique. */
 export const SPONSORING_DAYS = 7;
@@ -23,6 +24,8 @@ export class ListingsService {
   constructor(
     @InjectRepository(Listing)
     private listingsRepository: Repository<Listing>,
+    @Optional()
+    private customerRequestsService?: CustomerRequestsService,
   ) {}
 
   async create(listing: Partial<Listing>): Promise<Listing> {
@@ -30,7 +33,11 @@ export class ListingsService {
       throw new BadRequestException('La catégorie doit correspondre au type de l’offre.');
     }
     const newListing = this.listingsRepository.create({ ...listing, isDemo: isDemoMode() });
-    return this.listingsRepository.save(newListing);
+    const savedListing = await this.listingsRepository.save(newListing);
+    if (savedListing.status === 'active' && savedListing.isDemo !== true) {
+      void this.customerRequestsService?.matchUnmatchedRequestsForArtisan(savedListing.sellerId).catch(() => undefined);
+    }
+    return savedListing;
   }
 
   async findById(id: string): Promise<Listing | null> {
@@ -134,6 +141,7 @@ export class ListingsService {
       q?: string;
       category?: string;
       type?: 'product' | 'service';
+      audience?: 'women' | 'cooperatives';
       city?: string;
       neighborhood?: string;
       minPrice?: number;
@@ -169,6 +177,18 @@ export class ListingsService {
 
     if (filters.category) builder.andWhere('listing.category = :category', { category: filters.category });
     if (filters.type) builder.andWhere('listing.type = :type', { type: filters.type });
+    if (filters.audience === 'women') {
+      builder.andWhere('(shop.isWomenLed = :isWomenLed OR seller.gender = :sellerGender)', {
+        isWomenLed: true,
+        sellerGender: 'female',
+      });
+    }
+    if (filters.audience === 'cooperatives') {
+      builder.andWhere('(shop.isCooperative = :isCooperative OR seller.gender = :sellerGender)', {
+        isCooperative: true,
+        sellerGender: 'cooperative',
+      });
+    }
 
     const city = normalizeSearchValue(filters.city);
     if (city) builder.andWhere(`${unaccent('shop.city')} LIKE :city`, { city: `%${city}%` });

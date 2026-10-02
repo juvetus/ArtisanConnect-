@@ -16,6 +16,15 @@ import { DemoBadge } from '@/components/DemoBadge';
 import { MOBILE_MONEY_ENABLED } from '@/lib/pilot-capabilities';
 import { formatXAF } from '@/lib/format';
 
+type NeedKey = 'home' | 'auto' | 'fashion' | 'digital';
+
+const NEED_COPY: Record<NeedKey, { titleFr: string; titleEn: string; exampleFr: string; exampleEn: string }> = {
+  home: { titleFr: 'Maison', titleEn: 'Home', exampleFr: 'Fuite d’eau, travaux de peinture, installation électrique…', exampleEn: 'Water leak, painting, electrical installation…' },
+  auto: { titleFr: 'Auto', titleEn: 'Auto', exampleFr: 'Panne, vidange, pneus…', exampleEn: 'Breakdown, oil change, tires…' },
+  fashion: { titleFr: 'Mode', titleEn: 'Fashion', exampleFr: 'Couture sur mesure, retouche, vêtement…', exampleEn: 'Custom tailoring, alterations, clothing…' },
+  digital: { titleFr: 'Digital', titleEn: 'Digital', exampleFr: 'Site web, graphisme, dépannage informatique…', exampleEn: 'Website, graphic design, IT support…' },
+};
+
 export default function CustomerRequestsPage() {
   return (
     <Suspense fallback={<p className="text-stone-600">Chargement…</p>}>
@@ -29,6 +38,12 @@ function CustomerRequestsContent() {
   const { language } = useLanguage();
   const english = language === 'en';
   const searchParams = useSearchParams();
+  const requestQuery = searchParams.toString();
+  const requestPath = `/customer-requests${requestQuery ? `?${requestQuery}` : ''}`;
+  const signupHref = `/register?role=client&next=${encodeURIComponent(requestPath)}`;
+  const loginHref = `/login?next=${encodeURIComponent(requestPath)}`;
+  const needParam = searchParams.get('need');
+  const selectedNeed = needParam && needParam in NEED_COPY ? NEED_COPY[needParam as NeedKey] : undefined;
   const { data: requests, mutate } = useSWR(user?.role === 'client' ? 'customer-requests' : null, api.getMyCustomerRequests, {
     refreshInterval: 10000,
     revalidateOnFocus: true,
@@ -65,6 +80,8 @@ function CustomerRequestsContent() {
       <div role="status" className="mx-auto max-w-3xl space-y-4 rounded-lg border border-amber-200 bg-amber-50 p-6 text-amber-950">
         <DemoBadge />
         <h1 className="text-2xl font-semibold">{english ? 'Demo marketplace' : 'Marketplace de démonstration'}</h1>
+        {selectedNeed ? <p className="text-sm font-medium">{english ? `Selected need: ${selectedNeed.titleEn}` : `Besoin choisi : ${selectedNeed.titleFr}`}</p> : null}
+        {selectedNeed ? <p className="text-sm">{english ? selectedNeed.exampleEn : selectedNeed.exampleFr}</p> : null}
         <p className="text-sm">{english ? 'All products and services shown are examples. Quote requests are disabled until real offers are available.' : 'Les produits et services affichés sont des exemples. Les demandes de devis sont désactivées jusqu’à la publication d’offres réelles.'}</p>
         <Link href="/services" className="inline-flex rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-900">{english ? 'Browse demo services' : 'Voir les services de démonstration'}</Link>
       </div>
@@ -127,7 +144,22 @@ function CustomerRequestsContent() {
     }
   };
 
-  if (!ready || !user) return <p className="text-stone-600">Connectez-vous pour publier une demande.</p>;
+  if (!ready) return <p className="text-sm text-stone-600">{english ? 'Loading…' : 'Chargement…'}</p>;
+
+  if (!user) {
+    return (
+      <section className="mx-auto max-w-xl space-y-4 border-y border-stone-200 py-8">
+        <p className="text-sm font-medium uppercase tracking-wide text-amber-700">{english ? 'Your project' : 'Votre projet'}</p>
+        <h1 className="text-2xl font-semibold text-stone-900">{english ? 'Create a client account to request a quote' : 'Créez un compte client pour demander un devis'}</h1>
+        <p className="text-sm leading-6 text-stone-600">{english ? 'Your request is free. A client account lets you send your brief, receive artisan quotes and follow the project.' : 'La demande de devis est gratuite. Votre compte client vous permettra d’envoyer votre besoin, recevoir les propositions des artisans et suivre le projet.'}</p>
+        {selectedNeed ? <p className="rounded-md bg-amber-50 px-3 py-2 text-sm font-medium text-amber-950">{english ? `Selected need: ${selectedNeed.titleEn}` : `Besoin choisi : ${selectedNeed.titleFr}`}</p> : null}
+        <div className="flex flex-wrap gap-3 pt-2">
+          <Link href={signupHref} className="rounded-md bg-amber-700 px-5 py-3 text-sm font-semibold text-white hover:bg-amber-800">{english ? 'Create my client account' : 'Créer mon compte client'}</Link>
+          <Link href={loginHref} className="rounded-md border border-stone-300 px-5 py-3 text-sm font-semibold text-stone-800 hover:bg-stone-50">{english ? 'Sign in' : 'Se connecter'}</Link>
+        </div>
+      </section>
+    );
+  }
 
   if (user.role === 'artisan') {
     return (
@@ -322,6 +354,7 @@ function CustomerRequestsContent() {
         <p className="text-sm font-medium uppercase tracking-wide text-amber-700">ArtisanConnect</p>
         <h1 className="mt-1 text-3xl font-semibold text-stone-900">{english ? 'Find an artisan' : 'Je cherche un artisan'}</h1>
         <p className="mt-2 text-stone-600">{english ? 'Describe what you need and let artisans in Cameroon suggest a solution.' : 'Décrivez votre besoin et laissez des artisans du Cameroun vous proposer une solution.'}</p>
+        {selectedNeed ? <p className="mt-3 inline-flex rounded-full bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-900">{english ? `Selected need: ${selectedNeed.titleEn}` : `Besoin choisi : ${selectedNeed.titleFr}`}</p> : null}
       </header>
 
       <form onSubmit={submit} className="space-y-5 rounded-lg border border-stone-200 bg-white p-6">
@@ -354,7 +387,7 @@ function CustomerRequestsContent() {
           </div>
         ) : null}
         <div className="grid gap-4 sm:grid-cols-2">
-          <div><label htmlFor="request-category" className="block text-sm font-medium text-stone-700">{english ? 'Trade or category *' : 'Métier ou catégorie *'}</label><input id="request-category" required value={category} onChange={(event) => setCategory(event.target.value)} placeholder={english ? 'Carpentry, sewing, plumbing…' : 'Menuiserie, couture, plomberie…'} className="field mt-1" /></div>
+          <div><label htmlFor="request-category" className="block text-sm font-medium text-stone-700">{selectedNeed ? (english ? `Trade for ${selectedNeed.titleEn} *` : `Métier pour ${selectedNeed.titleFr} *`) : (english ? 'Trade or category *' : 'Métier ou catégorie *')}</label><input id="request-category" required value={category} onChange={(event) => setCategory(event.target.value)} placeholder={english ? 'Carpentry, sewing, plumbing…' : 'Menuiserie, couture, plomberie…'} className="field mt-1" /></div>
           <div><label htmlFor="request-city" className="block text-sm font-medium text-stone-700">{english ? 'City *' : 'Ville *'}</label><input id="request-city" required value={city} onChange={(event) => setCity(event.target.value)} placeholder="Douala, Yaoundé…" className="field mt-1" /></div>
         </div>
         <div><label htmlFor="request-neighborhood" className="block text-sm font-medium text-stone-700">{english ? 'Neighborhood' : 'Quartier'}</label><input id="request-neighborhood" value={neighborhood} onChange={(event) => setNeighborhood(event.target.value)} className="field mt-1" /></div>
@@ -365,7 +398,7 @@ function CustomerRequestsContent() {
               {suggestingRequest ? (english ? 'Preparing…' : 'Préparation…') : (english ? 'Improve with AI' : 'Améliorer avec l’IA')}
             </button>
           </div>
-          <textarea id="request-description" required minLength={20} rows={7} value={description} onChange={(event) => setDescription(event.target.value)} placeholder={english ? 'Describe the work, dimensions, materials and expected result…' : 'Décrivez le travail, les dimensions, les matériaux et le résultat attendu…'} className="field mt-1" />
+          <textarea id="request-description" required minLength={20} rows={7} value={description} onChange={(event) => setDescription(event.target.value)} placeholder={selectedNeed ? (english ? selectedNeed.exampleEn : selectedNeed.exampleFr) : (english ? 'Describe the work, dimensions, materials and expected result…' : 'Décrivez le travail, les dimensions, les matériaux et le résultat attendu…')} className="field mt-1" />
           <p className="mt-1 text-xs text-stone-500">{english ? 'You can edit the suggestion; it will not be published automatically.' : 'La suggestion reste modifiable et n’est pas publiée automatiquement.'}</p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2"><div><label htmlFor="request-min" className="block text-sm font-medium text-stone-700">{english ? 'Minimum budget (XAF)' : 'Budget minimum (FCFA)'}</label><input id="request-min" type="number" min="0" value={budgetMin} onChange={(event) => setBudgetMin(event.target.value)} className="field mt-1" /></div><div><label htmlFor="request-max" className="block text-sm font-medium text-stone-700">{english ? 'Maximum budget (XAF)' : 'Budget maximum (FCFA)'}</label><input id="request-max" type="number" min="0" value={budgetMax} onChange={(event) => setBudgetMax(event.target.value)} className="field mt-1" /></div></div>

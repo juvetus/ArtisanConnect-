@@ -2,11 +2,12 @@ import type { Metadata } from 'next';
 import { BlogIndexContent } from '@/components/BlogIndexContent';
 
 export const metadata: Metadata = {
-  title: 'Blog artisanat Cameroun | Conseils pour artisans et clients',
-  description: 'Conseils et ressources sur l’artisanat au Cameroun : acheter local, vendre en ligne, développer son activité et soutenir les coopératives artisanales.',
+  title: 'Artisanat au Cameroun | Guides pour clients et artisans',
+  description: 'Conseils pratiques pour acheter de l’artisanat local, comparer les offres, vendre en ligne et développer une activité artisanale au Cameroun.',
   keywords: [
     'artisanat Cameroun',
     'artisans Cameroun',
+    'conseils artisanat Cameroun',
     'produits artisanaux Cameroun',
     'coopératives artisanales Cameroun',
     'acheter artisanat camerounais en ligne',

@@ -1,7 +1,8 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { In, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Shop, type ShopType } from '../../entities/shop.entity.js';
+import { CustomerRequest } from '../../entities/customer-request.entity.js';
 import { Listing } from '../../entities/listing.entity.js';
 import { User } from '../../entities/user.entity.js';
 import { ServiceReview } from '../../entities/service-review.entity.js';
@@ -12,6 +13,7 @@ import { NotificationsService } from '../notifications/notifications.service.js'
 import { StorageService } from '../storage/storage.service.js';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service.js';
 import { isDemoMode } from '../../demo-mode.js';
+import { CustomerRequestsService } from '../customer-requests/customer-requests.service.js';
 
 /** Nombre de ventes réussies pour débloquer les badges vendeur. */
 const VERIFIED_BADGE_THRESHOLD = 3;
@@ -20,6 +22,16 @@ const TOP_SELLER_BADGE_THRESHOLD = 20;
 /** La recherche doit fonctionner avec ou sans accents (« Yaoundé » = « yaounde »). */
 function normalizeSearchValue(value?: string | null): string {
   return (value ?? '').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim();
+}
+
+function distanceInKm(latitudeA: number, longitudeA: number, latitudeB: number, longitudeB: number): number {
+  const radians = (degrees: number) => (degrees * Math.PI) / 180;
+  const latitudeDelta = radians(latitudeB - latitudeA);
+  const longitudeDelta = radians(longitudeB - longitudeA);
+  const haversine =
+    Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(radians(latitudeA)) * Math.cos(radians(latitudeB)) * Math.sin(longitudeDelta / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
 }
 
 const VERIFICATION_RANK: Record<VerificationLevel, number> = {
@@ -43,8 +55,12 @@ export class ShopsService {
     private serviceReviewsRepository: Repository<ServiceReview>,
     @InjectRepository(Service)
     private servicesRepository: Repository<Service>,
+    @InjectRepository(CustomerRequest)
+    private customerRequestsRepository: Repository<CustomerRequest>,
     private notificationsService: NotificationsService,
     private subscriptionsService: SubscriptionsService,
+    @Optional()
+    private customerRequestsService?: CustomerRequestsService,
   ) {}
 
   async getSignedKycUrl(shopId: string, label: string, storageService: StorageService) {
@@ -120,6 +136,9 @@ export class ShopsService {
       }
     }
 
+    if (savedShop.status === 'active' && savedShop.isDemo !== true) {
+      void this.customerRequestsService?.matchUnmatchedRequestsForArtisan(sellerId).catch(() => undefined);
+    }
     return savedShop;
   }
 
@@ -264,6 +283,13 @@ export class ShopsService {
       category?: string;
       verified?: boolean;
       minRating?: number;
+      availability?: 'available' | 'busy' | 'unavailable';
+      maxPrice?: number;
+      maxResponseMinutes?: number;
+      includeResponseStats?: boolean;
+      latitude?: number;
+      longitude?: number;
+      maxDistanceKm?: number;
     } = {},
   ) {
     const take = Math.min(Math.max(Number(options.take) || 6, 1), 48);
@@ -280,6 +306,7 @@ export class ShopsService {
 
     const candidates = shops.filter((shop) => {
       if (!isDemoMode() && shop.isDemo !== false) return false;
+      if (options.availability && shop.availability !== options.availability) return false;
       if (wantedCategory && normalizeSearchValue(shop.category) !== wantedCategory) return false;
       if (wantedCity && !normalizeSearchValue(shop.city).includes(wantedCity)) return false;
       if (wantedNeighborhood && !normalizeSearchValue(shop.neighborhood).includes(wantedNeighborhood)) return false;
@@ -317,8 +344,50 @@ export class ShopsService {
       }),
       this.servicesRepository.find({
         where: { artisan: { id: In(sellerIds) }, status: 'approved', ...(isDemoMode() ? {} : { isDemo: false }) },
+        relations: { artisan: true },
       }),
     ]);
+
+    const pricesBySeller = new Map<string, number[]>();
+    const addPrice = (sellerId: string, price: unknown) => {
+      const amount = Number(price);
+      if (!Number.isFinite(amount) || amount <= 0) return;
+      pricesBySeller.set(sellerId, [...(pricesBySeller.get(sellerId) ?? []), amount]);
+    };
+    for (const listing of listings) addPrice(listing.sellerId, listing.price);
+    for (const service of services) {
+      const sellerId = service.artisan?.id;
+      if (!sellerId) continue;
+      addPrice(sellerId, service.priceMin);
+      addPrice(sellerId, service.price);
+      addPrice(sellerId, service.priceMax);
+    }
+
+    const hasDistanceFilter =
+      Number.isFinite(options.latitude) &&
+      Number.isFinite(options.longitude) &&
+      Number.isFinite(options.maxDistanceKm) &&
+      options.maxDistanceKm! > 0;
+    const responseTimesBySeller = new Map<string, number[]>();
+    if (options.includeResponseStats || Number.isFinite(options.maxResponseMinutes)) {
+      const requests = await this.customerRequestsRepository.find({
+        where: isDemoMode() ? {} : { isDemo: false },
+        select: { createdAt: true, contactedArtisanIds: true, responses: true },
+      });
+      const candidateSellerIds = new Set(sellerIds);
+      for (const request of requests) {
+        const requestTime = new Date(request.createdAt).getTime();
+        if (Number.isNaN(requestTime)) continue;
+        for (const response of request.responses ?? []) {
+          if (!candidateSellerIds.has(response.artisanId) || !response.createdAt) continue;
+          const responseTime = new Date(response.createdAt).getTime();
+          if (Number.isNaN(responseTime) || responseTime < requestTime) continue;
+          const times = responseTimesBySeller.get(response.artisanId) ?? [];
+          times.push((responseTime - requestTime) / 60000);
+          responseTimesBySeller.set(response.artisanId, times);
+        }
+      }
+    }
     const coverByShop = new Map<string, string>();
     const offerCountBySeller = new Map<string, number>();
     for (const listing of listings) {
@@ -337,6 +406,8 @@ export class ShopsService {
     return candidates
       .map((shop) => {
         const rating = ratingBySeller.get(shop.sellerId) ?? { average: null, count: 0 };
+        const prices = pricesBySeller.get(shop.sellerId) ?? [];
+        const responseTimes = responseTimesBySeller.get(shop.sellerId) ?? [];
         return {
           id: shop.id,
           name: shop.name,
@@ -344,6 +415,14 @@ export class ShopsService {
           category: shop.category ?? null,
           city: shop.city,
           neighborhood: shop.neighborhood,
+          availability: shop.availability,
+          priceFrom: prices.length ? Math.min(...prices) : null,
+          averageResponseMinutes: responseTimes.length
+            ? Math.round(responseTimes.reduce((sum, value) => sum + value, 0) / responseTimes.length)
+            : null,
+          distanceKm: hasDistanceFilter && Number.isFinite(shop.latitude) && Number.isFinite(shop.longitude)
+            ? Math.round(distanceInKm(options.latitude!, options.longitude!, shop.latitude!, shop.longitude!) * 10) / 10
+            : null,
           verifiedBadge: shop.verifiedBadge,
           topSellerBadge: shop.topSellerBadge,
           isWomenLed: shop.isWomenLed,
@@ -371,6 +450,9 @@ export class ShopsService {
       .filter((item) => {
         if (options.verified && !item.verification.steps.profile) return false;
         if (minRating && (item.rating.average ?? 0) < minRating) return false;
+        if (Number.isFinite(options.maxPrice) && (item.priceFrom === null || item.priceFrom > options.maxPrice!)) return false;
+        if (Number.isFinite(options.maxResponseMinutes) && (item.averageResponseMinutes === null || item.averageResponseMinutes > options.maxResponseMinutes!)) return false;
+        if (hasDistanceFilter && (item.distanceKm === null || item.distanceKm > options.maxDistanceKm!)) return false;
         return true;
       })
       .sort(
@@ -463,6 +545,9 @@ export class ShopsService {
       status: approve ? 'active' : 'rejected',
       rejectionReason: approve ? undefined : (reason ?? 'Preuves insuffisantes'),
     });
+    if (approve && shop.isDemo !== true) {
+      void this.customerRequestsService?.matchUnmatchedRequestsForArtisan(shop.sellerId).catch(() => undefined);
+    }
 
     // Notifier l'artisan de la décision
     try {
@@ -494,6 +579,9 @@ export class ShopsService {
       throw new BadRequestException('Une boutique rejetée doit être revalidée par un admin');
     }
     await this.shopsRepository.update(id, { status: active ? 'active' : 'suspended' });
+    if (active && shop.isDemo !== true) {
+      void this.customerRequestsService?.matchUnmatchedRequestsForArtisan(shop.sellerId).catch(() => undefined);
+    }
     return this.findById(id);
   }
 

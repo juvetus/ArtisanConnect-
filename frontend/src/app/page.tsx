@@ -4,30 +4,34 @@ import { useEffect, useRef, useState } from 'react';
 import useSWR from 'swr';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { DemoBadge } from '@/components/DemoBadge';
+import { ArtisanCard } from '@/components/ArtisanCard';
 import { ListingCard } from '@/components/ListingCard';
 import { Pagination } from '@/components/Pagination';
 import { CATEGORIES, PRODUCT_CATEGORIES, SERVICE_CATEGORIES, categoryGroups, categoryLabel } from '@/lib/categories';
 import { demoArtisans, demoListings, demoServices } from '@/lib/demo-content';
 import { DEMO_MODE, isDemoContent } from '@/lib/demo-mode';
 import { useLanguage } from '@/lib/language-context';
-import type { Service } from '@/lib/types';
+import type { PublicArtisan, Service } from '@/lib/types';
 import { trackEvent } from '@/lib/analytics';
 
 export default function HomePage() {
   const { t, language } = useLanguage();
   const english = language === 'en';
+  const router = useRouter();
   const [filters, setFilters] = useState<{ q?: string; category?: string }>({});
   const [audienceFilter, setAudienceFilter] = useState<'all' | 'women' | 'cooperatives'>('all');
   const [listingPage, setListingPage] = useState(0);
   const [draftQuery, setDraftQuery] = useState('');
+  const [artisanQuery, setArtisanQuery] = useState('');
   const [showCategories, setShowCategories] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
 
   const { data, error, isLoading } = useSWR(
-    ['listings', filters, listingPage],
-    ([, params, page]) => api.listings({ ...params, skip: page * 12, take: 12 }),
+    ['listings', filters, audienceFilter, listingPage],
+    ([, params, audience, page]) => api.listings({ ...params, audience: audience === 'all' ? undefined : audience, skip: page * 12, take: 12 }),
     // Sans cela, un retour sur l'onglet relancerait la requête et donc le défilement.
     { revalidateOnFocus: false },
   );
@@ -37,7 +41,11 @@ export default function HomePage() {
     'approved-services-home',
     async () => (await api.getApprovedServices(6)) as Service[],
   );
-  const hasFilter = Boolean(filters.q || filters.category);
+  const { data: artisans, isLoading: artisansLoading } = useSWR<PublicArtisan[]>(
+    DEMO_MODE ? null : 'public-artisans-home',
+    () => api.publicArtisans({ take: 6 }),
+  );
+  const hasFilter = Boolean(filters.q || filters.category || audienceFilter !== 'all');
 
   // Le défilement attend l'arrivée des résultats : tant que SWR n'a pas répondu, la page
   // a encore la hauteur de la liste précédente et la cible serait mal placée.
@@ -61,11 +69,40 @@ export default function HomePage() {
     setListingPage(0);
   };
 
+  const toggleAudience = (audience: 'women' | 'cooperatives') => {
+    setAudienceFilter((current) => current === audience ? 'all' : audience);
+    setListingPage(0);
+  };
+
   const activeCategory = CATEGORIES.find((c) => c.value === filters.category);
   const visibleListings = listings.length ? listings : DEMO_MODE && !hasFilter && !isLoading ? demoListings : [];
   const visibleTotal = listings.length ? total : visibleListings.length;
   const visibleServices = services?.length ? services : DEMO_MODE ? demoServices : [];
-  const featuredProducts = visibleListings.slice(0, 6);
+  const featuredProducts = visibleListings.filter((listing) => listing.type === 'product').slice(0, 6);
+  const popularTrades = [
+    { category: 'plomberie', icon: '🔧' },
+    { category: 'electricite', icon: '⚡' },
+    { category: 'menuiserie', icon: '🪚' },
+    { category: 'froid', icon: '❄️' },
+    { category: 'couture', icon: '👗' },
+    { category: 'peinture', icon: '🎨' },
+    { category: 'mecanique', icon: '🚗' },
+  ];
+  const trustSignals = [
+    t('home_trust_profiles'),
+    t('home_trust_quotes'),
+    t('home_trust_reviews'),
+    t('home_trust_whatsapp'),
+    t('home_trust_followup'),
+  ];
+  const clientSteps = [t('home_journey_search'), t('home_journey_compare'), t('home_journey_order'), t('home_journey_follow')];
+
+  const searchForArtisan = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const query = artisanQuery.trim();
+    if (query) trackEvent('search', { label: query });
+    router.push(`/trouver-un-artisan${query ? `?q=${encodeURIComponent(query)}` : ''}`);
+  };
 
   return (
     <div className="space-y-8">
@@ -78,103 +115,76 @@ export default function HomePage() {
               {t('home_market_subtitle')}
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <a href="#produits-populaires" className="rounded-lg bg-amber-600 px-5 py-3 text-sm font-semibold text-white hover:bg-amber-700">{t('home_cta_products')}</a>
-              <Link href="/services" className="rounded-lg bg-white px-5 py-3 text-sm font-semibold text-stone-900 hover:bg-stone-100">{t('home_cta_service')}</Link>
-              <a href="/how-it-works" className="rounded-lg border border-white/30 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10">{t('home_cta_how')}</a>
+              <Link href="/trouver-un-artisan" className="rounded-lg bg-amber-600 px-5 py-3 text-sm font-semibold text-white hover:bg-amber-700">{t('home_cta_find_artisan')}</Link>
+              <Link href="/customer-requests" className="rounded-lg bg-white px-5 py-3 text-sm font-semibold text-stone-900 hover:bg-stone-100">{t('home_cta_quote')}</Link>
             </div>
+            <p className="mt-4 text-sm text-stone-300">{t('home_hero_reassurance')}</p>
           </div>
           <div className="min-h-64 bg-[url('/images/african-market-artisan-stockcake.jpg')] bg-cover bg-center" aria-hidden />
         </div>
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          [t('home_category_products_title'), t('home_category_products_desc'), 'vannerie'],
-          [t('home_category_services_title'), t('home_category_services_desc'), 'couture'],
-          [t('home_category_women_title'), t('home_category_women_desc'), 'mode'],
-          [t('home_category_coops_title'), t('home_category_coops_desc'), 'ameublement'],
-        ].map(([title, description, category]) => (
-          <button
-            key={title}
-            onClick={() => selectCategory(category)}
-            className="rounded-lg border border-stone-200 bg-white p-4 text-left transition hover:border-amber-600 hover:shadow-sm"
-          >
-            <p className="font-semibold text-stone-900">{title}</p>
-            <p className="mt-1 text-sm text-stone-600">{description}</p>
-          </button>
-        ))}
+      <section className="space-y-4 border-b border-stone-200 pb-6">
+        <div>
+          <p className="text-sm font-medium uppercase tracking-wide text-amber-700">ArtisanConnect</p>
+          <h2 className="mt-1 text-2xl font-semibold text-stone-900">{t('home_needs_title')}</h2>
+        </div>
+        <form onSubmit={searchForArtisan} className="flex max-w-3xl flex-col gap-2 sm:flex-row">
+          <input value={artisanQuery} onChange={(event) => setArtisanQuery(event.target.value)} placeholder={t('home_needs_placeholder')} aria-label={t('home_needs_title')} className="min-h-12 flex-1 rounded-md border border-stone-300 bg-white px-4 py-3 text-base outline-none focus:border-amber-600" />
+          <button type="submit" className="min-h-12 rounded-md bg-stone-900 px-5 py-3 text-sm font-semibold text-white hover:bg-stone-800">{t('home_needs_search')}</button>
+        </form>
+        <div className="flex flex-wrap gap-2">
+          {popularTrades.map((trade) => (
+            <Link key={trade.category} href={`/trouver-un-artisan/${trade.category}`} className="inline-flex items-center gap-2 rounded-full border border-stone-300 bg-white px-3 py-2 text-sm text-stone-700 transition hover:border-amber-600 hover:text-amber-900">
+              <span aria-hidden>{trade.icon}</span>{categoryLabel(trade.category, language)}
+            </Link>
+          ))}
+          <Link href="/services" className="inline-flex items-center px-2 py-2 text-sm font-medium text-amber-800 hover:underline">{t('home_all_services')} →</Link>
+        </div>
       </section>
 
-      <section className="grid gap-4 overflow-hidden rounded-xl border border-stone-200 bg-white p-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="grid grid-cols-2 gap-3">
-          <Image src="/images/african-marketplace-artisan-stockcake.jpg" alt="Stand artisanal coloré avec vannerie et décorations" width={1200} height={800} className="col-span-2 h-60 w-full rounded-lg object-cover" />
-          <Image src="/images/african-market-artisan-stockcake.jpg" alt="Marché artisanal camerounais avec textiles et poteries" width={800} height={600} className="h-36 w-full rounded-lg object-cover" />
-          <Image src="/images/infusing-personal-style-into-your-craft-market-stall.jpg" alt="Stand de créations artisanales avec textiles et objets décoratifs" width={800} height={600} className="h-36 w-full rounded-lg object-cover" />
-        </div>
-        <div className="flex flex-col justify-center p-2 lg:p-6">
-          <p className="text-sm font-medium uppercase tracking-wide text-amber-700">{t('home_visual_badge')}</p>
-          <h2 className="mt-2 text-2xl font-semibold text-stone-900">{t('home_visual_title')}</h2>
-          <p className="mt-3 text-sm leading-6 text-stone-600">
-            {t('home_visual_desc')}
-          </p>
-          <div className="mt-5 flex flex-wrap gap-2 text-sm">
-            <span className="rounded-full bg-amber-50 px-3 py-1 text-amber-800">{t('home_visual_product_badge')}</span>
-            <span className="rounded-full bg-stone-100 px-3 py-1 text-stone-700">{t('home_visual_artisans_badge')}</span>
-            <span className="rounded-full bg-green-50 px-3 py-1 text-green-800">{t('home_visual_whatsapp_badge')}</span>
+      <section aria-label={t('home_trust_heading')} className="grid gap-3 border-b border-stone-200 pb-6 sm:grid-cols-2 lg:grid-cols-5">
+        <h2 className="text-lg font-semibold text-stone-900 sm:col-span-2 lg:col-span-5">{t('home_trust_heading')}</h2>
+        {trustSignals.map((signal) => <p key={signal} className="flex items-center gap-2 text-sm font-medium text-stone-700"><span className="text-emerald-700" aria-hidden>✓</span>{signal}</p>)}
+      </section>
+
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium uppercase tracking-wide text-amber-700">{t('home_featured_artisans_badge')}</p>
+            <h2 className="mt-1 text-2xl font-semibold text-stone-900">{t('home_nearby_artisans')}</h2>
           </div>
+          <Link href="/trouver-un-artisan" className="text-sm font-medium text-amber-800 hover:underline">{t('home_artisans_browse')} →</Link>
         </div>
+        {DEMO_MODE ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {demoArtisans.map((artisan) => (
+              <article key={artisan.id} className="overflow-hidden rounded-lg border border-stone-200 bg-white">
+                <div className="relative"><Image src={artisan.imageUrl} alt={artisan.name} width={600} height={300} className="h-40 w-full object-cover" /><DemoBadge className="absolute right-2 top-2 shadow" /></div>
+                <div className="p-4"><h3 className="font-semibold text-stone-900">{artisan.name}</h3><p className="mt-1 text-sm text-stone-600">{artisan.specialty} · {artisan.city}</p></div>
+              </article>
+            ))}
+          </div>
+        ) : artisansLoading ? (
+          <p className="text-sm text-stone-600">{t('action_loading')}</p>
+        ) : artisans?.length ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{artisans.slice(0, 6).map((artisan) => <ArtisanCard key={artisan.id} artisan={artisan} />)}</div>
+        ) : (
+          <p className="border-y border-stone-200 py-5 text-sm text-stone-600">{t('home_artisans_empty')}</p>
+        )}
       </section>
 
-      <section id="produits-populaires" className="space-y-4">
+      <section id="produits-populaires" className="space-y-4 border-t border-stone-200 pt-6">
         <div className="flex items-end justify-between gap-4">
           <div>
             <p className="text-sm font-medium uppercase tracking-wide text-amber-700">{t('home_featured_products_badge')}</p>
             <h2 className="text-2xl font-semibold text-stone-900">{t('home_featured_products_title')}</h2>
           </div>
-          <a href="#catalogue" className="text-sm font-medium text-amber-700 hover:text-amber-800">{t('home_view_catalog')}</a>
+          <Link href="/annonces" className="text-sm font-medium text-amber-800 hover:underline">{t('home_view_catalog')}</Link>
         </div>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {featuredProducts.map((listing) => (
-            <ListingCard key={listing.id} listing={listing} />
-          ))}
+          {featuredProducts.map((listing) => <ListingCard key={listing.id} listing={listing} />)}
         </div>
-      </section>
-
-      {DEMO_MODE ? <section className="grid gap-5 rounded-xl border border-stone-200 bg-white p-6 lg:grid-cols-[0.8fr_1.2fr]">
-        <div>
-          <p className="text-sm font-medium uppercase tracking-wide text-amber-700">{t('home_featured_artisans_badge')}</p>
-          <h2 className="mt-2 text-2xl font-semibold text-stone-900">{t('home_featured_artisans_title')}</h2>
-          <p className="mt-2 text-sm text-stone-600">{t('home_featured_artisans_desc')}</p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          {demoArtisans.map((artisan) => (
-            <article key={artisan.id} className="overflow-hidden rounded-lg border border-stone-200 bg-stone-50">
-              <div className="relative">
-                <Image src={artisan.imageUrl} alt={artisan.name} width={600} height={300} className="h-28 w-full object-cover" />
-                <DemoBadge className="absolute right-2 top-2 shadow" />
-              </div>
-              <div className="p-4">
-                <h3 className="font-semibold text-stone-900">{artisan.name}</h3>
-                <p className="mt-1 text-xs font-medium uppercase tracking-wide text-amber-700">{artisan.specialty}</p>
-                <p className="mt-1 text-sm text-stone-600">{artisan.city}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section> : null}
-
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          [t('home_trust_verified_title'), t('home_trust_verified_desc')],
-          [t('home_trust_payment_title'), t(DEMO_MODE ? 'home_trust_payment_demo_desc' : 'home_trust_payment_desc')],
-          [t('home_trust_delivery_title'), t('home_trust_delivery_desc')],
-          [t('home_trust_digital_title'), t('home_trust_digital_desc')],
-        ].map(([title, description]) => (
-          <div key={title} className="rounded-lg border border-stone-200 bg-white p-5">
-            <p className="font-semibold text-stone-900">{title}</p>
-            <p className="mt-2 text-sm text-stone-600">{description}</p>
-          </div>
-        ))}
       </section>
 
       <section id="catalogue" className="space-y-4 border-t border-stone-200 pt-8">
@@ -232,7 +242,7 @@ export default function HomePage() {
           )}
 
           <button
-            onClick={() => setAudienceFilter((prev) => (prev === 'women' ? 'all' : 'women'))}
+            onClick={() => toggleAudience('women')}
             className={`flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm transition-colors ${
               audienceFilter === 'women'
                 ? 'border-rose-600 bg-rose-600 font-medium text-white shadow-sm'
@@ -243,7 +253,7 @@ export default function HomePage() {
           </button>
 
           <button
-            onClick={() => setAudienceFilter((prev) => (prev === 'cooperatives' ? 'all' : 'cooperatives'))}
+            onClick={() => toggleAudience('cooperatives')}
             className={`flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm transition-colors ${
               audienceFilter === 'cooperatives'
                 ? 'border-indigo-600 bg-indigo-600 font-medium text-white shadow-sm'
@@ -307,12 +317,7 @@ export default function HomePage() {
               {!listings.length && !hasFilter && ` · ${t('home_catalog_demo_note')}`}
             </p>
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {(audienceFilter === 'women'
-                ? visibleListings.filter((l) => l.shop?.isWomenLed || l.seller?.gender === 'female')
-                : audienceFilter === 'cooperatives'
-                ? visibleListings.filter((l) => l.shop?.isCooperative || l.seller?.gender === 'cooperative')
-                : visibleListings
-              ).map((listing) => (
+              {visibleListings.map((listing) => (
                 <ListingCard key={listing.id} listing={listing} />
               ))}
             </div>
@@ -320,7 +325,7 @@ export default function HomePage() {
               <Pagination
                 page={listingPage}
                 hasPrevious={listingPage > 0}
-                hasNext={listings.length === 12}
+                hasNext={(listingPage + 1) * 12 < total}
                 onPrevious={() => setListingPage((page) => Math.max(0, page - 1))}
                 onNext={() => setListingPage((page) => page + 1)}
               />
@@ -358,6 +363,26 @@ export default function HomePage() {
           </div>
         )}
         {!visibleServices.length && !servicesLoading ? <p className="rounded-md border border-stone-200 bg-white p-6 text-sm text-stone-600">{t('home_services_empty')}</p> : null}
+      </section>
+
+      <section className="space-y-4 border-t border-stone-200 pt-8">
+        <div>
+          <p className="text-sm font-medium uppercase tracking-wide text-amber-700">{t('how_badge')}</p>
+          <h2 className="mt-1 text-2xl font-semibold text-stone-900">{t('home_journey_title')}</h2>
+        </div>
+        <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {clientSteps.map((step, index) => <li key={step} className="flex items-center gap-3 border-l-2 border-amber-500 py-2 pl-3"><span className="text-sm font-bold text-amber-800">{index + 1}</span><span className="font-medium text-stone-800">{step}</span></li>)}
+        </ol>
+        <Link href="/how-it-works" className="inline-block text-sm font-medium text-amber-800 hover:underline">{t('nav_how_it_works')} →</Link>
+      </section>
+
+      <section className="flex flex-col gap-4 border-t border-stone-200 pt-8 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-medium uppercase tracking-wide text-amber-700">{t('nav_for_artisans')}</p>
+          <h2 className="mt-1 text-2xl font-semibold text-stone-900">{t('home_artisan_cta_title')}</h2>
+          <p className="mt-2 text-sm text-stone-600">{t('home_artisan_cta_desc')}</p>
+        </div>
+        <Link href="/register?role=artisan" className="inline-flex min-h-12 items-center justify-center rounded-md bg-amber-700 px-5 py-3 text-sm font-semibold text-white hover:bg-amber-800">{t('home_artisan_cta_button')}</Link>
       </section>
     </div>
   );

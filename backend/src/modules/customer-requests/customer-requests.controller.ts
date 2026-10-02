@@ -31,6 +31,12 @@ export class CustomerRequestsController {
   }
 
   @UseGuards(AdminGuard)
+  @Get('admin/demand-summary')
+  demandSummaryForAdmin() {
+    return this.service.demandSummaryForAdmin();
+  }
+
+  @UseGuards(AdminGuard)
   @Get('admin/unmatched')
   unmatchedForAdmin() {
     return this.service.findUnmatchedForAdmin();

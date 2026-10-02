@@ -4,7 +4,7 @@ import { api } from '@/lib/api';
 import { CATEGORIES, categoryLabel } from '@/lib/categories';
 import { CITIES, NEIGHBORHOODS, labelFromSlug, slugify } from '@/lib/locations';
 import { ArtisanCard } from '@/components/ArtisanCard';
-import { ArtisanFilters } from '@/components/ArtisanFilters';
+import { ArtisanBadgeLegend, ArtisanFilters } from '@/components/ArtisanFilters';
 import type { PublicArtisan } from '@/lib/types';
 import { DirectoryIntro } from '@/components/DirectoryIntro';
 import { DirectoryResultsInfo } from '@/components/DirectoryResultsInfo';
@@ -71,6 +71,15 @@ export default async function ArtisansDirectoryPage({ params, searchParams }: Pa
   const verified = query.verifie === '1';
   const minRating = typeof query.note === 'string' ? Number(query.note) : 0;
   const search = typeof query.q === 'string' ? query.q : undefined;
+  const availability = query.disponibilite === 'available' || query.disponibilite === 'busy' || query.disponibilite === 'unavailable'
+    ? query.disponibilite
+    : undefined;
+  const maxPrice = typeof query.prixMax === 'string' && Number.isFinite(Number(query.prixMax)) ? Number(query.prixMax) : undefined;
+  const maxResponseMinutes = typeof query.reponseMax === 'string' && Number.isFinite(Number(query.reponseMax)) ? Number(query.reponseMax) : undefined;
+  const latitude = typeof query.lat === 'string' && Number.isFinite(Number(query.lat)) ? Number(query.lat) : undefined;
+  const longitude = typeof query.lon === 'string' && Number.isFinite(Number(query.lon)) ? Number(query.lon) : undefined;
+  const requestedDistance = typeof query.distanceKm === 'string' && Number.isFinite(Number(query.distanceKm)) ? Number(query.distanceKm) : undefined;
+  const distanceKm = latitude !== undefined && longitude !== undefined ? requestedDistance : undefined;
 
   const cityLabel = citySlug ? labelFromSlug(citySlug) : undefined;
   const neighborhoodLabel = neighborhoodSlug ? labelFromSlug(neighborhoodSlug) : undefined;
@@ -85,6 +94,13 @@ export default async function ArtisansDirectoryPage({ params, searchParams }: Pa
       neighborhood: neighborhoodLabel,
       verified: verified || undefined,
       minRating: minRating || undefined,
+      availability,
+      maxPrice,
+      maxResponseMinutes,
+      includeResponseStats: true,
+      latitude: distanceKm ? latitude : undefined,
+      longitude: distanceKm ? longitude : undefined,
+      maxDistanceKm: distanceKm,
     });
   } catch {
     artisans = [];
@@ -120,8 +136,16 @@ export default async function ArtisansDirectoryPage({ params, searchParams }: Pa
         neighborhood={neighborhoodLabel}
         verified={verified}
         minRating={minRating}
+        availability={availability}
+        maxPrice={maxPrice}
+        maxResponseMinutes={maxResponseMinutes}
+        distanceKm={distanceKm}
+        latitude={latitude}
+        longitude={longitude}
         query={search}
       />
+
+      <ArtisanBadgeLegend />
 
       {artisans.length ? (
         <>
@@ -133,7 +157,7 @@ export default async function ArtisansDirectoryPage({ params, searchParams }: Pa
           </div>
         </>
       ) : (
-        <DirectoryNoResultsAction />
+        <DirectoryNoResultsAction category={category} city={cityLabel} neighborhood={neighborhoodLabel} query={search} />
       )}
 
       {suggestedNeighborhoods.length ? (

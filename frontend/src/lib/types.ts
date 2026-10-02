@@ -140,6 +140,10 @@ export interface PublicArtisan {
   category?: string | null;
   city?: string | null;
   neighborhood?: string | null;
+  availability?: 'available' | 'busy' | 'unavailable';
+  priceFrom?: number | null;
+  averageResponseMinutes?: number | null;
+  distanceKm?: number | null;
   verifiedBadge: boolean;
   topSellerBadge: boolean;
   isWomenLed?: boolean;

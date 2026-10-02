@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, ForbiddenException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Service } from '../../entities/service.entity.js';
@@ -11,6 +11,7 @@ import { NotificationsService } from '../notifications/notifications.service.js'
 import { SubscriptionsService } from '../subscriptions/subscriptions.service.js';
 import { MoreThan } from 'typeorm';
 import { isDemoMode } from '../../demo-mode.js';
+import { CustomerRequestsService } from '../customer-requests/customer-requests.service.js';
 
 /** Recherche insensible aux accents sans dépendre de l'extension Postgres `unaccent`. */
 function unaccent(column: string): string {
@@ -31,6 +32,8 @@ export class ServicesService {
     private readonly emailService: EmailService,
     private readonly notificationsService: NotificationsService,
     private readonly subscriptionsService: SubscriptionsService,
+    @Optional()
+    private readonly customerRequestsService?: CustomerRequestsService,
   ) {}
 
   /** Un service doit annoncer un montant fixe ou une fourchette (min et/ou max), jamais aucun des deux. */
@@ -298,6 +301,9 @@ export class ServicesService {
     service.validatedAt = new Date();
     const savedService = await this.servicesRepository.save(service);
     await this.recordValidationHistory(serviceId, adminId, 'approved', previousStatus, 'approved');
+    if (savedService.isDemo !== true) {
+      void this.customerRequestsService?.matchUnmatchedRequestsForArtisan(service.artisan.id).catch(() => undefined);
+    }
     await this.emailService.sendServiceStatusEmail({
       to: service.artisan.email,
       artisanName: service.artisan.name,

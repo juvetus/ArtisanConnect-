@@ -11,6 +11,8 @@ export default function HowItWorksPage() {
     [t('how_client_step_2_title'), t('how_client_step_2_desc')],
     [t('how_client_step_3_title'), t('how_client_step_3_desc')],
     [t('how_client_step_4_title'), t('how_client_step_4_desc')],
+    [t('how_client_step_5_title'), t('how_client_step_5_desc')],
+    [t('how_client_step_6_title'), t('how_client_step_6_desc')],
   ];
   const artisanSteps = [
     [t('how_artisan_step_1_title'), t('how_artisan_step_1_desc')],

@@ -41,29 +41,52 @@ export default function ServicesCatalogPage() {
     : audienceFilter === 'cooperatives'
     ? services?.filter((s) => s.artisan?.gender === 'cooperative')
     : services;
+  const needs = [
+    { key: 'home', icon: '🏠', title: english ? 'Home' : 'Maison', description: english ? 'Water leaks, painting, electrical work…' : 'Fuite d’eau, peinture, électricité…' },
+    { key: 'auto', icon: '🚗', title: english ? 'Auto' : 'Auto', description: english ? 'Breakdowns, oil changes, tires…' : 'Panne, vidange, pneus…' },
+    { key: 'fashion', icon: '👗', title: english ? 'Fashion' : 'Mode', description: english ? 'Tailoring, alterations, clothing…' : 'Couture, retouche, vêtements…' },
+    { key: 'digital', icon: '💻', title: 'Digital', description: english ? 'Websites, graphic design, IT…' : 'Site web, graphisme, informatique…' },
+  ];
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
       <section className="grid overflow-hidden rounded-xl bg-stone-900 text-white lg:grid-cols-[0.9fr_1.1fr]">
         <div className="flex flex-col justify-center px-6 py-8 lg:px-8">
           <p className="text-sm font-semibold uppercase tracking-wide text-amber-300">{english ? 'Artisan services in Cameroon' : 'Services artisanaux au Cameroun'}</p>
-          <h1 className="mt-2 text-3xl font-semibold">{english ? 'Find the right artisan for your project' : 'Trouvez l’artisan adapté à votre projet'}</h1>
-          <p className="mt-3 text-sm leading-6 text-stone-200">{english ? 'Discover professionals for everyday projects: creation, repairs, renovation, maintenance and custom services across Cameroon.' : 'Découvrez des professionnels pour vos projets du quotidien : création, réparation, aménagement, entretien et prestations sur mesure partout au Cameroun.'}</p>
+          <h1 className="mt-2 text-3xl font-semibold">{english ? 'What do you need?' : 'Quel est votre besoin ?'}</h1>
+          <p className="mt-3 text-sm leading-6 text-stone-200">{english ? 'Choose a type of project or describe what you need. Artisans across Cameroon can suggest a solution.' : 'Choisissez un type de projet ou décrivez ce qu’il vous faut. Des artisans du Cameroun pourront vous proposer une solution.'}</p>
         </div>
-          <div className="relative flex min-h-64 items-center justify-center overflow-hidden bg-stone-950 p-2">
+        <div className="relative flex min-h-64 items-center justify-center overflow-hidden bg-stone-950 p-2">
           <div className="relative w-full max-w-[42rem]">
             <Image src="/images/couture-1.png" alt="Créatrice camerounaise réalisant une couture sur mesure" width={1536} height={1024} className="block max-h-80 w-full object-contain" />
             <span aria-hidden className="pointer-events-none absolute right-[1%] top-[1%] h-[8%] w-[17%] rounded-full bg-stone-900/95" />
           </div>
         </div>
       </section>
+
+      <section aria-label={english ? 'Choose your need' : 'Choisir un besoin'} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {needs.map((need) => (
+          <Link key={need.key} href={`/customer-requests?need=${need.key}`} className="flex min-h-40 flex-col rounded-lg border border-stone-200 bg-white p-4 transition hover:border-amber-600 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">
+            <span aria-hidden className="text-2xl">{need.icon}</span>
+            <span className="mt-3 font-semibold text-stone-900">{need.title}</span>
+            <span className="mt-1 flex-1 text-sm text-stone-600">{need.description}</span>
+            <span className="mt-4 text-sm font-semibold text-amber-800">{english ? 'Describe your need' : 'Décrire ce besoin'} →</span>
+          </Link>
+        ))}
+      </section>
+
+      <div className="flex justify-center">
+        <Link href="/customer-requests" className="rounded-md bg-amber-700 px-5 py-3 text-sm font-semibold text-white hover:bg-amber-800">
+          {english ? 'Describe your need' : 'Décrivez votre besoin'}
+        </Link>
+      </div>
+
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-medium uppercase tracking-wide text-amber-700">ArtisanConnect</p>
-          <h2 className="mt-1 text-3xl font-semibold text-stone-900">{t('services_page_title')}</h2>
+          <h2 className="mt-1 text-2xl font-semibold text-stone-900">{english ? 'Browse listed services' : 'Parcourir les prestations proposées'}</h2>
           <p className="mt-2 text-stone-600">{t('services_page_subtitle')}</p>
         </div>
-        {user?.role !== 'artisan' ? <a href="/customer-requests" className="rounded-lg bg-amber-700 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-amber-800">{english ? 'I am looking for an artisan' : 'Je cherche un artisan'}</a> : null}
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setAudienceFilter((prev) => (prev === 'women' ? 'all' : 'women'))}
@@ -100,7 +123,7 @@ export default function ServicesCatalogPage() {
             value={draftQuery}
             onChange={(event) => setDraftQuery(event.target.value)}
             aria-label={english ? 'Search for a service' : 'Rechercher un service'}
-            placeholder={english ? 'Fridge repair, custom dress, plumbing...' : 'Réparation frigo, robe sur mesure, plomberie…'}
+            placeholder={english ? 'Search a specific service...' : 'Rechercher une prestation précise…'}
             className="flex-1 rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-amber-600"
           />
           <button type="submit" className="rounded-md bg-stone-900 px-5 py-2 text-sm font-medium text-white hover:bg-stone-800">
@@ -170,7 +193,7 @@ export default function ServicesCatalogPage() {
               <div className="flex flex-1 flex-col p-5">
               {(isWoman || isCoop || (service.sponsoredUntil && new Date(service.sponsoredUntil) > new Date())) ? (
                 <div className="mb-2 flex flex-wrap gap-1.5">
-                  {service.sponsoredUntil && new Date(service.sponsoredUntil) > new Date() ? <span className="inline-block rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">★ Mis en avant</span> : null}
+                  {service.sponsoredUntil && new Date(service.sponsoredUntil) > new Date() ? <span title={t('listing_sponsored_tooltip')} className="inline-block rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-semibold text-orange-900">{t('listing_sponsored')}</span> : null}
                   {isWoman && (
                     <span className="inline-block rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-800">
                       {t('badge_women_empowerment')}

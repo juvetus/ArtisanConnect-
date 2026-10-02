@@ -3,11 +3,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Listing } from '../../entities/index.js';
 import { ShopsModule } from '../shops/shops.module.js';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module.js';
+import { CustomerRequestsModule } from '../customer-requests/customer-requests.module.js';
 import { ListingsService } from './listings.service.js';
 import { ListingsController } from './listings.controller.js';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Listing]), forwardRef(() => ShopsModule), SubscriptionsModule],
+  imports: [TypeOrmModule.forFeature([Listing]), forwardRef(() => ShopsModule), SubscriptionsModule, CustomerRequestsModule],
   controllers: [ListingsController],
   providers: [ListingsService],
   exports: [ListingsService],

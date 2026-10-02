@@ -40,6 +40,18 @@ describe('ListingsService catalog availability sorting', () => {
     expect(builder.andWhere).toHaveBeenCalledWith('listing.isDemo = :isDemo', { isDemo: false });
   });
 
+  it.each([
+    ['women', '(shop.isWomenLed = :isWomenLed OR seller.gender = :sellerGender)', { isWomenLed: true, sellerGender: 'female' }],
+    ['cooperatives', '(shop.isCooperative = :isCooperative OR seller.gender = :sellerGender)', { isCooperative: true, sellerGender: 'cooperative' }],
+  ] as const)('filters %s listings before pagination', async (audience, condition, parameters) => {
+    const service = new ListingsService(repository as never);
+
+    await service.searchCatalog({ audience });
+
+    expect(builder.andWhere).toHaveBeenCalledWith(condition, parameters);
+    expect(builder.getManyAndCount).toHaveBeenCalledOnce();
+  });
+
   it('refuse une catégorie incompatible avant de créer une annonce', async () => {
     const create = vi.fn();
     const save = vi.fn();

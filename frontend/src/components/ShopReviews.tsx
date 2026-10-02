@@ -18,6 +18,7 @@ export function ShopReviews({ reviews }: { reviews: ShopReview[] }) {
   return (
     <CollapsibleSection
       title={t('shop_reviews_title')}
+      defaultOpen
       subtitle={
         reviews.length
           ? t('shop_reviews_subtitle', { count: reviews.length })

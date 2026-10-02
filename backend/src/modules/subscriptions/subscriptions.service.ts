@@ -56,53 +56,43 @@ export class SubscriptionsService {
   }> = [
     {
       slug: 'starter',
-      name: 'Starter',
+      name: 'Gratuit',
       price: 0,
       currency: 'XAF',
       durationDays: 30,
-      description: 'Pour commencer sans risque et tester les premières demandes.',
+      description: 'Recevez des demandes de devis et démarrez votre activité sans frais.',
       features: ['Profil artisan', '3 annonces actives', 'Réception de demandes de devis', 'Messagerie et WhatsApp'],
       sortOrder: 1,
     },
     {
-      slug: 'visibilite-7',
-      name: 'Visibilité 7 jours',
-      price: 1000,
-      currency: 'XAF',
-      durationDays: 7,
-      description: 'Pour tester la visibilité avec le prix d’un petit coup de pouce.',
-      features: ['Tout le plan Starter', '1 annonce mise en avant pendant 7 jours', 'Badge de visibilité locale'],
-      sortOrder: 2,
-    },
-    {
       slug: 'local-plus',
-      name: 'Local Plus',
+      name: 'Pro',
       price: 3000,
       currency: 'XAF',
       durationDays: 30,
-      description: 'Le meilleur point de départ pour être visible tout le mois.',
-      features: ['Tout le plan Starter', 'Annonces illimitées', '2 annonces mises en avant pendant 7 jours', 'Priorité locale'],
-      sortOrder: 3,
-    },
-    {
-      slug: 'croissance',
-      name: 'Croissance',
-      price: 5000,
-      currency: 'XAF',
-      durationDays: 30,
-      description: 'Pour les artisans qui publient souvent et veulent suivre leur activité.',
-      features: ['Tout le plan Local Plus', '3 annonces mises en avant pendant 15 jours', 'Statistiques de base', 'Support prioritaire'],
-      sortOrder: 4,
+      description: 'Pour développer votre présence et mettre vos offres en avant.',
+      features: ['Tout le plan Gratuit', 'Annonces illimitées', '2 annonces mises en avant pendant 7 jours', 'Priorité locale'],
+      sortOrder: 2,
     },
     {
       slug: 'premium-growth',
-      name: 'Premium Growth',
+      name: 'Premium',
       price: 10000,
       currency: 'XAF',
       durationDays: 30,
-      description: 'Pour accélérer votre croissance et booster votre activité.',
-      features: ['Tout le plan Local Plus', 'Badge Premium Growth', '5 annonces mises en avant pendant 30 jours', 'Galerie vidéo des services', 'Statistiques détaillées et support prioritaire'],
-      sortOrder: 5,
+      description: 'Pour renforcer votre visibilité et développer votre activité.',
+      features: ['Tout le plan Pro', '5 annonces mises en avant pendant 30 jours'],
+      sortOrder: 3,
+    },
+    {
+      slug: 'visibilite-7',
+      name: 'Boost',
+      price: 1000,
+      currency: 'XAF',
+      durationDays: 7,
+      description: 'Une mise en avant ponctuelle pendant 7 jours.',
+      features: ['Tout le plan Gratuit', '1 annonce mise en avant pendant 7 jours'],
+      sortOrder: 4,
     },
   ];
 
@@ -148,6 +138,11 @@ export class SubscriptionsService {
       savedPlans.push(created);
     }
 
+    const retiredGrowthPlan = bySlug.get('croissance');
+    if (retiredGrowthPlan?.isActive) {
+      await this.planRepository.save({ ...retiredGrowthPlan, isActive: false });
+    }
+
     return savedPlans.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
   }
 
@@ -165,7 +160,7 @@ export class SubscriptionsService {
   async createSubscription(userId: string, planId: string, payerPhone?: string, promotionCode?: string): Promise<Subscription & { redirectUrl?: string | null; discountPercent?: number; originalAmount?: number }> {
     return this.dataSource.transaction(async (manager) => {
       const plan = await manager.findOne(SubscriptionPlan, { where: { id: planId } });
-      if (!plan) throw new NotFoundException('Plan introuvable');
+      if (!plan || !plan.isActive) throw new NotFoundException('Plan introuvable ou inactif');
       const activeSubscription = await manager.findOne(Subscription, { where: { userId, status: 'active' } });
       if (activeSubscription && (!activeSubscription.endDate || activeSubscription.endDate.getTime() > Date.now())) {
         throw new BadRequestException('Vous avez déjà un abonnement actif. Attendez son expiration avant de souscrire à un nouveau plan.');

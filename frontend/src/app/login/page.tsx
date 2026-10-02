@@ -2,16 +2,30 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-stone-600">Chargement…</p>}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const { login } = useAuth();
   const { t } = useLanguage();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextParam = searchParams.get('next');
+  const returnTo = nextParam?.startsWith('/') && !nextParam.startsWith('//') ? nextParam : '/';
+  const registerHref = `/register?role=client&next=${encodeURIComponent(returnTo)}`;
   const [identifier, setIdentifier] = useState('');
+  const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('email');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -25,14 +39,14 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     const value = identifier.trim();
-    if (!value.includes('@') && !value.startsWith('+') && !value.startsWith('00')) {
+    if ((loginMethod === 'email' && !value.includes('@')) || (loginMethod === 'phone' && !value.startsWith('+') && !value.startsWith('00'))) {
       setError(t('login_phone_code_required'));
       return;
     }
     setPending(true);
     try {
       await login(value, password);
-      router.push('/');
+      router.push(returnTo);
     } catch (err) {
       if (err instanceof ApiError && err.message.includes('adresse email')) {
         setVerificationMode('email');
@@ -76,7 +90,7 @@ export default function LoginPage() {
     try {
       await api.verifyPhone(identifier.trim(), verificationCode);
       await login(identifier.trim(), password);
-      router.push('/');
+      router.push(returnTo);
     } catch (err) {
       setVerificationMessage(err instanceof ApiError ? err.message : t('email_verification_error'));
     } finally {
@@ -91,21 +105,25 @@ export default function LoginPage() {
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4 rounded-lg border border-stone-200 bg-white p-6">
         <p className="text-xs text-stone-600"><span className="text-red-700" aria-hidden="true">*</span> Champ obligatoire</p>
+        <div className="grid grid-cols-2 gap-2" role="group" aria-label={t('login_method')}>
+          <button type="button" aria-pressed={loginMethod === 'email'} onClick={() => { setLoginMethod('email'); setIdentifier(''); setError(''); }} className={`min-h-11 rounded-md border px-3 py-2 text-sm font-medium ${loginMethod === 'email' ? 'border-amber-700 bg-amber-50 text-amber-900' : 'border-stone-300 text-stone-700'}`}>{t('login_method_email')}</button>
+          <button type="button" aria-pressed={loginMethod === 'phone'} onClick={() => { setLoginMethod('phone'); setIdentifier(''); setError(''); }} className={`min-h-11 rounded-md border px-3 py-2 text-sm font-medium ${loginMethod === 'phone' ? 'border-amber-700 bg-amber-50 text-amber-900' : 'border-stone-300 text-stone-700'}`}>{t('login_method_phone')}</button>
+        </div>
         <div>
           <label htmlFor="identifier" className="block text-sm font-medium">
-            Email ou numéro de téléphone <span className="text-red-700" aria-hidden="true">*</span><span className="sr-only"> (obligatoire)</span>
+            {loginMethod === 'email' ? t('login_email') : t('register_phone_label')} <span className="text-red-700" aria-hidden="true">*</span><span className="sr-only"> (obligatoire)</span>
           </label>
           <input
             id="identifier"
-            type="text"
+            type={loginMethod === 'email' ? 'email' : 'tel'}
             required
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
-            placeholder="email@exemple.com / +237 6XX XXX XXX"
+            placeholder={loginMethod === 'email' ? 'email@exemple.com' : '+237 6XX XXX XXX'}
             aria-describedby="identifier-help"
             className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600"
           />
-          <p id="identifier-help" className="mt-1 text-xs text-stone-500">{t('login_phone_hint')}</p>
+          <p id="identifier-help" className="mt-1 text-xs text-stone-500">{loginMethod === 'email' ? t('login_email_hint') : t('login_phone_password_hint')}</p>
         </div>
 
         <div>
@@ -156,7 +174,7 @@ export default function LoginPage() {
 
         <p className="text-center text-sm text-stone-600">
           {t('login_no_account')}{' '}
-          <Link href="/register" className="text-amber-700 underline">
+          <Link href={registerHref} className="text-amber-700 underline">
             {t('login_create_account')}
           </Link>
         </p>

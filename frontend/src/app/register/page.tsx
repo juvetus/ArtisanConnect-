@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
@@ -9,8 +10,23 @@ import type { Role } from '@/lib/types';
 import { PHONE_COUNTRIES } from '@/lib/countries';
 
 export default function RegisterPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-stone-600">Chargement…</p>}>
+      <RegisterFlow />
+    </Suspense>
+  );
+}
+
+function RegisterFlow() {
   const { register } = useAuth();
   const { t } = useLanguage();
+  const searchParams = useSearchParams();
+  const roleParam = searchParams.get('role');
+  const selectedRole: Role | null = roleParam === 'client' || roleParam === 'artisan' || roleParam === 'institution' ? roleParam : null;
+  const role = selectedRole ?? 'client';
+  const nextParam = searchParams.get('next');
+  const returnTo = nextParam?.startsWith('/') && !nextParam.startsWith('//') ? nextParam : null;
+  const loginHref = returnTo ? `/login?next=${encodeURIComponent(returnTo)}` : '/login';
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [contactType, setContactType] = useState<'email' | 'phone'>('email');
@@ -26,7 +42,6 @@ export default function RegisterPage() {
   const [emailResendMessage, setEmailResendMessage] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState<Role>('client');
   const [gender, setGender] = useState<'female' | 'male' | 'cooperative' | 'other'>('female');
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
@@ -89,38 +104,44 @@ export default function RegisterPage() {
     }
   };
 
+  if (!selectedRole) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-6">
+        <header>
+          <p className="text-sm font-medium uppercase tracking-wide text-amber-700">ArtisanConnect</p>
+          <h1 className="mt-1 text-3xl font-semibold text-stone-900">{t('register_choose_path')}</h1>
+          <p className="mt-2 text-stone-600">{t('register_choose_path_desc')}</p>
+        </header>
+        <div className="grid gap-3 md:grid-cols-3">
+          {([
+            ['client', t('register_client_path'), t('register_client_path_desc')],
+            ['artisan', t('register_artisan_path'), t('register_artisan_path_desc')],
+            ['institution', t('register_institution_path'), t('register_institution_path_desc')],
+          ] as const).map(([value, title, description]) => (
+            <Link key={value} href={`/register?role=${value}${returnTo ? `&next=${encodeURIComponent(returnTo)}` : ''}`} className="flex min-h-40 flex-col rounded-lg border border-stone-200 bg-white p-5 transition hover:border-amber-600 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">
+              <span className="font-semibold text-stone-900">{title}</span>
+              <span className="mt-2 flex-1 text-sm leading-6 text-stone-600">{description}</span>
+              <span className="mt-4 text-sm font-semibold text-amber-800">{t('register_continue')} →</span>
+            </Link>
+          ))}
+        </div>
+        <p className="text-center text-sm text-stone-600">
+          {t('register_already_account')} <Link href={loginHref} className="font-medium text-amber-800 underline">{t('register_login_link')}</Link>
+        </p>
+      </div>
+    );
+  }
+
+  const roleTitle = role === 'client' ? t('register_client_path') : role === 'artisan' ? t('register_artisan_path') : t('register_institution_path');
+
   return (
     <div className="mx-auto max-w-md">
-      <h1 className="text-2xl font-semibold">{t('register_title')}</h1>
-      <p className="mt-1 text-sm text-stone-600">
-        {t('register_subtitle')}
-      </p>
+      <Link href={`/register${returnTo ? `?next=${encodeURIComponent(returnTo)}` : ''}`} className="text-sm font-medium text-amber-800 hover:underline">← {t('register_change_path')}</Link>
+      <h1 className="mt-3 text-2xl font-semibold">{roleTitle}</h1>
+      <p className="mt-1 text-sm text-stone-600">{role === 'client' ? t('register_client_path_desc') : role === 'artisan' ? t('register_artisan_path_desc') : t('register_institution_path_desc')}</p>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4 rounded-lg border border-stone-200 bg-white p-6">
         <p className="text-xs text-stone-600"><span className="text-red-700" aria-hidden="true">*</span> {t('form_required')}</p>
-        <fieldset className="grid grid-cols-2 gap-3">
-          <legend className="mb-2 text-sm font-medium">{t('register_i_am')}</legend>
-          {(['client', 'artisan', 'institution'] as const).map((value) => (
-            <label
-              key={value}
-              className={`cursor-pointer rounded-md border px-3 py-3 text-center text-sm ${
-                role === value
-                  ? 'border-amber-600 bg-amber-50 font-medium text-amber-900'
-                  : 'border-stone-300 hover:bg-stone-50'
-              }`}
-            >
-              <input
-                type="radio"
-                name="role"
-                value={value}
-                checked={role === value}
-                onChange={() => setRole(value)}
-                className="sr-only"
-              />
-              {value === 'client' ? t('role_client') : value === 'artisan' ? t('role_artisan') : t('role_institution')}
-            </label>
-          ))}
-        </fieldset>
 
         <fieldset className="grid grid-cols-2 gap-2">
           <legend className="mb-2 text-sm font-medium">{t('register_with')}</legend>
@@ -213,7 +234,7 @@ export default function RegisterPage() {
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
-        {phoneVerified ? <div role="status" className="space-y-3 rounded-md border border-green-200 bg-green-50 p-4"><p className="text-sm font-medium text-green-800">{t('register_phone_success', { phone: `${phoneCountry}${phone}` })}</p><Link href="/login" className="block w-full rounded-md bg-green-700 py-2 text-center font-medium text-white">{t('register_login_link')}</Link></div> : phoneAccountCreated ? <div className="space-y-3 rounded-md bg-amber-50 p-4"><p role="status" className="text-sm font-medium text-stone-800">{t('register_phone_created')}</p>{phoneOtpExpected ? <p className="text-sm text-stone-700">{t('register_phone_test_code')} <strong>{phoneOtpExpected}</strong></p> : null}<input value={phoneOtp} onChange={(e) => setPhoneOtp(e.target.value)} placeholder={t('register_phone_code_placeholder')} inputMode="numeric" className="w-full rounded-md border border-stone-300 px-3 py-2" /><button type="button" onClick={() => void verifyPhone()} className="w-full rounded-md bg-green-700 py-2 font-medium text-white">{t('register_phone_verify')}</button></div> : emailAccountCreated ? <div role="status" className="space-y-3 rounded-md border border-amber-200 bg-amber-50 p-4"><p className="text-sm font-medium text-stone-800">{verificationEmailSent ? t('register_email_created') : t('register_email_send_failed')}</p>{emailResendMessage ? <p className="text-sm text-stone-700">{emailResendMessage}</p> : null}<button type="button" onClick={() => void resendEmailVerification()} disabled={emailResending} className="w-full rounded-md bg-amber-700 py-2 font-medium text-white disabled:opacity-60">{emailResending ? t('action_loading') : t('register_email_resend')}</button></div> : <button
+        {phoneVerified ? <div role="status" className="space-y-3 rounded-md border border-green-200 bg-green-50 p-4"><p className="text-sm font-medium text-green-800">{t('register_phone_success', { phone: `${phoneCountry}${phone}` })}</p><Link href={loginHref} className="block w-full rounded-md bg-green-700 py-2 text-center font-medium text-white">{t('register_login_link')}</Link></div> : phoneAccountCreated ? <div className="space-y-3 rounded-md bg-amber-50 p-4"><p role="status" className="text-sm font-medium text-stone-800">{t('register_phone_created')}</p>{phoneOtpExpected ? <p className="text-sm text-stone-700">{t('register_phone_test_code')} <strong>{phoneOtpExpected}</strong></p> : null}<input value={phoneOtp} onChange={(e) => setPhoneOtp(e.target.value)} placeholder={t('register_phone_code_placeholder')} inputMode="numeric" className="w-full rounded-md border border-stone-300 px-3 py-2" /><button type="button" onClick={() => void verifyPhone()} className="w-full rounded-md bg-green-700 py-2 font-medium text-white">{t('register_phone_verify')}</button></div> : emailAccountCreated ? <div role="status" className="space-y-3 rounded-md border border-amber-200 bg-amber-50 p-4"><p className="text-sm font-medium text-stone-800">{verificationEmailSent ? t('register_email_created') : t('register_email_send_failed')}</p>{emailResendMessage ? <p className="text-sm text-stone-700">{emailResendMessage}</p> : null}<button type="button" onClick={() => void resendEmailVerification()} disabled={emailResending} className="w-full rounded-md bg-amber-700 py-2 font-medium text-white disabled:opacity-60">{emailResending ? t('action_loading') : t('register_email_resend')}</button><Link href={loginHref} className="block text-center text-sm font-medium text-amber-800 underline">{t('register_login_link')}</Link></div> : <button
           type="submit"
           disabled={pending}
           className="min-h-12 w-full rounded-md bg-amber-700 py-2 font-medium text-white hover:bg-amber-800 disabled:opacity-60"
@@ -223,7 +244,7 @@ export default function RegisterPage() {
 
         <p className="text-center text-sm text-stone-600">
           {t('register_already_account')}{' '}
-          <Link href="/login" className="text-amber-700 underline">
+          <Link href={loginHref} className="text-amber-700 underline">
             {t('register_login_link')}
           </Link>
         </p>

@@ -10,9 +10,10 @@ import { ServiceValidationHistory } from '../../entities/service-validation-hist
 import { User } from '../../entities/user.entity.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module.js';
+import { CustomerRequestsModule } from '../customer-requests/customer-requests.module.js';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Service, ServiceReview, ServiceValidationHistory, User]), ScheduleModule.forRoot(), EmailModule, NotificationsModule, SubscriptionsModule],
+  imports: [TypeOrmModule.forFeature([Service, ServiceReview, ServiceValidationHistory, User]), ScheduleModule.forRoot(), EmailModule, NotificationsModule, SubscriptionsModule, CustomerRequestsModule],
   controllers: [ServicesController],
   providers: [ServicesService],
   exports: [ServicesService],
