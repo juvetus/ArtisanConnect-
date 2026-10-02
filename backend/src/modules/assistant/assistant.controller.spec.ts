@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { AssistantController } from './assistant.controller.js';
 
 describe('AssistantController role-scoped text suggestions', () => {
@@ -38,5 +38,32 @@ describe('AssistantController role-scoped text suggestions', () => {
       { task: 'institution_program', input: 'Programme' },
     )).toThrow(BadRequestException);
     expect(assistant.generate).not.toHaveBeenCalled();
+  });
+
+  it('allows only admins to request an administrative reply draft', async () => {
+    const admin = { id: 'admin-1', role: 'admin' } as never;
+
+    await controller.suggestAdminReply(admin, { input: 'Préciser une pièce manquante', context: 'Boutique: Atelier Test' });
+
+    expect(assistant.generate).toHaveBeenCalledWith(expect.objectContaining({
+      task: 'reponse_admin',
+      input: 'Préciser une pièce manquante',
+      context: 'Boutique: Atelier Test',
+    }));
+    expect(() => controller.suggestAdminReply(
+      { id: 'artisan-1', role: 'artisan' } as never,
+      { input: 'Réponse' },
+    )).toThrow(ForbiddenException);
+    expect(() => controller.suggestAdminReply(
+      { id: 'client-1', role: 'client' } as never,
+      { input: 'Réponse' },
+    )).toThrow(ForbiddenException);
+  });
+
+  it('requires input or context for an administrative reply draft', () => {
+    expect(() => controller.suggestAdminReply(
+      { id: 'admin-1', role: 'admin' } as never,
+      { input: '  ', context: '  ' },
+    )).toThrow(BadRequestException);
   });
 });

@@ -52,6 +52,22 @@ describe('AssistantService profile and photo analysis', () => {
     expect(requests[1]).toContain('Ne prétends pas avoir déjà envoyé le message');
   });
 
+  it('keeps administrative replies factual and explicitly unsent drafts', async () => {
+    let systemPrompt = '';
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (_url: string, init: RequestInit) => {
+      const payload = JSON.parse(String(init.body));
+      systemPrompt = payload.messages[0].content;
+      return { ok: true, json: async () => ({ choices: [{ message: { content: 'Brouillon administratif.' } }] }) };
+    }));
+
+    const result = await service.generate({ task: 'reponse_admin', input: 'Demander une pièce complémentaire.', context: 'Boutique: Atelier Test' });
+
+    expect(result.content).toBe('Brouillon administratif.');
+    expect(systemPrompt).toContain('brouillon de réponse administrative');
+    expect(systemPrompt).toContain('N’invente aucun fait');
+    expect(systemPrompt).toContain('Ne prétends jamais que la réponse a été envoyée');
+  });
+
   it('uses fact-preserving instructions for artisan and institution descriptions', async () => {
     const systemPrompts: string[] = [];
     vi.stubGlobal('fetch', vi.fn().mockImplementation(async (_url: string, init: RequestInit) => {

@@ -99,6 +99,9 @@ export const api = {
   assistantSuggestOpportunityReply: (data: { description: string; category: string; city: string; neighborhood?: string | null; budgetMin?: number | null; budgetMax?: number | null; requestedDate?: string | null; language?: 'fr' | 'en' }) =>
     post<{ content: string; provider: 'ai' | 'local' }>('/assistant/suggest-opportunity-reply', data),
 
+  assistantSuggestAdminReply: (data: { input?: string; context?: string; language?: 'fr' | 'en' }) =>
+    post<{ content: string; provider: 'ai' | 'local' }>('/assistant/suggest-admin-reply', data),
+
   assistantSuggestText: (data: { task: 'listing_description' | 'service_description' | 'institution_resource' | 'institution_program'; input: string; context?: string; language?: 'fr' | 'en' }) =>
     post<{ content: string; provider: 'ai' | 'local' }>('/assistant/suggest-text', data),
 

@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth-context';
 import { api } from '@/lib/api';
 import { useLanguage } from '@/lib/language-context';
 import type { ServiceValidationHistory } from '@/lib/types';
+import { AiTextSuggestion } from '@/components/AiTextSuggestion';
 
 interface DashboardStats {
   stats: {
@@ -690,6 +691,12 @@ export default function AdminServicesPage() {
                   className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm disabled:bg-stone-50"
                   rows={4}
                 />
+                {action !== 'approve' ? <AiTextSuggestion
+                  task="reponse_admin"
+                  input={feedback}
+                  context={`Préparer un feedback de modération à l’artisan. Action choisie: ${action === 'revise' ? 'demander une révision' : 'refuser le service'}. Service: ${selectedService.title}. Métier: ${selectedService.category}. Description soumise: ${selectedService.description}. Artisan: ${selectedService.artisan?.name ?? ''}. Expliquer des corrections concrètes à partir des informations fournies; ne pas inventer de règle, de délai ni de fait.`}
+                  onApply={setFeedback}
+                /> : null}
                 <div className="flex gap-3">
                   <button
                     onClick={() => {

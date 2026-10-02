@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { api, ApiError } from '@/lib/api';
 import { useLanguage } from '@/lib/language-context';
 
-type SuggestionTask = 'listing_description' | 'service_description' | 'institution_resource' | 'institution_program';
+type SuggestionTask = 'listing_description' | 'service_description' | 'institution_resource' | 'institution_program' | 'reponse_admin';
 
 type Props = {
   task: SuggestionTask;
@@ -23,13 +23,17 @@ export function AiTextSuggestion({ task, input, context = '', onApply }: Props) 
   const currentSuggestion = suggestion?.fingerprint === fingerprint ? suggestion.content : '';
 
   const generate = async () => {
-    const sourceText = input.trim() || (context.trim() ? (english ? 'Draft a clear description using the supplied context.' : 'Rédige une description claire à partir du contexte fourni.') : '');
+    const sourceText = input.trim() || (context.trim() ? (task === 'reponse_admin'
+      ? (english ? 'Draft a concise admin reply based only on the supplied facts. Do not send it.' : 'Rédige un brouillon de réponse admin concis à partir des faits fournis, sans l’envoyer.')
+      : (english ? 'Draft a clear description using the supplied context.' : 'Rédige une description claire à partir du contexte fourni.')) : '');
     if (!sourceText) return;
     setLoading(true);
     setError('');
     setSuggestion(null);
     try {
-      const result = await api.assistantSuggestText({ task, input: sourceText, context, language });
+      const result = task === 'reponse_admin'
+        ? await api.assistantSuggestAdminReply({ input: sourceText, context, language })
+        : await api.assistantSuggestText({ task, input: sourceText, context, language });
       setSuggestion({ fingerprint, content: result.content });
     } catch (cause) {
       setError(cause instanceof ApiError ? cause.message : (english ? 'Could not prepare an AI suggestion.' : 'Impossible de préparer une suggestion IA.'));

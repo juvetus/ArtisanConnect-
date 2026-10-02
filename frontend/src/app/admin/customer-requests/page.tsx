@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
+import { AiTextSuggestion } from '@/components/AiTextSuggestion';
 
 type UnmatchedRequest = NonNullable<Awaited<ReturnType<typeof api.getAdminUnmatchedCustomerRequests>>>[number];
 type FollowUpRequest = NonNullable<Awaited<ReturnType<typeof api.getAdminRequestsAwaitingResponses>>>[number];
@@ -208,6 +209,12 @@ export default function AdminCustomerRequestsPage() {
               <div className="space-y-2">
                 <label htmlFor={`reply-${request.id}`} className="block text-sm font-medium text-stone-700">{english ? 'Your reply to the client' : 'Votre réponse au client'}</label>
                 <textarea id={`reply-${request.id}`} rows={3} value={drafts[request.id] ?? ''} onChange={(event) => setDrafts((current) => ({ ...current, [request.id]: event.target.value }))} placeholder={english ? 'Explain next steps or ask for more details…' : 'Expliquez les prochaines étapes ou demandez des précisions…'} className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm" />
+                <AiTextSuggestion
+                  task="reponse_admin"
+                  input={drafts[request.id] ?? ''}
+                  context={`Répondre à ${request.requestType === 'business' ? `l’organisation ${request.organizationName ?? 'cliente'}` : `la cliente ou au client ${request.client?.name ?? ''}`}. Métier: ${request.category}. Ville: ${request.city}. Quartier: ${request.neighborhood ?? 'non précisé'}. Budget: ${request.budgetMin ?? 'non précisé'}–${request.budgetMax ?? 'non précisé'} FCFA. Date: ${request.requestedDate ?? 'non précisée'}. Demande: ${request.description}. Préparer une réponse utile ou demander les précisions manquantes, sans promettre qu’un artisan est déjà trouvé.`}
+                  onApply={(text) => setDrafts((current) => ({ ...current, [request.id]: text }))}
+                />
                 <button type="button" disabled={!drafts[request.id]?.trim() || sendingId === request.id} onClick={() => void sendReply(request)} className="rounded-md bg-amber-700 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-800 disabled:cursor-not-allowed disabled:opacity-50">{sendingId === request.id ? (english ? 'Sending…' : 'Envoi…') : (english ? 'Send reply' : 'Envoyer la réponse')}</button>
               </div>
             )}
