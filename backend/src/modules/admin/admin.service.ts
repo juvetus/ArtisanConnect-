@@ -25,9 +25,17 @@ export class AdminService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    const email = this.config.get<string>('ADMIN_EMAIL');
+    const email = this.config.get<string>('ADMIN_EMAIL')?.trim().toLowerCase();
     const password = this.config.get<string>('ADMIN_PASSWORD');
-    if (!email || !password || (await this.users.findOne({ where: { email } }))) return;
+    if (!email || !password) return;
+
+    const existing = await this.users.findOne({ where: { email } });
+    if (existing) {
+      if (existing.role === 'admin' && !existing.verifiedEmail) {
+        await this.users.update(existing.id, { verifiedEmail: true });
+      }
+      return;
+    }
 
     await this.users.save(
       this.users.create({
@@ -35,6 +43,7 @@ export class AdminService implements OnModuleInit {
         passwordHash: await bcrypt.hash(password, 10),
         name: this.config.get('ADMIN_NAME', 'Administrateur'),
         role: 'admin',
+        verifiedEmail: true,
       }),
     );
   }
