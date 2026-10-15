@@ -11,8 +11,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: DEMO_MODE
-        # Set both demo flags to false when real offers are ready for launch.
-        value: 'true'
+        value: 'false'
       - key: PORT
         value: 10000
       - key: JWT_SECRET
@@ -100,7 +99,7 @@ services:
       - key: NEXT_PUBLIC_SITE_URL
         value: https://artisanconnectcm.info
       - key: NEXT_PUBLIC_DEMO_MODE
-        value: 'true'
+        value: 'false'
       - key: NEXT_PUBLIC_MOBILE_MONEY_MODE
         value: test
       - key: NEXT_PUBLIC_CARRIER_MODE
