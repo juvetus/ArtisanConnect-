@@ -10,6 +10,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: DEMO_MODE
+        value: 'false'
       - key: PORT
         value: 10000
       - key: JWT_SECRET
@@ -96,6 +98,8 @@ services:
         value: https://artisanconnect-api-frankfurt.onrender.com
       - key: NEXT_PUBLIC_SITE_URL
         value: https://artisanconnectcm.info
+      - key: NEXT_PUBLIC_DEMO_MODE
+        value: 'false'
 
 databases:
   - name: artisanconnect-db-one
