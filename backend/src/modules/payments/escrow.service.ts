@@ -1,9 +1,11 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
+import { randomBytes } from 'node:crypto';
 import { Order, Payment, Listing } from '../../entities/index.js';
 import { ShopsService } from '../shops/shops.service.js';
 import { OrangeMoneyService } from './orange-money.service.js';
+import { IwomipayService, type IwomipayCardDetails, type IwomipayMethod, type IwomipayPaymentResult } from './iwomipay.service.js';
 import { calculateCollectedPlatformCommission } from './platform-commission.js';
 import { InvoicesService } from '../invoices/invoices.service.js';
 
@@ -24,47 +26,166 @@ export class EscrowService {
     private dataSource: DataSource,
     private shopsService: ShopsService,
     private orangeMoneyService: OrangeMoneyService,
+    private iwomipayService: IwomipayService,
     private invoicesService: InvoicesService,
   ) { }
 
-  /** Étape 1 — Paiement client via Orange Money webpayment. */
-  async initiateWebpayment(orderId: string, buyerId: string) {
+  /** Étape 1 — Initialisation d'un paiement Mobile Money ou carte via Iwomipay. */
+  async initiateIwomipayPayment(
+    orderId: string,
+    buyerId: string,
+    method: IwomipayMethod,
+    payerPhone?: string,
+    cardDetails?: IwomipayCardDetails,
+  ) {
     const order = await this.ordersRepository.findOne({ where: { id: orderId } });
     if (!order) throw new NotFoundException('Commande introuvable');
     if (order.buyerId !== buyerId) throw new ForbiddenException('Cette commande ne vous concerne pas');
-    if (order.paymentMethod !== 'orange_money') {
-      throw new BadRequestException("Cette commande n'est pas réglée via Orange Money");
+    if (order.paymentMethod !== method) {
+      throw new BadRequestException('Le moyen de paiement ne correspond pas à cette commande');
+    }
+    if (order.status === 'cancelled') throw new BadRequestException('Cette commande a été annulée');
+    if (!payerPhone?.trim()) throw new BadRequestException('Le numéro Orange Money du payeur est obligatoire');
+
+    const payment = await this.dataSource.getRepository(Payment).findOne({ where: { orderId } });
+    if (!payment) throw new NotFoundException('Paiement introuvable');
+    if (payment.status !== 'pending') throw new BadRequestException('Ce paiement a déjà été traité');
+    if (payment.iwomipayExternalId && payment.iwomipayInternalId) {
+      const previousResult = await this.iwomipayService.checkTransactionStatus(
+        payment.iwomipayInternalId,
+        payment.iwomipayExternalId,
+      );
+      if (previousResult.status === 'PENDING') {
+        return {
+          externalId: previousResult.externalId,
+          internalId: previousResult.internalId,
+          redirectUrl: payment.iwomipayRedirectUrl,
+          status: previousResult.status,
+          message: previousResult.message,
+        };
+      }
+      if (previousResult.status === 'SUCCESS') {
+        return this.applyIwomipayStatus(orderId, payment.iwomipayInternalId, previousResult);
+      }
+      payment.iwomipayExternalId = null;
+      payment.iwomipayInternalId = null;
+      payment.iwomipayRedirectUrl = null;
+      await this.dataSource.getRepository(Payment).save(payment);
     }
 
-    const omResult = await this.orangeMoneyService.initWebPayment({
-      orderId,
+    const externalId = payment.iwomipayExternalId || randomBytes(8).toString('hex');
+    if (!payment.iwomipayExternalId) {
+      payment.iwomipayExternalId = externalId;
+      await this.dataSource.getRepository(Payment).save(payment);
+    }
+    const iwomiResult = await this.iwomipayService.initiatePayment({
       amount: Number(order.totalPrice),
-      currency: 'XAF',
-      orderType: 'product',
-      reference: `CMD-${orderId.slice(0, 8)}`,
+      externalId,
+      method,
+      payerPhone,
+      motif: `ArtisanConnect ${orderId.slice(0, 8)}`,
+      cardDetails,
     });
+    if (iwomiResult.externalId !== externalId) {
+      throw new BadRequestException('La référence de transaction retournée par Iwomipay ne correspond pas');
+    }
+    if (iwomiResult.status === 'FAILED') {
+      throw new BadRequestException(iwomiResult.message || 'Iwomipay a refusé le paiement');
+    }
 
-    return this.dataSource.transaction(async (manager) => {
-      const payment = await manager.findOne(Payment, { where: { orderId } });
-      if (!payment) throw new NotFoundException('Paiement introuvable');
-      if (payment.status !== 'pending') {
-        throw new BadRequestException('Ce paiement a déjà été traité');
+    await this.dataSource.transaction(async (manager) => {
+      const currentPayment = await manager.findOne(Payment, { where: { orderId } });
+      if (!currentPayment) throw new NotFoundException('Paiement introuvable');
+      if (currentPayment.status !== 'pending') throw new BadRequestException('Ce paiement a déjà été traité');
+      if (currentPayment.iwomipayExternalId !== externalId) {
+        throw new BadRequestException('La transaction Iwomipay de cette commande a changé');
       }
 
-      payment.orangeMoneyTransactionId = omResult.transactionId;
-      payment.orangeMoneyPaymentToken = omResult.paymentToken;
-      payment.orangeMoneyNotifToken = omResult.notifToken || null;
-      payment.orangeMoneyPaymentUrl = omResult.paymentUrl;
-      await manager.save(payment);
-
-      return {
-        transactionId: payment.orangeMoneyTransactionId,
-        paymentToken: omResult.paymentToken,
-        notifToken: omResult.notifToken,
-        paymentUrl: omResult.paymentUrl,
-        status: 'PENDING' as const,
-      };
+      currentPayment.iwomipayExternalId = iwomiResult.externalId;
+      currentPayment.iwomipayInternalId = iwomiResult.internalId;
+      currentPayment.iwomipayRedirectUrl = iwomiResult.redirectUrl || null;
+      if (iwomiResult.status === 'SUCCESS') currentPayment.status = 'confirmed';
+      await manager.save(currentPayment);
+      if (iwomiResult.status === 'SUCCESS') {
+        await manager.update(Order, orderId, { status: 'confirmed' });
+      }
     });
+    if (iwomiResult.status === 'SUCCESS') await this.invoicesService.issueForOrder(orderId);
+
+    return {
+      externalId: iwomiResult.externalId,
+      internalId: iwomiResult.internalId,
+      redirectUrl: iwomiResult.redirectUrl || null,
+      status: iwomiResult.status,
+      message: iwomiResult.message,
+    };
+  }
+
+  async initiateWebpayment(orderId: string, buyerId: string, payerPhone?: string) {
+    return this.initiateIwomipayPayment(orderId, buyerId, 'orange_money', payerPhone);
+  }
+
+  async checkIwomipayStatus(orderId: string, requesterId: string) {
+    const order = await this.ordersRepository.findOne({ where: { id: orderId } });
+    if (!order) throw new NotFoundException('Commande introuvable');
+    if (order.buyerId !== requesterId && order.sellerId !== requesterId) {
+      throw new ForbiddenException('Cette commande ne vous concerne pas');
+    }
+    const payment = await this.dataSource.getRepository(Payment).findOne({ where: { orderId } });
+    if (!payment) throw new NotFoundException('Paiement introuvable');
+    if (!payment.iwomipayExternalId || !payment.iwomipayInternalId) {
+      throw new BadRequestException('Aucune transaction Iwomipay n’est associée à ce paiement');
+    }
+    if (payment.status === 'refunded') throw new BadRequestException('Ce paiement a été remboursé');
+
+    const result = await this.iwomipayService.checkTransactionStatus(
+      payment.iwomipayInternalId,
+      payment.iwomipayExternalId,
+    );
+    return this.applyIwomipayStatus(orderId, payment.iwomipayInternalId, result);
+  }
+
+  async handleIwomipayCallback(body: Record<string, unknown>) {
+    const externalId = String(body.external_id || '').trim();
+    const internalId = String(body.internal_id || '').trim();
+    if (!externalId || !internalId) {
+      throw new BadRequestException('Références de transaction Iwomipay absentes');
+    }
+    const payment = await this.dataSource.getRepository(Payment).findOne({ where: { iwomipayExternalId: externalId } });
+    if (!payment || payment.iwomipayInternalId !== internalId) {
+      throw new NotFoundException('Transaction Iwomipay introuvable');
+    }
+
+    const result = await this.iwomipayService.checkTransactionStatus(internalId, externalId);
+    return this.applyIwomipayStatus(payment.orderId, internalId, result);
+  }
+
+  private async applyIwomipayStatus(orderId: string, internalId: string, result: IwomipayPaymentResult) {
+    const payment = await this.dataSource.transaction(async (manager) => {
+      const currentPayment = await manager.findOne(Payment, { where: { orderId } });
+      if (!currentPayment || currentPayment.iwomipayInternalId !== internalId) {
+        throw new NotFoundException('Transaction Iwomipay introuvable');
+      }
+      if (currentPayment.status === 'refunded') throw new BadRequestException('Ce paiement a été remboursé');
+      if (result.status === 'SUCCESS' && currentPayment.status === 'pending') {
+        currentPayment.status = 'confirmed';
+        await manager.save(currentPayment);
+        await manager.update(Order, orderId, { status: 'confirmed' });
+      }
+      return currentPayment;
+    });
+
+    if (result.status === 'SUCCESS') await this.invoicesService.issueForOrder(orderId);
+    return {
+      success: true,
+      orderId,
+      externalId: result.externalId,
+      internalId: result.internalId,
+      redirectUrl: payment.iwomipayRedirectUrl,
+      status: result.status,
+      paymentStatus: payment.status,
+      message: result.message,
+    };
   }
 
   async handleOrangeCallback(body: Record<string, unknown>) {
@@ -74,6 +195,12 @@ export class EscrowService {
     const result = await this.dataSource.transaction(async (manager) => {
       const payment = await manager.findOne(Payment, { where: { orderId } });
       if (!payment) throw new NotFoundException('Paiement Orange Money introuvable');
+      if (payment.iwomipayExternalId || payment.iwomipayInternalId) {
+        throw new BadRequestException('Cette transaction doit être confirmée par le callback Iwomipay');
+      }
+      if (!payment.orangeMoneyNotifToken) {
+        throw new BadRequestException('Aucun jeton de notification Orange Money n’est associé à ce paiement');
+      }
 
       const callback = await this.orangeMoneyService.handleCallback(body, payment.orangeMoneyNotifToken);
       payment.orangeMoneyTransactionId = callback.transactionId || payment.orangeMoneyTransactionId;
@@ -198,7 +325,7 @@ export class EscrowService {
   private async getEscrowOrder(orderId: string, userId: string, role: 'seller' | 'buyer' | 'carrier') {
     const order = await this.ordersRepository.findOne({ where: { id: orderId } });
     if (!order) throw new NotFoundException('Commande introuvable');
-    if (order.paymentMethod !== 'orange_money' && order.paymentMethod !== 'momo') {
+    if (!['orange_money', 'momo', 'card'].includes(order.paymentMethod)) {
       throw new BadRequestException('Ce workflow concerne uniquement les paiements Mobile Money');
     }
     if (role === 'seller' && order.sellerId !== userId) {

@@ -1,5 +1,7 @@
 # Documentation Technique : Parcours Orange Money Cameroun
 
+Les paiements Orange Money, MoMo et carte bancaire des commandes sont désormais initialisés par Iwomipay en sandbox. Voir [DOC_IWOMIPAY_SANDBOX.md](./DOC_IWOMIPAY_SANDBOX.md) pour la configuration, les appels utilisés et les limites de l'intégration. Les références Orange Money directes ci-dessous décrivent le connecteur historique et ne doivent pas être interprétées comme l'intégration active des nouvelles commandes.
+
 ## 1. Vue d'ensemble du paiement Orange Money
 
 ArtisanConnect contient un parcours Web Payment Orange Money avec un mode mock/sandbox. Cette documentation décrit l’architecture et les endpoints applicatifs; elle ne signifie pas que l’encaissement, le séquestre ou le reversement sont opérationnels en production. Vérifier la configuration et l’état d’activation avant toute transaction réelle.

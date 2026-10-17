@@ -30,6 +30,7 @@ describe('EscrowService.disburse', () => {
       dataSource as never,
       shopsService as never,
       {} as never,
+      {} as never,
       { issueForOrder: vi.fn() } as never,
     );
 
@@ -64,7 +65,12 @@ describe('EscrowService.disburse', () => {
   });
 
   it('issues the order invoice after a successful Orange Money callback', async () => {
-    const payment = { orderId: 'order-1', status: 'pending', method: 'orange_money' };
+    const payment = {
+      orderId: 'order-1',
+      status: 'pending',
+      method: 'orange_money',
+      orangeMoneyNotifToken: 'expected-notif-token',
+    };
     const manager = {
       findOne: vi.fn().mockResolvedValue(payment),
       save: vi.fn(async (value) => value),
@@ -79,10 +85,11 @@ describe('EscrowService.disburse', () => {
       dataSource as never,
       {} as never,
       { handleCallback: vi.fn().mockResolvedValue({ status: 'SUCCESS', transactionId: 'om-transaction-1' }) } as never,
+      {} as never,
       invoicesService as never,
     );
 
-    const result = await service.handleOrangeCallback({ order_id: 'order-1' });
+    const result = await service.handleOrangeCallback({ order_id: 'order-1', notif_token: 'expected-notif-token' });
 
     expect(result).toMatchObject({ success: true, orderId: 'order-1', status: 'SUCCESS' });
     expect(invoicesService.issueForOrder).toHaveBeenCalledWith('order-1');

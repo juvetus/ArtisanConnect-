@@ -47,7 +47,7 @@ export class Listing {
   stock: number; // Pour les produits
 
   @Column('simple-array', { nullable: true })
-  acceptedPaymentMethods: ('cash' | 'momo' | 'orange_money')[];
+  acceptedPaymentMethods: ('cash' | 'momo' | 'orange_money' | 'card')[];
 
   @Column('simple-array', { nullable: true })
   deliveryMethods: ('workshop' | 'home' | 'carrier')[];

@@ -1,10 +1,11 @@
-﻿import { Controller, Get, Post, Param, Body, ForbiddenException, NotFoundException, Headers, RawBody } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Post, Param, Body, ForbiddenException, NotFoundException, Headers, RawBody } from '@nestjs/common';
 import { PaymentsService } from './payments.service.js';
 import { EscrowService } from './escrow.service.js';
 import { OrangeMoneyService } from './orange-money.service.js';
 import { CurrentUser, type AuthUser } from '../auth/current-user.decorator.js';
 import { Public } from '../auth/public.decorator.js';
 import { MomoService, type MomoWebhookHeaders } from '../momo/momo.service.js';
+import type { IwomipayCardDetails, IwomipayMethod } from './iwomipay.service.js';
 
 @Controller('payments')
 export class PaymentsController {
@@ -64,8 +65,30 @@ export class PaymentsController {
 
   /** Étape 1 — Paiement bloqué (webpayment). */
   @Post('order/:orderId/webpayment')
-  async webpayment(@CurrentUser() user: AuthUser, @Param('orderId') orderId: string) {
-    return this.escrowService.initiateWebpayment(orderId, user.id);
+  async webpayment(
+    @CurrentUser() user: AuthUser,
+    @Param('orderId') orderId: string,
+    @Body() body: { payerPhone?: string },
+  ) {
+    return this.escrowService.initiateWebpayment(orderId, user.id, body.payerPhone);
+  }
+
+  @Post('order/:orderId/iwomipay')
+  async initiateIwomipayPayment(
+    @CurrentUser() user: AuthUser,
+    @Param('orderId') orderId: string,
+    @Body() body: { method?: IwomipayMethod; payerPhone?: string; cardDetails?: IwomipayCardDetails },
+  ) {
+    if (!body.method || !['momo', 'orange_money', 'card'].includes(body.method)) {
+      throw new BadRequestException('Moyen de paiement Iwomipay invalide');
+    }
+    return this.escrowService.initiateIwomipayPayment(
+      orderId,
+      user.id,
+      body.method,
+      body.payerPhone,
+      body.cardDetails,
+    );
   }
 
   /** Étape 2 — Vendeur : produit disponible (ou annulation + remboursement). */
@@ -116,6 +139,18 @@ export class PaymentsController {
     return this.escrowService.handleOrangeCallback(body);
   }
 
+  /** Callback Iwomipay : le statut est vérifié auprès du fournisseur avant confirmation. */
+  @Public()
+  @Post('iwomipay/callback')
+  async iwomipayCallback(@Body() body: Record<string, unknown>) {
+    return this.escrowService.handleIwomipayCallback(body);
+  }
+
+  @Get('iwomipay/status/:orderId')
+  async getIwomipayStatus(@CurrentUser() user: AuthUser, @Param('orderId') orderId: string) {
+    return this.escrowService.checkIwomipayStatus(orderId, user.id);
+  }
+
   /** Vérification du statut direct d'une transaction Orange Money. */
   @Get('orange/status/:orderId')
   async getOrangeStatus(
@@ -127,6 +162,9 @@ export class PaymentsController {
     if (payment.order.buyerId !== user.id && payment.order.sellerId !== user.id) {
       throw new ForbiddenException('Accès refusé');
     }
+    if (payment.iwomipayExternalId && payment.iwomipayInternalId) {
+      return this.escrowService.checkIwomipayStatus(orderId, user.id);
+    }
     return this.orangeMoneyService.checkTransactionStatus(
       orderId,
       Number(payment.amount),
@@ -134,5 +172,3 @@ export class PaymentsController {
     );
   }
 }
-
-

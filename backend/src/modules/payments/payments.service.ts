@@ -155,7 +155,11 @@ export class PaymentsService {
   }
 
   async confirmOrangeMoneyTest(orderId: string, buyerId: string): Promise<Payment> {
-    if (process.env.NODE_ENV === 'production' || process.env.ORANGE_MONEY_MODE !== 'mock') {
+    if (
+      process.env.NODE_ENV === 'production'
+      || process.env.ORANGE_MONEY_MODE !== 'mock'
+      || process.env.IWOMIPAY_MODE === 'sandbox'
+    ) {
       throw new ForbiddenException('La confirmation mock Orange Money est désactivée');
     }
 
@@ -219,5 +223,4 @@ export class PaymentsService {
     return { success: true, message: 'Webhook MoMo reçu en attente' };
   }
 }
-
 

@@ -29,10 +29,14 @@ export default function ListingDetailClient({ listing, rating, reviews }: {
   const router = useRouter();
 
   const [quantity, setQuantity] = useState(1);
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'momo' | 'orange_money'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'momo' | 'orange_money' | 'card'>('cash');
   const [deliveryMethod, setDeliveryMethod] = useState<'workshop' | 'home' | 'carrier'>('workshop');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [payerPhone, setPayerPhone] = useState('');
+  const [cardName, setCardName] = useState('');
+  const [cardEmail, setCardEmail] = useState('');
+  const [cardAddress, setCardAddress] = useState('');
+  const [cardCity, setCardCity] = useState('');
   const [offeredUnitPrice, setOfferedUnitPrice] = useState('');
   const [offerMessage, setOfferMessage] = useState('');
   const [offering, setOffering] = useState(false);
@@ -64,7 +68,7 @@ export default function ListingDetailClient({ listing, rating, reviews }: {
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!listing) return;
-    const payments = listing.acceptedPaymentMethods?.length ? listing.acceptedPaymentMethods : ['cash', 'momo', 'orange_money'] as const;
+    const payments = listing.acceptedPaymentMethods?.length ? listing.acceptedPaymentMethods : ['cash', 'momo', 'orange_money', 'card'] as const;
     const availablePayments = payments.filter((method) => method === 'cash' || MOBILE_MONEY_ENABLED);
     const deliveries = listing.deliveryMethods?.length ? listing.deliveryMethods : ['workshop', 'home', 'carrier'] as const;
     const availableDeliveries = deliveries.filter((method) => method !== 'carrier' || CARRIER_ENABLED);
@@ -78,7 +82,7 @@ export default function ListingDetailClient({ listing, rating, reviews }: {
       router.push(`/login?next=${encodeURIComponent(`/listings/${listing.id}`)}`);
       return;
     }
-    const orderPayments = listing.acceptedPaymentMethods?.length ? listing.acceptedPaymentMethods : ['cash', 'momo', 'orange_money'] as const;
+    const orderPayments = listing.acceptedPaymentMethods?.length ? listing.acceptedPaymentMethods : ['cash', 'momo', 'orange_money', 'card'] as const;
     const orderDeliveries = listing.deliveryMethods?.length ? listing.deliveryMethods : ['workshop', 'home', 'carrier'] as const;
     const availablePayments = orderPayments.filter((method) => method === 'cash' || MOBILE_MONEY_ENABLED);
     const availableDeliveries = orderDeliveries.filter((method) => method !== 'carrier' || CARRIER_ENABLED);
@@ -90,8 +94,15 @@ export default function ListingDetailClient({ listing, rating, reviews }: {
       setError(t('carrier_coming_soon'));
       return;
     }
-    if (paymentMethod === 'momo' && !payerPhone.trim()) {
-      setError('Veuillez saisir votre numéro MoMo.');
+    const selectedPayerPhone = (payerPhone || user?.phone || '').trim();
+    if (paymentMethod !== 'cash' && !selectedPayerPhone) {
+      setError('Veuillez saisir un numéro de téléphone valide pour le paiement.');
+      return;
+    }
+    const selectedCardName = (cardName || user.name || '').trim();
+    const selectedCardEmail = (cardEmail || user.email || '').trim();
+    if (paymentMethod === 'card' && (selectedCardName.split(/\s+/).length < 2 || !selectedCardEmail || !cardAddress.trim() || !cardCity.trim())) {
+      setError('Pour payer par carte, renseignez prénom, nom, email, adresse et ville.');
       return;
     }
     if (deliveryMethod !== 'workshop' && !deliveryAddress.trim()) {
@@ -110,22 +121,25 @@ export default function ListingDetailClient({ listing, rating, reviews }: {
         deliveryAddress: deliveryMethod !== 'workshop' ? deliveryAddress : undefined,
       });
       trackEvent('order_created', { targetId: listing.id, label: listing.category, city: listing.shop?.city ?? undefined });
-      if (paymentMethod === 'momo') {
-        const payment = await api.initiateMomoPayment(order.id, payerPhone);
+      if (paymentMethod !== 'cash') {
+        const cardParts = selectedCardName.split(/\s+/);
+        const payment = await api.startIwomipayPayment(
+          order.id,
+          paymentMethod,
+          selectedPayerPhone,
+          paymentMethod === 'card' ? {
+            firstName: cardParts[0],
+            lastName: cardParts.slice(1).join(' '),
+            email: selectedCardEmail,
+            address: cardAddress.trim(),
+            city: cardCity.trim(),
+          } : undefined,
+        );
         if (payment.redirectUrl) {
           window.location.assign(payment.redirectUrl);
           return;
         }
-
-        const referenceId = payment.paymentReference || payment.orangeMoneyTransactionId;
-        if (referenceId) {
-          router.push(`/payment/callback?type=payment&referenceId=${encodeURIComponent(referenceId)}`);
-          return;
-        }
-      }
-      if (paymentMethod === 'orange_money') {
-        const orangePayment = await api.startWebpayment(order.id);
-        window.location.assign(orangePayment.paymentUrl);
+        router.push('/orders');
         return;
       }
       router.push('/orders');
@@ -174,13 +188,13 @@ export default function ListingDetailClient({ listing, rating, reviews }: {
   const isOwnListing = user?.id === listing.sellerId;
   const isDemoOffer = isDemoContent(listing.id, listing.isDemo);
   const total = Number(listing.price) * quantity;
-  const acceptedPayments = listing.acceptedPaymentMethods?.length ? listing.acceptedPaymentMethods : ['cash', 'momo', 'orange_money'] as const;
+  const acceptedPayments = listing.acceptedPaymentMethods?.length ? listing.acceptedPaymentMethods : ['cash', 'momo', 'orange_money', 'card'] as const;
   const acceptedDeliveries = listing.deliveryMethods?.length ? listing.deliveryMethods : ['workshop', 'home', 'carrier'] as const;
   const availablePayments = acceptedPayments.filter((method) => method === 'cash' || MOBILE_MONEY_ENABLED);
   const availableDeliveries = acceptedDeliveries.filter((method) => method !== 'carrier' || CARRIER_ENABLED);
   const hasAvailablePayment = availablePayments.length > 0;
   const hasAvailableDelivery = availableDeliveries.length > 0;
-  const paymentLabel = paymentMethod === 'cash' ? 'Espèces' : paymentMethod === 'momo' ? 'MoMo' : 'Orange Money';
+  const paymentLabel = paymentMethod === 'cash' ? 'Espèces' : paymentMethod === 'momo' ? 'MoMo' : paymentMethod === 'orange_money' ? 'Orange Money' : 'Carte bancaire';
   const deliveryLabel = deliveryMethod === 'home' ? 'Livraison à domicile' : deliveryMethod === 'carrier' ? 'Transporteur' : "Retrait à l'atelier";
   const sellerWhatsapp = whatsappHref(listing.seller?.whatsappPhone ?? listing.seller?.phone, `Bonjour ${listing.seller?.name ?? ''}, je suis intéressé par votre annonce « ${listing.title} » sur ArtisanConnect.`);
     const sellerShopId = listing.shop?.id ?? listing.shopId;
@@ -330,6 +344,20 @@ export default function ListingDetailClient({ listing, rating, reviews }: {
                   <span className="block text-xs text-stone-500">{MOBILE_MONEY_ENABLED ? (MOBILE_MONEY_TEST_MODE ? t('payment_test_mode_notice') : t('payment_live_notice')) : t('mobile_money_coming_soon')}</span>
                 </span>
               </label>
+              {acceptedPayments.includes('card') && <label className={`flex items-center gap-3 rounded-md border p-3 text-sm ${MOBILE_MONEY_ENABLED ? 'cursor-pointer border-stone-200 hover:border-orange-500' : 'cursor-not-allowed border-stone-200 bg-stone-100 text-stone-500'}`}>
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="card"
+                  checked={paymentMethod === 'card'}
+                  onChange={() => setPaymentMethod('card')}
+                  disabled={!MOBILE_MONEY_ENABLED}
+                />
+                <span>
+                  <strong>Carte bancaire</strong>
+                  <span className="block text-xs text-stone-500">{MOBILE_MONEY_ENABLED ? 'Paiement sécurisé via Iwomipay' : t('mobile_money_coming_soon')}</span>
+                </span>
+              </label>}
               <label className={`flex items-center gap-3 rounded-md border p-3 text-sm ${MOBILE_MONEY_ENABLED ? 'cursor-pointer border-stone-200 hover:border-orange-500' : 'cursor-not-allowed border-stone-200 bg-stone-100 text-stone-500'}`}>
                 <input
                   type="radio"
@@ -424,19 +452,41 @@ export default function ListingDetailClient({ listing, rating, reviews }: {
           </div>
         )}
 
-        {paymentMethod === 'momo' && (
+        {paymentMethod !== 'cash' && (
           <div className="mt-4">
             <label htmlFor="payerPhone" className="block text-sm font-medium">
-              Numéro MoMo
+              {paymentMethod === 'momo' ? 'Numéro MoMo' : paymentMethod === 'orange_money' ? 'Numéro Orange Money' : 'Numéro de téléphone'}
             </label>
             <input
               id="payerPhone"
               type="tel"
-              value={payerPhone}
+              value={payerPhone || user?.phone || ''}
               onChange={(event) => setPayerPhone(event.target.value)}
               placeholder="Ex: 237699000000"
               className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600"
             />
+          </div>
+        )}
+
+        {paymentMethod === 'card' && (
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <label className="text-sm font-medium text-stone-700">
+              Nom complet
+              <input value={cardName || user?.name || ''} onChange={(event) => setCardName(event.target.value)} autoComplete="name" className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600" />
+            </label>
+            <label className="text-sm font-medium text-stone-700">
+              Email
+              <input type="email" value={cardEmail || user?.email || ''} onChange={(event) => setCardEmail(event.target.value)} autoComplete="email" className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600" />
+            </label>
+            <label className="text-sm font-medium text-stone-700">
+              Adresse de facturation
+              <input value={cardAddress} onChange={(event) => setCardAddress(event.target.value)} autoComplete="street-address" className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600" />
+            </label>
+            <label className="text-sm font-medium text-stone-700">
+              Ville
+              <input value={cardCity || user?.location || ''} onChange={(event) => setCardCity(event.target.value)} autoComplete="address-level2" className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600" />
+            </label>
+            <p className="text-xs text-stone-500 sm:col-span-2">Les coordonnées de carte sont saisies uniquement sur la page sécurisée d’Iwomipay; elles ne transitent pas par ArtisanConnect.</p>
           </div>
         )}
 

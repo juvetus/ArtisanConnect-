@@ -195,7 +195,7 @@ export const api = {
   createOrder: (data: {
     listingId: string;
     quantity: number;
-    paymentMethod: 'cash' | 'momo' | 'orange_money';
+    paymentMethod: 'cash' | 'momo' | 'orange_money' | 'card';
     deliveryMethod: 'workshop' | 'home' | 'carrier';
     deliveryAddress?: string;
     deliveryLatitude?: number;
@@ -207,7 +207,7 @@ export const api = {
     quantity: number;
     offeredUnitPrice: number;
     message?: string;
-    paymentMethod: 'cash' | 'momo' | 'orange_money';
+    paymentMethod: 'cash' | 'momo' | 'orange_money' | 'card';
     deliveryMethod: 'workshop' | 'home' | 'carrier';
     deliveryAddress?: string;
   }) => post<ListingOffer>('/orders/offers', data),
@@ -502,9 +502,26 @@ export const api = {
 
   // --- Workflow escrow Orange Money ---
 
-  startWebpayment: (orderId: string) =>
-    post<{ transactionId: string; paymentToken: string; notifToken?: string; paymentUrl: string; status: 'PENDING' }>(
+  startWebpayment: (orderId: string, payerPhone: string) =>
+    post<{ externalId: string; internalId: string; redirectUrl?: string | null; status: 'PENDING' | 'SUCCESS'; message?: string }>(
       `/payments/order/${orderId}/webpayment`,
+      { payerPhone },
+    ),
+
+  startIwomipayPayment: (
+    orderId: string,
+    method: 'momo' | 'orange_money' | 'card',
+    payerPhone: string,
+    cardDetails?: { firstName: string; lastName: string; email: string; address: string; city: string },
+  ) =>
+    post<{ externalId: string; internalId: string; redirectUrl?: string | null; status: 'PENDING' | 'SUCCESS'; message?: string }>(
+      `/payments/order/${orderId}/iwomipay`,
+      { method, payerPhone, cardDetails },
+    ),
+
+  getIwomipayStatus: (orderId: string) =>
+    request<{ status: 'PENDING' | 'SUCCESS' | 'FAILED'; paymentStatus: Payment['status']; message?: string }>(
+      `/payments/iwomipay/status/${orderId}`,
     ),
 
   confirmAvailability: (orderId: string) =>

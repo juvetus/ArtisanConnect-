@@ -35,7 +35,7 @@ function sellerWhatsappHref(order: Order) {
 
 /** Journal du workflow escrow côté acheteur. */
 function EscrowSteps({ order, english }: { order: Order; english: boolean }) {
-  if (order.paymentMethod !== 'orange_money' && order.paymentMethod !== 'momo') return null;
+  if (order.paymentMethod !== 'orange_money' && order.paymentMethod !== 'momo' && order.paymentMethod !== 'card') return null;
   const steps = [
     { label: MOBILE_MONEY_TEST_MODE ? (english ? 'Test payment status recorded' : 'Statut du paiement test enregistré') : (english ? 'Payment held in escrow' : 'Paiement bloqué en escrow'), done: Boolean(order.payment && order.payment.status !== 'pending') },
     { label: english ? 'Seller confirmed product availability' : 'Vendeur : produit disponible', done: order.sellerConfirmedAvailability },
@@ -69,6 +69,8 @@ export default function OrdersPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [momoPhones, setMomoPhones] = useState<Record<string, string>>({});
   const [momoError, setMomoError] = useState<Record<string, string>>({});
+  const [cardDetails, setCardDetails] = useState<Record<string, { name: string; email: string; address: string; city: string }>>({});
+  const [iwomipayStatuses, setIwomipayStatuses] = useState<Record<string, 'PENDING' | 'SUCCESS' | 'FAILED'>>({});
 
   const run = async (id: string, action: () => Promise<unknown>) => {
     setBusyId(id);
@@ -80,44 +82,61 @@ export default function OrdersPage() {
     }
   };
 
-  const payWithMomo = async (order: Order) => {
+  const payWithIwomipay = async (order: Order, method: 'momo' | 'orange_money' | 'card') => {
     const payerPhone = (momoPhones[order.id] || user?.phone || '').trim();
     if (!payerPhone) {
-      setMomoError((current) => ({ ...current, [order.id]: t('orders_momo_phone_error') }));
+      setMomoError((current) => ({ ...current, [order.id]: 'Veuillez saisir un numéro de téléphone valide pour le paiement.' }));
       return;
     }
-
+    const details = cardDetails[order.id] ?? { name: user?.name ?? '', email: user?.email ?? '', address: '', city: user?.location ?? '' };
+    const nameParts = details.name.trim().split(/\s+/);
+    if (method === 'card' && (nameParts.length < 2 || !details.email.trim() || !details.address.trim() || !details.city.trim())) {
+      setMomoError((current) => ({ ...current, [order.id]: 'Pour payer par carte, renseignez prénom, nom, email, adresse et ville.' }));
+      return;
+    }
     setBusyId(order.id);
     setMomoError((current) => ({ ...current, [order.id]: '' }));
     try {
-      const payment = await api.initiateMomoPayment(order.id, payerPhone);
+      const payment = await api.startIwomipayPayment(
+        order.id,
+        method,
+        payerPhone,
+        method === 'card' ? {
+          firstName: nameParts[0],
+          lastName: nameParts.slice(1).join(' '),
+          email: details.email.trim(),
+          address: details.address.trim(),
+          city: details.city.trim(),
+        } : undefined,
+      );
+      setIwomipayStatuses((current) => ({ ...current, [order.id]: payment.status }));
       if (payment.redirectUrl) {
         window.location.assign(payment.redirectUrl);
         return;
       }
-
-      const referenceId = payment.paymentReference || payment.orangeMoneyTransactionId;
-      if (referenceId) {
-        router.push(`/payment/callback?type=payment&referenceId=${encodeURIComponent(referenceId)}`);
-        return;
-      }
-
       await mutate();
     } catch (error) {
       setMomoError((current) => ({
         ...current,
-        [order.id]: error instanceof Error ? error.message : t('orders_momo_start_error'),
+        [order.id]: error instanceof Error ? error.message : 'Impossible de démarrer le paiement Iwomipay.',
       }));
     } finally {
       setBusyId(null);
     }
   };
 
-  const payWithOrangeMoney = async (order: Order) => {
+  const refreshIwomipayStatus = async (order: Order) => {
     setBusyId(order.id);
+    setMomoError((current) => ({ ...current, [order.id]: '' }));
     try {
-      const payment = await api.startWebpayment(order.id);
-      window.location.assign(payment.paymentUrl);
+      const result = await api.getIwomipayStatus(order.id);
+      setIwomipayStatuses((current) => ({ ...current, [order.id]: result.status }));
+      await mutate();
+    } catch (error) {
+      setMomoError((current) => ({
+        ...current,
+        [order.id]: error instanceof Error ? error.message : 'Impossible de vérifier le paiement.',
+      }));
     } finally {
       setBusyId(null);
     }
@@ -176,6 +195,8 @@ export default function OrdersPage() {
                     ? (MOBILE_MONEY_TEST_MODE ? 'MoMo — test' : 'MoMo')
                     : order.paymentMethod === 'orange_money'
                       ? (MOBILE_MONEY_TEST_MODE ? 'Orange Money — test' : 'Orange Money')
+                      : order.paymentMethod === 'card'
+                        ? 'Carte bancaire'
                       : t('orders_cash_handover')}
                   {order.payment && (
                     <>
@@ -259,7 +280,7 @@ export default function OrdersPage() {
 
                 <EscrowSteps order={order} english={english} />
 
-                {(order.paymentMethod === 'momo' || order.paymentMethod === 'orange_money') && order.status !== 'cancelled' && (
+                {(order.paymentMethod === 'momo' || order.paymentMethod === 'orange_money' || order.paymentMethod === 'card') && order.status !== 'cancelled' && (
                   <div className="mt-3 flex flex-wrap gap-2">
                     {!MOBILE_MONEY_ENABLED ? <p role="note" className="w-full rounded-md border border-stone-200 bg-stone-100 p-2 text-xs text-stone-600">{t('mobile_money_coming_soon')}</p> : MOBILE_MONEY_TEST_MODE ? <p role="note" className="w-full rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">{t('payment_test_mode_notice')}</p> : null}
                     {order.paymentMethod === 'momo' && order.payment?.status === 'pending' && order.status === 'pending' && (
@@ -278,7 +299,7 @@ export default function OrdersPage() {
                           {momoError[order.id] && <p className="mt-1 text-xs text-red-600">{momoError[order.id]}</p>}
                         </div>
                         <button
-                          onClick={() => void payWithMomo(order)}
+                          onClick={() => void payWithIwomipay(order, 'momo')}
                           disabled={!MOBILE_MONEY_ENABLED || busyId === order.id}
                           className="rounded-md bg-orange-600 px-3 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-50"
                         >
@@ -286,13 +307,85 @@ export default function OrdersPage() {
                         </button>
                       </div>
                     )}
-                    {order.paymentMethod === 'orange_money' && order.payment?.status === 'pending' && order.status === 'pending' && (
+                    {order.paymentMethod === 'orange_money' && order.payment?.status === 'pending' && (!order.payment.iwomipayInternalId || iwomipayStatuses[order.id] === 'FAILED') && (
+                      <>
+                        <input
+                          aria-label={english ? 'Orange Money payer phone number' : 'Numéro Orange Money à débiter'}
+                          type="tel"
+                          value={momoPhones[order.id] ?? user.phone ?? ''}
+                          onChange={(event) => setMomoPhones((current) => ({ ...current, [order.id]: event.target.value }))}
+                          disabled={!MOBILE_MONEY_ENABLED}
+                          placeholder="237699000000"
+                          className="w-44 rounded-md border border-stone-200 px-3 py-2 text-sm outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-100"
+                        />
+                        <button
+                          onClick={() => void payWithIwomipay(order, 'orange_money')}
+                          disabled={!MOBILE_MONEY_ENABLED || busyId === order.id}
+                          className="rounded-md bg-orange-600 px-3 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {MOBILE_MONEY_TEST_MODE ? (english ? 'Run Orange Money test' : 'Lancer le test Orange Money') : t('orders_pay_orange')}
+                        </button>
+                      </>
+                    )}
+                    {order.paymentMethod === 'card' && order.payment?.status === 'pending' && (
+                      <div className="grid w-full gap-2 sm:grid-cols-2">
+                        <input
+                          aria-label={english ? 'Cardholder full name' : 'Prénom et nom du titulaire'}
+                          autoComplete="name"
+                          value={cardDetails[order.id]?.name ?? user.name}
+                          onChange={(event) => setCardDetails((current) => ({ ...current, [order.id]: { name: event.target.value, email: current[order.id]?.email ?? user.email, address: current[order.id]?.address ?? '', city: current[order.id]?.city ?? user.location ?? '' } }))}
+                          placeholder={english ? 'Full name' : 'Prénom et nom'}
+                          className="rounded-md border border-stone-200 px-3 py-2 text-sm"
+                        />
+                        <input
+                          aria-label={english ? 'Billing email' : 'Email de facturation'}
+                          type="email"
+                          autoComplete="email"
+                          value={cardDetails[order.id]?.email ?? user.email}
+                          onChange={(event) => setCardDetails((current) => ({ ...current, [order.id]: { name: current[order.id]?.name ?? user.name, email: event.target.value, address: current[order.id]?.address ?? '', city: current[order.id]?.city ?? user.location ?? '' } }))}
+                          className="rounded-md border border-stone-200 px-3 py-2 text-sm"
+                        />
+                        <input
+                          aria-label={english ? 'Billing address' : 'Adresse de facturation'}
+                          autoComplete="street-address"
+                          value={cardDetails[order.id]?.address ?? ''}
+                          onChange={(event) => setCardDetails((current) => ({ ...current, [order.id]: { name: current[order.id]?.name ?? user.name, email: current[order.id]?.email ?? user.email, address: event.target.value, city: current[order.id]?.city ?? user.location ?? '' } }))}
+                          placeholder={english ? 'Billing address' : 'Adresse de facturation'}
+                          className="rounded-md border border-stone-200 px-3 py-2 text-sm"
+                        />
+                        <input
+                          aria-label={english ? 'Billing city' : 'Ville de facturation'}
+                          autoComplete="address-level2"
+                          value={cardDetails[order.id]?.city ?? user.location ?? ''}
+                          onChange={(event) => setCardDetails((current) => ({ ...current, [order.id]: { name: current[order.id]?.name ?? user.name, email: current[order.id]?.email ?? user.email, address: current[order.id]?.address ?? '', city: event.target.value } }))}
+                          placeholder={english ? 'City' : 'Ville'}
+                          className="rounded-md border border-stone-200 px-3 py-2 text-sm"
+                        />
+                        <input
+                          aria-label={english ? 'Card payment phone number' : 'Téléphone pour le paiement par carte'}
+                          type="tel"
+                          autoComplete="tel"
+                          value={momoPhones[order.id] ?? user.phone ?? ''}
+                          onChange={(event) => setMomoPhones((current) => ({ ...current, [order.id]: event.target.value }))}
+                          placeholder="237699000000"
+                          className="rounded-md border border-stone-200 px-3 py-2 text-sm"
+                        />
+                        <button
+                          onClick={() => void payWithIwomipay(order, 'card')}
+                          disabled={!MOBILE_MONEY_ENABLED || busyId === order.id}
+                          className="rounded-md bg-orange-600 px-3 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-50"
+                        >
+                          {english ? 'Pay by card' : 'Payer par carte'}
+                        </button>
+                      </div>
+                    )}
+                    {order.payment?.status === 'pending' && order.payment.iwomipayInternalId && iwomipayStatuses[order.id] !== 'FAILED' && (
                       <button
-                        onClick={() => void payWithOrangeMoney(order)}
+                        onClick={() => void refreshIwomipayStatus(order)}
                         disabled={!MOBILE_MONEY_ENABLED || busyId === order.id}
-                        className="rounded-md bg-orange-600 px-3 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-md border border-orange-300 px-3 py-2 text-sm font-medium text-orange-800 hover:bg-orange-50 disabled:opacity-50"
                       >
-                        {MOBILE_MONEY_TEST_MODE ? (english ? 'Run Orange Money test' : 'Lancer le test Orange Money') : t('orders_pay_orange')}
+                        {english ? 'Check payment status' : 'Vérifier le statut du paiement'}
                       </button>
                     )}
                     {(order.deliveryMethod === 'carrier' ? order.carrierVerified : order.sellerConfirmedAvailability) && !order.buyerConfirmedReception && (
@@ -304,6 +397,7 @@ export default function OrdersPage() {
                         {t('orders_confirm_receipt')}
                       </button>
                     )}
+                    {momoError[order.id] ? <p role="alert" className="w-full text-xs text-red-600">{momoError[order.id]}</p> : null}
                     {order.buyerConfirmedReception && order.payment?.status !== 'captured' && (
                       <button
                         onClick={() => run(order.id, () => api.disburse(order.id))}

@@ -220,7 +220,7 @@ export interface Listing {
   status: 'active' | 'inactive';
   isDemo?: boolean;
   stock: number;
-  acceptedPaymentMethods?: ('cash' | 'momo' | 'orange_money')[] | null;
+  acceptedPaymentMethods?: ('cash' | 'momo' | 'orange_money' | 'card')[] | null;
   deliveryMethods?: ('workshop' | 'home' | 'carrier')[] | null;
   sponsoredUntil?: string | null;
   createdAt: string;
@@ -271,7 +271,7 @@ export interface ListingOffer {
   status: 'pending' | 'accepted' | 'rejected';
   lastProposedBy: 'buyer' | 'seller';
   negotiationHistory: { proposedBy: 'buyer' | 'seller'; unitPrice: string | number; message: string | null; createdAt: string }[];
-  paymentMethod: 'cash' | 'momo' | 'orange_money';
+  paymentMethod: 'cash' | 'momo' | 'orange_money' | 'card';
   deliveryMethod: DeliveryMethod;
   deliveryAddress?: string | null;
   orderId?: string | null;
@@ -282,10 +282,12 @@ export interface Payment {
   id: string;
   orderId: string;
   amount: string;
-  method: 'cash' | 'momo' | 'orange_money' | 'stripe';
+  method: 'cash' | 'momo' | 'orange_money' | 'card' | 'stripe';
   status: PaymentStatus;
   cashConfirmedAt?: string | null;
   orangeMoneyTransactionId?: string | null;
+  iwomipayExternalId?: string | null;
+  iwomipayInternalId?: string | null;
 }
 
 export interface Review {

@@ -4,6 +4,7 @@ import { Order, Payment } from '../../entities/index.js';
 import { PaymentsService } from './payments.service.js';
 import { EscrowService } from './escrow.service.js';
 import { OrangeMoneyService } from './orange-money.service.js';
+import { IwomipayService } from './iwomipay.service.js';
 import { PaymentsController } from './payments.controller.js';
 import { ShopsModule } from '../shops/shops.module.js';
 import { MomoModule } from '../momo/momo.module.js';
@@ -12,10 +13,9 @@ import { InvoicesModule } from '../invoices/invoices.module.js';
 @Module({
   imports: [TypeOrmModule.forFeature([Payment, Order]), ShopsModule, MomoModule, InvoicesModule],
   controllers: [PaymentsController],
-  providers: [PaymentsService, EscrowService, OrangeMoneyService],
-  exports: [PaymentsService, EscrowService, OrangeMoneyService],
+  providers: [PaymentsService, EscrowService, OrangeMoneyService, IwomipayService],
+  exports: [PaymentsService, EscrowService, OrangeMoneyService, IwomipayService],
 })
 export class PaymentsModule {}
-
 
 

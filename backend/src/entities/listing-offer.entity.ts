@@ -46,7 +46,7 @@ export class ListingOffer {
   negotiationHistory: ListingOfferNegotiationEntry[];
 
   @Column({ type: 'varchar' })
-  paymentMethod: 'cash' | 'momo' | 'orange_money';
+  paymentMethod: 'cash' | 'momo' | 'orange_money' | 'card';
 
   @Column({ type: 'varchar' })
   deliveryMethod: 'workshop' | 'home' | 'carrier';

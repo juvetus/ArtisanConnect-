@@ -14,7 +14,7 @@ export class OrdersController {
       quantity: number;
       offeredUnitPrice: number;
       message?: string;
-      paymentMethod: 'cash' | 'momo' | 'orange_money';
+      paymentMethod: 'cash' | 'momo' | 'orange_money' | 'card';
       deliveryMethod: 'workshop' | 'home' | 'carrier';
       deliveryAddress?: string;
     },
@@ -63,7 +63,7 @@ export class OrdersController {
     @Body() body: {
       listingId: string;
       quantity: number;
-      paymentMethod?: 'cash' | 'momo' | 'orange_money';
+      paymentMethod?: 'cash' | 'momo' | 'orange_money' | 'card';
       deliveryMethod?: 'workshop' | 'home' | 'carrier';
       deliveryAddress?: string;
       deliveryLatitude?: number;
@@ -140,5 +140,4 @@ export class OrdersController {
     return this.ordersService.updateStatus(id, body.status);
   }
 }
-
 

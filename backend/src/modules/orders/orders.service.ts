@@ -28,14 +28,14 @@ export class OrdersService {
     quantity: number;
     offeredUnitPrice: number;
     message?: string;
-    paymentMethod: 'cash' | 'momo' | 'orange_money';
+    paymentMethod: 'cash' | 'momo' | 'orange_money' | 'card';
     deliveryMethod: 'workshop' | 'home' | 'carrier';
     deliveryAddress?: string;
   }): Promise<ListingOffer> {
     if (isDemoMode()) throw new ForbiddenException('Les offres sont désactivées en mode démonstration');
     if (!Number.isInteger(data.quantity) || data.quantity < 1) throw new BadRequestException('Quantité invalide');
     if (!Number.isInteger(data.offeredUnitPrice) || data.offeredUnitPrice < 1) throw new BadRequestException('Le prix proposé doit être un montant entier positif en FCFA');
-    if (!['cash', 'momo', 'orange_money'].includes(data.paymentMethod)) throw new BadRequestException('Mode de paiement invalide');
+    if (!['cash', 'momo', 'orange_money', 'card'].includes(data.paymentMethod)) throw new BadRequestException('Mode de paiement invalide');
     if (!['workshop', 'home', 'carrier'].includes(data.deliveryMethod)) throw new BadRequestException('Mode de livraison invalide');
     if (data.deliveryMethod !== 'workshop' && !data.deliveryAddress?.trim()) throw new BadRequestException('Une adresse est obligatoire pour ce mode de livraison');
     if (data.message && data.message.length > 500) throw new BadRequestException('Le message ne peut pas dépasser 500 caractères');
@@ -46,7 +46,7 @@ export class OrdersService {
     if (listing.sellerId === buyerId) throw new ForbiddenException('Vous ne pouvez pas faire une offre sur votre propre annonce');
     if (listing.stock < data.quantity) throw new BadRequestException(`Stock insuffisant : ${listing.stock} disponible(s)`);
 
-    const acceptedPayments = listing.acceptedPaymentMethods?.length ? listing.acceptedPaymentMethods : ['cash', 'momo', 'orange_money'];
+    const acceptedPayments = listing.acceptedPaymentMethods?.length ? listing.acceptedPaymentMethods : ['cash', 'momo', 'orange_money', 'card'];
     const acceptedDeliveries = listing.deliveryMethods?.length ? listing.deliveryMethods : ['workshop', 'home', 'carrier'];
     if (!acceptedPayments.includes(data.paymentMethod)) throw new BadRequestException('Ce mode de paiement n’est pas accepté pour cette annonce');
     if (!acceptedDeliveries.includes(data.deliveryMethod)) throw new BadRequestException('Ce mode de livraison n’est pas proposé pour cette annonce');
@@ -144,7 +144,7 @@ export class OrdersService {
       const listing = await manager.findOne(Listing, { where: { id: offer.listingId }, lock: { mode: 'pessimistic_write' } });
       if (!listing || listing.isDemo || listing.status !== 'active') throw new BadRequestException('Cette annonce n’est plus disponible');
       if (listing.stock < offer.quantity) throw new BadRequestException(`Stock insuffisant : ${listing.stock} disponible(s)`);
-      const acceptedPayments = listing.acceptedPaymentMethods?.length ? listing.acceptedPaymentMethods : ['cash', 'momo', 'orange_money'];
+      const acceptedPayments = listing.acceptedPaymentMethods?.length ? listing.acceptedPaymentMethods : ['cash', 'momo', 'orange_money', 'card'];
       const acceptedDeliveries = listing.deliveryMethods?.length ? listing.deliveryMethods : ['workshop', 'home', 'carrier'];
       if (!acceptedPayments.includes(offer.paymentMethod)) throw new BadRequestException('Le mode de paiement choisi n’est plus accepté pour cette annonce');
       if (!acceptedDeliveries.includes(offer.deliveryMethod)) throw new BadRequestException('Le mode de livraison choisi n’est plus proposé pour cette annonce');
@@ -222,7 +222,7 @@ export class OrdersService {
     buyerId: string,
     listingId: string,
     quantity: number,
-    paymentMethod: 'cash' | 'momo' | 'orange_money' = 'cash',
+    paymentMethod: 'cash' | 'momo' | 'orange_money' | 'card' = 'cash',
     delivery: ProductOrderDeliveryInput = { deliveryMethod: 'workshop' },
   ): Promise<Order> {
     if (isDemoMode()) {
@@ -254,7 +254,7 @@ export class OrdersService {
         throw new BadRequestException(`Stock insuffisant : ${listing.stock} disponible(s)`);
       }
 
-      const acceptedPayments = listing.acceptedPaymentMethods?.length ? listing.acceptedPaymentMethods : ['cash', 'momo', 'orange_money'];
+      const acceptedPayments = listing.acceptedPaymentMethods?.length ? listing.acceptedPaymentMethods : ['cash', 'momo', 'orange_money', 'card'];
       const acceptedDeliveries = listing.deliveryMethods?.length ? listing.deliveryMethods : ['workshop', 'home', 'carrier'];
       if (!acceptedPayments.includes(paymentMethod)) throw new BadRequestException('Ce mode de paiement n’est pas accepté pour cette annonce');
       if (!acceptedDeliveries.includes(delivery.deliveryMethod)) throw new BadRequestException('Ce mode de livraison n’est pas proposé pour cette annonce');
@@ -359,5 +359,4 @@ export class OrdersService {
     return this.findById(id);
   }
 }
-
 

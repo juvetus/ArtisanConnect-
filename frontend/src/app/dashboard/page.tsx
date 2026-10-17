@@ -52,7 +52,7 @@ export default function DashboardPage() {
   const [type, setType] = useState<ListingType>('product');
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('1');
-  const [acceptedPaymentMethods, setAcceptedPaymentMethods] = useState<('cash' | 'momo' | 'orange_money')[]>(['cash', 'momo', 'orange_money']);
+  const [acceptedPaymentMethods, setAcceptedPaymentMethods] = useState<('cash' | 'momo' | 'orange_money' | 'card')[]>(['cash', 'momo', 'orange_money', 'card']);
   const [deliveryMethods, setDeliveryMethods] = useState<('workshop' | 'home' | 'carrier')[]>(['workshop', 'home', 'carrier']);
   const [imageUrl, setImageUrl] = useState('');
   const [imageUrls, setImageUrls] = useState<string[]>([]);
@@ -136,7 +136,7 @@ export default function DashboardPage() {
     setType(listing.type);
     setPrice(String(listing.price));
     setStock(String(listing.stock));
-    setAcceptedPaymentMethods(listing.acceptedPaymentMethods?.length ? listing.acceptedPaymentMethods : ['cash', 'momo', 'orange_money']);
+    setAcceptedPaymentMethods(listing.acceptedPaymentMethods?.length ? listing.acceptedPaymentMethods : ['cash', 'momo', 'orange_money', 'card']);
     setDeliveryMethods(listing.deliveryMethods?.length ? listing.deliveryMethods : ['workshop', 'home', 'carrier']);
     setImageUrl(listing.imageUrl ?? '');
     setImageUrls(listing.imageUrls?.length ? listing.imageUrls : listing.imageUrl ? [listing.imageUrl] : []);
@@ -559,9 +559,9 @@ export default function DashboardPage() {
                     </button>
                   )}
                   {order.paymentMethod === 'orange_money' && order.status === 'pending' && (
-                    <span className="text-sm text-orange-700">Orange Money en attente</span>
+                    <span className="text-sm text-orange-700">Paiement Orange Money en attente</span>
                   )}
-                  {(order.paymentMethod === 'orange_money' || order.paymentMethod === 'momo') && user && (
+                  {(order.paymentMethod === 'orange_money' || order.paymentMethod === 'momo' || order.paymentMethod === 'card') && user && (
                     <div className="mt-2 flex w-full flex-wrap gap-2">
                       {user.id === order.sellerId && !order.sellerConfirmedAvailability && (
                         <>
@@ -818,6 +818,7 @@ export default function DashboardPage() {
                   ['cash', 'Espèces'],
                   ['momo', 'MoMo'],
                   ['orange_money', 'Orange Money'],
+                  ['card', 'Carte bancaire'],
                 ] as const).map(([value, label]) => (
                   <label key={value} className="flex items-center gap-2 rounded-md border border-stone-200 p-3 text-sm">
                     <input type="checkbox" checked={acceptedPaymentMethods.includes(value)} onChange={() => setAcceptedPaymentMethods((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value])} />
