@@ -1,13 +1,12 @@
 'use client';
 
 import { useLanguage } from '@/lib/language-context';
-
-const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '237699000000';
+import { CONTACT_WHATSAPP_HREF } from '@/lib/contact';
 
 export function WhatsAppFloatingButton() {
   const { t } = useLanguage();
   const message = encodeURIComponent(t('whatsapp_default_message'));
-  const href = `https://wa.me/${WHATSAPP_NUMBER.replace(/\D/g, '')}?text=${message}`;
+  const href = `${CONTACT_WHATSAPP_HREF}?text=${message}`;
 
   return (
     <a
