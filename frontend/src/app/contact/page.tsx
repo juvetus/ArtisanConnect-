@@ -5,6 +5,7 @@ import { FormEvent, Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useLanguage } from '@/lib/language-context';
+import { CONTACT_PHONE, CONTACT_PHONE_HREF, CONTACT_WHATSAPP_HREF } from '@/lib/contact';
 
 type ContactTopic = 'order' | 'artisan' | 'payment' | 'account' | 'seller' | 'partnership' | 'other';
 
@@ -75,6 +76,15 @@ function ContactForm() {
         <h1 className="mt-1 text-3xl font-semibold text-stone-900">{english ? 'How can we help you?' : 'Comment pouvons-nous vous aider ?'}</h1>
         <p className="mt-2 text-stone-600">{english ? 'Choose a topic so we can direct your message to the right team.' : 'Choisissez un motif pour orienter votre demande vers la bonne équipe.'}</p>
       </header>
+
+      <section aria-label={english ? 'Contact details' : 'Coordonnées de contact'} className="flex flex-wrap gap-4 rounded-lg border border-stone-200 bg-white p-5">
+        <a href={CONTACT_PHONE_HREF} className="font-medium text-amber-800 hover:underline">
+          {english ? 'Phone' : 'Téléphone'} : {CONTACT_PHONE}
+        </a>
+        <a href={CONTACT_WHATSAPP_HREF} target="_blank" rel="noreferrer" className="font-medium text-green-700 hover:underline">
+          {english ? 'Contact us on WhatsApp' : 'Nous contacter sur WhatsApp'}
+        </a>
+      </section>
 
       <section aria-label={english ? 'Choose a support topic' : 'Choisir un motif'} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {topics.map((item) => (

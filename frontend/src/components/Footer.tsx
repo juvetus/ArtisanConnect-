@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useLanguage } from '@/lib/language-context';
+import { CONTACT_PHONE, CONTACT_PHONE_HREF, CONTACT_WHATSAPP_HREF } from '@/lib/contact';
 
 export function Footer() {
   const { t } = useLanguage();
@@ -14,6 +15,10 @@ export function Footer() {
             Artisan<span className="text-amber-400">Connect</span> —
           </p>
           <p className="mt-2 text-sm">{t('footer_tagline')}</p>
+          <div className="mt-3 flex flex-col gap-1 text-sm">
+            <a href={CONTACT_PHONE_HREF} className="hover:text-white">{CONTACT_PHONE}</a>
+            <a href={CONTACT_WHATSAPP_HREF} target="_blank" rel="noreferrer" className="hover:text-white">WhatsApp</a>
+          </div>
         </div>
         <div>
           <p className="font-medium text-white">{t('footer_clients')}</p>
