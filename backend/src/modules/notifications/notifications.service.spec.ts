@@ -1,4 +1,6 @@
+import { In } from 'typeorm';
 import { NotificationsService } from './notifications.service.js';
+import { CUSTOMER_REQUEST_FOLLOW_UP_NOTIFICATION_TITLE } from './notifications.service.js';
 
 describe('NotificationsService opportunity alerts', () => {
   const searchQuery = {
@@ -61,7 +63,11 @@ describe('NotificationsService opportunity alerts', () => {
     await service.unreadOpportunityCount('artisan-1');
 
     expect(repository.count).toHaveBeenCalledWith({
-      where: { recipientId: 'artisan-1', read: false, title: 'Nouvelle demande client pour vous' },
+      where: {
+        recipientId: 'artisan-1',
+        read: false,
+        title: In(['Nouvelle demande client pour vous', CUSTOMER_REQUEST_FOLLOW_UP_NOTIFICATION_TITLE]),
+      },
     });
   });
 
@@ -71,7 +77,11 @@ describe('NotificationsService opportunity alerts', () => {
     await service.markOpportunityNotificationsRead('artisan-1');
 
     expect(repository.update).toHaveBeenCalledWith(
-      { recipientId: 'artisan-1', read: false, title: 'Nouvelle demande client pour vous' },
+      {
+        recipientId: 'artisan-1',
+        read: false,
+        title: In(['Nouvelle demande client pour vous', CUSTOMER_REQUEST_FOLLOW_UP_NOTIFICATION_TITLE]),
+      },
       { read: true },
     );
   });
