@@ -102,6 +102,8 @@ services:
         value: 'false'
       - key: NEXT_PUBLIC_MOBILE_MONEY_MODE
         value: test
+      - key: NEXT_PUBLIC_MOBILE_MONEY_ENABLED
+        value: 'true'
       - key: NEXT_PUBLIC_CARRIER_MODE
         value: simulation
 
