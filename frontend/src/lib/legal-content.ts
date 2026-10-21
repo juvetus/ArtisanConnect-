@@ -27,7 +27,7 @@ export const LEGAL_DOCUMENTS: Record<LegalDocumentId, Record<Language, LegalDocu
       sections: [
         {
           title: 'Éditeur du service',
-          paragraphs: ['Nom commercial prévu : ArtisanConnect. Entité exploitante prévue : Tekou Digital. La forme juridique envisagée est une SARL ou une SAS, à confirmer lors de la création prévue le 15 octobre 2026. Immatriculation, identifiant fiscal et adresse officielle : [À COMPLÉTER APRÈS CRÉATION].', 'Responsable de publication : [NOM ET FONCTION]. Contact juridique officiel : [ADRESSE E-MAIL À CONFIRMER].'],
+          paragraphs: ['Nom commercial déclaré : ArtisanConnect. Éditeur et entité exploitante : TEKOU DIGITAL SARL, société à responsabilité limitée unipersonnelle au capital de 100 000 F CFA, dont le siège est situé à Yaoundé, quartier Essos, Cameroun. RCCM : CM-NSI-02-2026-B13-00997, immatriculée le 14 octobre 2026. NIU : M102619031786S.', 'Gérant et responsable de publication : Juvet TAJO. Contact : juvettaj@gmail.com · +237 656 356 347.'],
         },
         {
           title: 'Hébergement et prestataires techniques',
@@ -45,7 +45,7 @@ export const LEGAL_DOCUMENTS: Record<LegalDocumentId, Record<Language, LegalDocu
       sections: [
         {
           title: 'Service operator',
-          paragraphs: ['Planned trade name: ArtisanConnect. Planned operating entity: Tekou Digital. The intended legal form is SARL or SAS, to be confirmed when the company is created on October 15, 2026. Registration, tax identification and official address: [TO BE COMPLETED AFTER CREATION].', 'Publication director: [NAME AND ROLE]. Official legal contact: [EMAIL ADDRESS TO CONFIRM].'],
+          paragraphs: ['Registered trade name: ArtisanConnect. Publisher and operating entity: TEKOU DIGITAL SARL, a single-member limited liability company with share capital of XAF 100,000 and registered office in Essos, Yaounde, Cameroon. Trade and Personal Property Credit Register (RCCM): CM-NSI-02-2026-B13-00997, registered on October 14, 2026. Taxpayer Identification Number (NIU): M102619031786S.', 'Manager and publication director: Juvet TAJO. Contact: juvettaj@gmail.com · +237 656 356 347.'],
         },
         {
           title: 'Hosting and technical providers',
@@ -65,7 +65,7 @@ export const LEGAL_DOCUMENTS: Record<LegalDocumentId, Record<Language, LegalDocu
       sections: [
         {
           title: 'Responsable du traitement',
-          paragraphs: ['Responsable projet annoncé : Tekou Digital, nom commercial ArtisanConnect. La forme juridique et l’adresse de l’exploitant seront confirmées après la création prévue le 15 octobre 2026. Contact pour les questions relatives aux données : [E-MAIL DÉDIÉ À COMPLÉTER].'],
+          paragraphs: ['Responsable du traitement : TEKOU DIGITAL SARL, qui exploite ArtisanConnect, située au quartier Essos, Yaoundé, Cameroun. Pour toute question relative aux données personnelles ou pour exercer une demande : juvettaj@gmail.com ou +237 656 356 347.'],
         },
         {
           title: 'Données traitées',
@@ -90,7 +90,7 @@ export const LEGAL_DOCUMENTS: Record<LegalDocumentId, Record<Language, LegalDocu
         },
         {
           title: 'Vos demandes et vos droits',
-          paragraphs: ['Vous pouvez contacter l’exploitant pour demander l’accès, la rectification ou la suppression de données, ou poser une question sur leur utilisation. Les droits, exceptions, justificatifs éventuels, délais de réponse et autorité de recours applicables doivent être confirmés selon le droit effectivement applicable.', 'Contact : [E-MAIL OU ADRESSE DE CONFIDENTIALITÉ À COMPLÉTER].'],
+          paragraphs: ['Vous pouvez contacter l’exploitant pour demander l’accès, la rectification ou la suppression de données, ou poser une question sur leur utilisation. Les droits, exceptions, justificatifs éventuels, délais de réponse et autorité de recours applicables doivent être confirmés selon le droit effectivement applicable.', 'Contact : juvettaj@gmail.com ou +237 656 356 347.'],
         },
         {
           title: 'Stockage local et traceurs',
@@ -98,7 +98,7 @@ export const LEGAL_DOCUMENTS: Record<LegalDocumentId, Record<Language, LegalDocu
         },
         {
           title: 'Mise à jour',
-          paragraphs: ['Version de travail datée du 27 septembre 2026. Avant mise en ligne, remplacer tous les champs à compléter, confirmer les prestataires et durées réels, faire valider le texte, puis indiquer la date d’entrée en vigueur et conserver l’historique des versions.'],
+          paragraphs: ['Version mise à jour le 21 octobre 2026. Les durées de conservation, les bases juridiques, l’inventaire complet des traceurs et les prestataires effectivement utilisés restent à confirmer et à faire valider avant publication définitive.'],
         },
       ],
     },
@@ -108,7 +108,7 @@ export const LEGAL_DOCUMENTS: Record<LegalDocumentId, Record<Language, LegalDocu
       sections: [
         {
           title: 'Data controller',
-          paragraphs: ['Planned project operator: Tekou Digital, trading as ArtisanConnect. The legal form and operator address will be confirmed after the planned company creation on October 15, 2026. Contact for data questions: [DEDICATED EMAIL TO BE COMPLETED].'],
+          paragraphs: ['Data controller: TEKOU DIGITAL SARL, operator of ArtisanConnect, located in the Essos district, Yaounde, Cameroon. For questions about personal data or to make a request, contact juvettaj@gmail.com or +237 656 356 347.'],
         },
         {
           title: 'Data processed',
@@ -141,7 +141,7 @@ export const LEGAL_DOCUMENTS: Record<LegalDocumentId, Record<Language, LegalDocu
         },
         {
           title: 'Updates',
-          paragraphs: ['Working version dated September 27, 2026. Before publication, replace all placeholders, confirm actual providers and retention periods, obtain review, state the effective date and keep a version history.'],
+          paragraphs: ['Updated October 21, 2026. Retention periods, legal bases, the complete tracker inventory and the providers actually used remain to be confirmed and reviewed before final publication.'],
         },
       ],
     },
@@ -181,7 +181,7 @@ export const LEGAL_DOCUMENTS: Record<LegalDocumentId, Record<Language, LegalDocu
         },
         {
           title: 'Contact et entrée en vigueur',
-          paragraphs: ['Contact support : formulaire disponible sur ArtisanConnect. Date d’entrée en vigueur : [À COMPLÉTER APRÈS VALIDATION]. Version de travail datée du 27 septembre 2026; ne pas considérer cette version comme définitive.'],
+          paragraphs: ['Contact : juvettaj@gmail.com ou +237 656 356 347. Date de mise à jour : 21 octobre 2026. Les conditions commerciales, la procédure de réclamation, le droit applicable et la juridiction compétente restent à confirmer avant publication définitive.'],
         },
       ],
     },
@@ -219,7 +219,7 @@ export const LEGAL_DOCUMENTS: Record<LegalDocumentId, Record<Language, LegalDocu
         },
         {
           title: 'Contact and effective date',
-          paragraphs: ['Support contact: the form available on ArtisanConnect. Effective date: [TO BE COMPLETED AFTER REVIEW]. Working version dated September 27, 2026; this version is not final.'],
+          paragraphs: ['Contact: juvettaj@gmail.com or +237 656 356 347. Updated October 21, 2026. Commercial terms, the complaints procedure, applicable law and competent jurisdiction remain to be confirmed before final publication.'],
         },
       ],
     },
