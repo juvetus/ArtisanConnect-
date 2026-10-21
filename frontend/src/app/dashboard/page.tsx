@@ -799,15 +799,34 @@ export default function DashboardPage() {
                 <label htmlFor="stock" className="block text-sm font-medium">
                   {t('dashboard_listing_stock')}
                 </label>
-                <input
-                  id="stock"
-                  type="number"
-                  min="0"
-                  required
-                  value={stock}
-                  onChange={(e) => setStock(e.target.value)}
-                  className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600"
-                />
+                <div className="mt-1 flex w-full overflow-hidden rounded-md border border-stone-300 focus-within:border-amber-600 focus-within:ring-1 focus-within:ring-amber-600">
+                  <input
+                    id="stock"
+                    type="number"
+                    min="0"
+                    step="1"
+                    required
+                    value={stock}
+                    onChange={(e) => setStock(e.target.value)}
+                    className="min-w-0 flex-1 px-3 py-2 outline-none"
+                  />
+                  <button
+                    type="button"
+                    aria-label={english ? 'Decrease stock' : 'Diminuer le stock'}
+                    onClick={() => setStock((current) => String(Math.max(0, (Number(current) || 0) - 1)))}
+                    className="min-h-12 min-w-12 border-l border-stone-300 text-lg font-semibold text-stone-700 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-amber-600"
+                  >
+                    ↓
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={english ? 'Increase stock' : 'Augmenter le stock'}
+                    onClick={() => setStock((current) => String((Number(current) || 0) + 1))}
+                    className="min-h-12 min-w-12 border-l border-stone-300 text-lg font-semibold text-stone-700 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-amber-600"
+                  >
+                    ↑
+                  </button>
+                </div>
               </div>
             </div>
 
