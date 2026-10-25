@@ -15,6 +15,16 @@ const publicUrls = {
 };
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: '(www\\.)?artisanconnectcm\\.info' }],
+        destination: 'https://artisanconnect.africa/:path*',
+        permanent: true,
+      },
+    ];
+  },
   env: Object.fromEntries(Object.entries(publicUrls).filter(([, value]) => value)) as Record<string, string>,
   turbopack: {
     root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'),
