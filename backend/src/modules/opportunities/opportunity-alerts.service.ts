@@ -77,14 +77,20 @@ export class OpportunityAlertsService {
         WHERE o.status = 'published' AND o.deadline > NOW()
           AND ((u."hasRccm" IS TRUE AND u."hasNiu" IS TRUE AND u."hasProfessionalArtisanCard" IS TRUE)
             OR EXISTS (SELECT 1 FROM artisan_formalizations f WHERE f."artisanId" = u.id AND f.status = 'approved'))
-          AND (channel.name = 'internal' OR (channel.name = 'email' AND p."emailEnabled")
+          AND (channel.name = 'internal' OR (channel.name = 'email' AND p."emailEnabled" AND $2)
             OR (channel.name = 'whatsapp' AND p."whatsappEnabled" AND $1))
         ON CONFLICT ("opportunityId", "userId", channel) DO NOTHING
-      `, [this.config.get('OPPORTUNITY_WHATSAPP_ENABLED', 'false') === 'true']);
+      `, [
+        this.config.get('OPPORTUNITY_WHATSAPP_ENABLED', 'false') === 'true',
+        this.config.get('OPPORTUNITY_EMAIL_ENABLED', 'false') === 'true',
+      ]);
       const pending = await this.db.getRepository(OpportunityDelivery).createQueryBuilder('delivery')
         .where("delivery.status = 'pending'")
         .andWhere("(delivery.channel != 'whatsapp' OR :whatsapp)", {
           whatsapp: this.config.get('OPPORTUNITY_WHATSAPP_ENABLED', 'false') === 'true',
+        })
+        .andWhere("(delivery.channel != 'email' OR :email)", {
+          email: this.config.get('OPPORTUNITY_EMAIL_ENABLED', 'false') === 'true',
         })
         .orderBy('delivery.createdAt', 'ASC').take(100).getMany();
       for (const delivery of pending) await this.deliver(delivery);
@@ -102,8 +108,9 @@ export class OpportunityAlertsService {
     try {
       const preference = await this.db.getRepository(OpportunityPreference).findOneBy({ userId: delivery.userId });
       const notice = await this.opportunities.get(delivery.opportunityId, true);
-      if (delivery.channel === 'whatsapp' && this.config.get('OPPORTUNITY_WHATSAPP_ENABLED', 'false') !== 'true') {
-        await repo.update(delivery.id, { status: 'pending', error: 'Canal WhatsApp suspendu en attente de son activation' });
+      if ((delivery.channel === 'whatsapp' && this.config.get('OPPORTUNITY_WHATSAPP_ENABLED', 'false') !== 'true') ||
+        (delivery.channel === 'email' && this.config.get('OPPORTUNITY_EMAIL_ENABLED', 'false') !== 'true')) {
+        await repo.update(delivery.id, { status: 'pending', error: 'Canal externe suspendu en attente de son activation' });
         return;
       }
       const subscribed = preference?.subscribed && preference.trades.some((trade) => notice.trades.includes(trade));

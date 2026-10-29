@@ -9,8 +9,8 @@ import { useLanguage } from '@/lib/language-context';
 import { opportunityDate, opportunityTradeLabel, type OpportunityPreferences } from '@/lib/opportunities';
 import { OpportunityTradePicker } from '@/components/OpportunityTradePicker';
 
-function AlertPreferences({ initial, trades, whatsappAvailable, onSave }: {
-  initial: OpportunityPreferences; trades: string[]; whatsappAvailable: boolean; onSave: () => Promise<unknown>;
+function AlertPreferences({ initial, trades, emailAvailable, whatsappAvailable, onSave }: {
+  initial: OpportunityPreferences; trades: string[]; emailAvailable: boolean; whatsappAvailable: boolean; onSave: () => Promise<unknown>;
 }) {
   const { language } = useLanguage();
   const en = language === 'en';
@@ -29,9 +29,10 @@ function AlertPreferences({ initial, trades, whatsappAvailable, onSave }: {
       <p className="text-sm text-stone-600">{en ? 'Choose your trades and opt in to each channel. Only active formalized or certified artisans receive alerts. You can unsubscribe at any time.' : 'Choisissez vos métiers et les canaux souhaités. Seuls les artisans actifs formalisés ou certifiés reçoivent les alertes. Désabonnement possible à tout moment.'}</p>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.subscribed} onChange={(e) => setForm({ ...form, subscribed: e.target.checked })} />{en ? 'Subscribe to matching opportunities (in-app notifications)' : 'Recevoir les opportunités correspondantes (notifications internes)'}</label>
       <OpportunityTradePicker trades={trades} value={form.trades} onChange={(value) => setForm({ ...form, trades: value })} />
-      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.emailEnabled} onChange={(e) => setForm({ ...form, emailEnabled: e.target.checked })} />{en ? 'Also receive e-mail alerts (verified address)' : 'Recevoir aussi les alertes e-mail (adresse vérifiée)'}</label>
+      <label className="flex items-center gap-2 text-sm"><input type="checkbox" disabled={!emailAvailable} checked={form.emailEnabled} onChange={(e) => setForm({ ...form, emailEnabled: e.target.checked })} />{en ? 'Also receive e-mail alerts (verified address)' : 'Recevoir aussi les alertes e-mail (adresse vérifiée)'}</label>
+      {!emailAvailable && <p className="text-sm text-stone-600">{en ? 'E-mail alerts are not available yet. In-app notifications remain available.' : 'Les alertes e-mail ne sont pas encore disponibles. Les notifications internes restent disponibles.'}</p>}
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" disabled={!whatsappAvailable} checked={form.whatsappEnabled} onChange={(e) => setForm({ ...form, whatsappEnabled: e.target.checked })} />{en ? 'I agree to receive opportunity alerts on my WhatsApp number' : 'J’accepte de recevoir les alertes opportunités sur mon numéro WhatsApp'}</label>
-      {!whatsappAvailable && <p className="text-sm text-stone-600">{en ? 'WhatsApp alerts are not available yet. In-app and e-mail alerts remain available.' : 'Les alertes WhatsApp ne sont pas encore disponibles. Les notifications internes et e-mail restent disponibles.'}</p>}
+      {!whatsappAvailable && <p className="text-sm text-stone-600">{en ? 'WhatsApp alerts are not available yet.' : 'Les alertes WhatsApp ne sont pas encore disponibles.'}</p>}
       {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
       {notice && <p role="status" className="text-sm text-green-700">{notice}</p>}
       <button disabled={busy} className="rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">{busy ? (en ? 'Saving…' : 'Enregistrement…') : (en ? 'Save preferences' : 'Enregistrer mes préférences')}</button>
@@ -55,7 +56,7 @@ export default function OpportunitiesPage() {
     <div className="mx-auto max-w-5xl space-y-6">
       <header><h1 className="text-3xl font-semibold">{en ? 'Tenders & artisan opportunities' : 'Veille des appels d’offres et opportunités artisanales'}</h1><p className="mt-2 text-stone-600">{en ? 'Public notices reviewed by the team. Always check the official tender documents and eligibility requirements.' : 'Avis publics relus par l’équipe. Consultez toujours le dossier officiel et ses conditions d’éligibilité.'}</p></header>
       {(configError || preferenceError) && <p role="alert" className="text-red-700">{(configError || preferenceError).message}</p>}
-      {config && preferences && <AlertPreferences key={user.id} initial={preferences} trades={config.trades} whatsappAvailable={config.whatsappAvailable} onSave={mutate} />}
+      {config && preferences && <AlertPreferences key={user.id} initial={preferences} trades={config.trades} emailAvailable={config.emailAvailable} whatsappAvailable={config.whatsappAvailable} onSave={mutate} />}
       {error ? <div role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-4"><p>{error.message}</p><Link href="/profile" className="mt-2 inline-block text-amber-800 underline">{en ? 'Complete my formalization profile' : 'Compléter mon profil de formalisation'}</Link></div> : null}
       {config && <label className="block text-sm font-medium">{en ? 'Filter this page by trade' : 'Filtrer cette page par métier'}<select className="field mt-1" value={trade} onChange={(event) => setTrade(event.target.value)}><option value="">{en ? 'All trades' : 'Tous les métiers'}</option>{config.trades.map((value) => <option key={value} value={value}>{opportunityTradeLabel(value, language)}</option>)}</select></label>}
       {isLoading && <p>{en ? 'Loading notices…' : 'Chargement des avis…'}</p>}

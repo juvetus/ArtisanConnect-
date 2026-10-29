@@ -22,7 +22,7 @@ describe.skipIf(!enabled)('Opportunity workflow on isolated local PostgreSQL sch
   let sequence = 0;
   const email = { send: vi.fn().mockResolvedValue(true) };
   const whatsapp = { sendNotification: vi.fn().mockResolvedValue(true) };
-  const config = new ConfigService({ FRONTEND_URL: 'https://example.test', AI_API_KEY: 'test-key', AI_BASE_URL: 'https://ai.example.test/v1', OPPORTUNITY_WHATSAPP_ENABLED: 'true' });
+  const config = new ConfigService({ FRONTEND_URL: 'https://example.test', AI_API_KEY: 'test-key', AI_BASE_URL: 'https://ai.example.test/v1', OPPORTUNITY_WHATSAPP_ENABLED: 'true', OPPORTUNITY_EMAIL_ENABLED: 'true' });
 
   beforeAll(async () => {
     const host = process.env.DB_HOST || 'localhost';
@@ -50,6 +50,7 @@ describe.skipIf(!enabled)('Opportunity workflow on isolated local PostgreSQL sch
 
   beforeEach(async () => {
     config.set('OPPORTUNITY_WHATSAPP_ENABLED', 'true');
+    config.set('OPPORTUNITY_EMAIL_ENABLED', 'true');
     email.send.mockClear();
     whatsapp.sendNotification.mockClear();
     email.send.mockResolvedValue(true);
@@ -195,6 +196,22 @@ describe.skipIf(!enabled)('Opportunity workflow on isolated local PostgreSQL sch
     expect(await db.getRepository(OpportunityDelivery).findOneByOrFail({ opportunityId: notice.id, userId: user.id, channel: 'email' })).toMatchObject({ status: 'failed', error: expect.stringContaining('non confirmé') });
     expect(email.send).toHaveBeenCalledOnce();
     expect(await db.getRepository(Notification).countBy({ recipientId: user.id, relatedId: notice.id })).toBe(1);
+  });
+
+  it('suspends e-mail without consuming pending deliveries or blocking internal notifications', async () => {
+    const user = await artisan({ phone: '+237699000004' });
+    await subscribe(user, ['menuiserie'], true);
+    const notice = await published();
+    await db.getRepository(OpportunityDelivery).save({ opportunityId: notice.id, userId: user.id, channel: 'email' });
+    config.set('OPPORTUNITY_EMAIL_ENABLED', 'false');
+    expect(service.configuration().emailAvailable).toBe(false);
+    await alerts.dispatch();
+    expect(email.send).not.toHaveBeenCalled();
+    expect(await db.getRepository(Notification).countBy({ recipientId: user.id, relatedId: notice.id })).toBe(1);
+    expect(await db.getRepository(OpportunityDelivery).findOneByOrFail({ opportunityId: notice.id, channel: 'email' })).toMatchObject({ status: 'pending' });
+    config.set('OPPORTUNITY_EMAIL_ENABLED', 'true');
+    await alerts.dispatch();
+    expect(email.send).toHaveBeenCalledOnce();
   });
 
   it('checks consent again just before processing an already queued alert', async () => {
