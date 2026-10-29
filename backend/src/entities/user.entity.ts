@@ -51,6 +51,21 @@ export class User {
   @Column({ type: 'varchar', nullable: true })
   gender: 'female' | 'male' | 'cooperative' | 'other' | null;
 
+  @Column({ type: 'boolean', nullable: true })
+  hasRccm: boolean | null;
+
+  @Column({ type: 'boolean', nullable: true })
+  hasNiu: boolean | null;
+
+  @Column({ type: 'boolean', nullable: true })
+  hasProfessionalArtisanCard: boolean | null;
+
+  @Column({ type: 'boolean', nullable: true })
+  hasProfessionalAccount: boolean | null;
+
+  @Column({ type: 'boolean', nullable: true })
+  hasFixedWorkshop: boolean | null;
+
   @Column({ default: false })
   verifiedEmail: boolean;
 

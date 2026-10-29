@@ -49,6 +49,22 @@ export class UsersController {
     return { success: true, message: 'Mot de passe mis à jour avec succès.' };
   }
 
+  @Patch('me/formalization')
+  async updateArtisanFormalization(
+    @CurrentUser() currentUser: AuthUser,
+    @Body() body: Record<string, unknown>,
+  ) {
+    const fields = ['hasRccm', 'hasNiu', 'hasProfessionalArtisanCard', 'hasProfessionalAccount', 'hasFixedWorkshop'] as const;
+    const entries = Object.entries(body ?? {});
+    if (!entries.length || entries.some(([key, value]) => !fields.includes(key as typeof fields[number]) || (value !== null && typeof value !== 'boolean'))) {
+      throw new BadRequestException('Les réponses de formalisation doivent être oui, non ou non renseignées.');
+    }
+    return this.usersService.updateArtisanFormalization(
+      currentUser.id,
+      Object.fromEntries(entries) as Partial<Record<typeof fields[number], boolean | null>>,
+    );
+  }
+
   @Public()
   @Get(':id')
   async getUser(@Param('id') id: string) {
@@ -71,5 +87,4 @@ export class UsersController {
     return this.usersService.update(id, safeData);
   }
 }
-
 

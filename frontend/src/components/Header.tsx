@@ -155,6 +155,11 @@ export function Header() {
                   {t('nav_validate_services')}
                 </Link>
               )}
+              {['admin', 'editor', 'viewer'].includes(user.role) && (
+                <Link href="/admin/opportunities" className={navLinkClass('/admin/opportunities')}>
+                  {language === 'en' ? 'Tender monitoring' : 'Veille appels d’offres'}
+                </Link>
+              )}
               {user.role === 'admin' && (
                 <Link
                   href="/admin/service-orders"
@@ -206,6 +211,11 @@ export function Header() {
               {user.role === 'artisan' && (
                 <Link href="/assistant" className={navLinkClass('/assistant')}>
                   {t('nav_assistant')}
+                </Link>
+              )}
+              {user.role === 'artisan' && (
+                <Link href="/opportunities" className={navLinkClass('/opportunities')}>
+                  {language === 'en' ? 'Tenders & groups' : 'Appels d’offres & groupements'}
                 </Link>
               )}
               {user.role === 'artisan' && (

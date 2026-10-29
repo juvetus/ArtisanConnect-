@@ -1,4 +1,5 @@
 import type { AdminOverview, AdminSubscription, AnalyticsFunnel, ArtisanFormalization, AuthSession, CustomerRequestStatus, InstitutionDashboard, InstitutionalProgram, InstitutionalResource, Listing, ListingOffer, Message, NotificationsResponse, Order, Paginated, Payment, ProgramApplication, ProgramApplicationStatus, ProgramType, PublicArtisan, Report, ReportReason, ReportStatus, ReportTargetType, ResourceType, Review, Role, Service, ServiceReview, Shop, ShopType, Thread, User } from './types';
+import type { Opportunity, OpportunityConfig, OpportunityDashboard, OpportunityGroup, OpportunityPreferences } from './opportunities';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
@@ -70,6 +71,26 @@ const delete_ = <T>(path: string) =>
   request<T>(path, { method: 'DELETE' });
 
 export const api = {
+  opportunityConfig: () => request<OpportunityConfig>('/opportunities/config'),
+  opportunities: (skip = 0) => request<{ items: Opportunity[]; total: number; take: number }>(`/opportunities?skip=${skip}`),
+  opportunity: (id: string) => request<Opportunity>(`/opportunities/${id}`),
+  opportunityPreferences: () => request<OpportunityPreferences>('/opportunities/preferences'),
+  saveOpportunityPreferences: (data: OpportunityPreferences) => patch<OpportunityPreferences>('/opportunities/preferences', data),
+  opportunityGroups: (id: string) => request<OpportunityGroup[]>(`/opportunities/${id}/groups`),
+  createOpportunityGroup: (id: string, data: { name: string; description: string; capacity: number }) => post(`/opportunities/${id}/groups`, data),
+  joinOpportunityGroup: (id: string) => post(`/opportunities/groups/${id}/join`),
+  reviewOpportunityMember: (id: string, memberId: string, accept: boolean) => post(`/opportunities/groups/${id}/members/${memberId}`, { accept }),
+  closeOpportunityGroup: (id: string) => post(`/opportunities/groups/${id}/close`),
+  leaveOpportunityGroup: (id: string) => post(`/opportunities/groups/${id}/leave`),
+  opportunityAdminDashboard: () => request<OpportunityDashboard>('/opportunities/admin/dashboard'),
+  opportunityAdminNotices: (skip = 0) => request<{ items: Opportunity[]; total: number; take: number }>(`/opportunities/admin/notices?skip=${skip}`),
+  collectOpportunities: () => post<{ id: string; status: string }>('/opportunities/admin/collect'),
+  dispatchOpportunityAlerts: () => post<{ processed: number }>('/opportunities/admin/dispatch'),
+  createManualOpportunity: (data: { title: string; organization: string; location: string; reference: string; sourceUrl: string; deadline: string | null }) => post<Opportunity>('/opportunities/admin/notices', data),
+  analyzeOpportunity: (id: string) => post<Opportunity>(`/opportunities/admin/notices/${id}/analyze`),
+  publishOpportunity: (id: string, data: { title: string; organization: string; location: string; summary: string; deadline: string; trades: string[] }) => post<Opportunity>(`/opportunities/admin/notices/${id}/publish`, data),
+  archiveOpportunity: (id: string) => post<Opportunity>(`/opportunities/admin/notices/${id}/archive`),
+
   register: (data: { email?: string; phone?: string; password: string; name: string; role: Role; gender?: 'female' | 'male' | 'cooperative' | 'other' }) =>
     post<User & { developmentOtp?: string; accountStatus?: string; verificationEmailSent?: boolean }>('/auth/register', data),
 
@@ -123,6 +144,9 @@ export const api = {
   assistantImageQuota: () => request<{ planSlug: string | null; limit: number; used: number; remaining: number; subscriptionId: string | null }>('/assistant/image-quota'),
 
     updateProfile: (id: string, data: { name?: string; phone?: string; whatsappPhone?: string; location?: string; bio?: string; avatarUrl?: string }) => patch<User>(`/users/${id}`, data),
+
+    updateArtisanFormalization: (data: Pick<User, 'hasRccm' | 'hasNiu' | 'hasProfessionalArtisanCard' | 'hasProfessionalAccount' | 'hasFixedWorkshop'>) =>
+      patch<User>('/users/me/formalization', data),
 
     uploadAvatar: async (file: File) => {
       const form = new FormData();

@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import bcrypt from 'bcrypt';
-import { InstitutionalProgram, InstitutionalResource, Listing, Order, Payment, ProgramApplication, ServiceOrder, Shop, Subscription, User } from '../../entities/index.js';
+import { ArtisanFormalization, InstitutionalProgram, InstitutionalResource, Listing, Order, Payment, ProgramApplication, ServiceOrder, Shop, Subscription, User } from '../../entities/index.js';
 import { ShopsService } from '../shops/shops.service.js';
 
 @Injectable()
@@ -93,6 +93,24 @@ export class AdminService implements OnModuleInit {
       }),
     ]);
 
+    const formalizationStatusRows = await this.users
+      .createQueryBuilder('artisan')
+      .leftJoin(ArtisanFormalization, 'formalization', 'formalization.artisanId = artisan.id')
+      .where("artisan.role = 'artisan'")
+      .select("COUNT(*) FILTER (WHERE formalization.status = 'approved')", 'certified')
+      .addSelect("COUNT(*) FILTER (WHERE formalization.status IS DISTINCT FROM 'approved' AND artisan.hasRccm IS TRUE AND artisan.hasNiu IS TRUE AND artisan.hasProfessionalArtisanCard IS TRUE)", 'formalized')
+      .addSelect("COUNT(*) FILTER (WHERE formalization.status IS DISTINCT FROM 'approved' AND NOT (artisan.hasRccm IS TRUE AND artisan.hasNiu IS TRUE AND artisan.hasProfessionalArtisanCard IS TRUE) AND (formalization.status IN ('submitted', 'in_review') OR artisan.hasRccm IS TRUE OR artisan.hasNiu IS TRUE OR artisan.hasProfessionalArtisanCard IS TRUE))", 'inProgress')
+      .addSelect("COUNT(*) FILTER (WHERE artisan.hasRccm IS FALSE AND artisan.hasNiu IS FALSE AND artisan.hasProfessionalArtisanCard IS FALSE AND formalization.status IS DISTINCT FROM 'approved' AND formalization.status IS DISTINCT FROM 'submitted' AND formalization.status IS DISTINCT FROM 'in_review')", 'informal')
+      .getRawOne<Record<'certified' | 'formalized' | 'inProgress' | 'informal', string>>();
+
+    const formalizationStatuses = {
+      informal: Number(formalizationStatusRows?.informal ?? 0),
+      inProgress: Number(formalizationStatusRows?.inProgress ?? 0),
+      formalized: Number(formalizationStatusRows?.formalized ?? 0),
+      certified: Number(formalizationStatusRows?.certified ?? 0),
+    };
+    const classifiedArtisans = Object.values(formalizationStatuses).reduce((sum, count) => sum + count, 0);
+
     // Décompte spécifique pour l'impact de genre & coopératives
     const womenArtisanRows = await this.users
       .createQueryBuilder('u')
@@ -132,6 +150,10 @@ export class AdminService implements OnModuleInit {
       stats: {
         users,
         artisans,
+        formalizationStatuses: {
+          ...formalizationStatuses,
+          unclassified: Math.max(artisans - classifiedArtisans, 0),
+        },
         clients,
         institutions,
         listings,

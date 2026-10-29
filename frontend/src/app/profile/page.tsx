@@ -9,6 +9,14 @@ import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
 import type { Service, Shop, User } from '@/lib/types';
 
+const FORMALIZATION_QUESTIONS = [
+  { field: 'hasRccm', fr: 'Disposez-vous d’un RCCM ?', en: 'Do you have an RCCM registration?' },
+  { field: 'hasNiu', fr: 'Disposez-vous d’un NIU ?', en: 'Do you have a tax identification number (NIU)?' },
+  { field: 'hasProfessionalArtisanCard', fr: 'Disposez-vous d’une Carte Professionnelle d’Artisan ?', en: 'Do you have a Professional Artisan Card?' },
+  { field: 'hasProfessionalAccount', fr: 'Disposez-vous d’un compte bancaire ou Mobile Money professionnel ?', en: 'Do you have a professional bank or Mobile Money account?' },
+  { field: 'hasFixedWorkshop', fr: 'Exercez-vous dans un atelier ou local fixe ?', en: 'Do you work from a fixed workshop or premises?' },
+] as const;
+
 function ShopPaymentForm({ shop, language }: { shop: Shop; language: 'fr' | 'en' }) {
   const english = language === 'en';
   const [momoNumber, setMomoNumber] = useState(shop.momoNumber ?? shop.mobileMoneyNumber ?? '');
@@ -178,7 +186,18 @@ function ProfileForm({ user }: { user: User }) {
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [formalizationAnswers, setFormalizationAnswers] = useState({
+    hasRccm: user.hasRccm ?? null,
+    hasNiu: user.hasNiu ?? null,
+    hasProfessionalArtisanCard: user.hasProfessionalArtisanCard ?? null,
+    hasProfessionalAccount: user.hasProfessionalAccount ?? null,
+    hasFixedWorkshop: user.hasFixedWorkshop ?? null,
+  });
+  const [savingFormalization, setSavingFormalization] = useState(false);
+  const [formalizationNotice, setFormalizationNotice] = useState('');
+  const [formalizationError, setFormalizationError] = useState('');
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const { data: formalizationRecord } = useSWR(user.role === 'artisan' ? ['my-formalization', user.id] : null, api.myFormalization);
   const { data: shops, isLoading: shopsLoading } = useSWR<Shop[]>(user.role === 'artisan' ? ['profile-shops', user.id] : null, api.myShops);
   const { data: services } = useSWR<Service[]>(user.role === 'artisan' ? ['profile-services', user.id] : null, () => api.getMyServices());
 
@@ -227,6 +246,37 @@ function ProfileForm({ user }: { user: User }) {
       setSaving(false);
     }
   };
+
+  const saveFormalization = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSavingFormalization(true);
+    setFormalizationNotice('');
+    setFormalizationError('');
+    try {
+      const updated = await api.updateArtisanFormalization(formalizationAnswers);
+      updateUser(updated);
+      setFormalizationNotice(english ? 'Formalization information updated.' : 'Informations de formalisation mises à jour.');
+    } catch (saveError) {
+      setFormalizationError(saveError instanceof ApiError ? saveError.message : (english ? 'Could not update formalization information.' : 'Impossible de mettre à jour les informations de formalisation.'));
+    } finally {
+      setSavingFormalization(false);
+    }
+  };
+
+  const coreFormalizationAnswers = [
+    formalizationAnswers.hasRccm,
+    formalizationAnswers.hasNiu,
+    formalizationAnswers.hasProfessionalArtisanCard,
+  ];
+  const formalizationStatus = formalizationRecord?.status === 'approved'
+    ? (english ? 'Certified' : 'Certifié')
+    : coreFormalizationAnswers.every((answer) => answer === true)
+      ? (english ? 'Formalized' : 'Formalisé')
+      : formalizationRecord && ['submitted', 'in_review'].includes(formalizationRecord.status) || coreFormalizationAnswers.some((answer) => answer === true)
+        ? (english ? 'In progress' : 'En cours de formalisation')
+        : coreFormalizationAnswers.every((answer) => answer === false)
+          ? (english ? 'Informal' : 'Informel')
+          : (english ? 'Not provided' : 'Non renseigné');
 
   const uploadAvatar = async (file: File) => {
     setUploadingAvatar(true);
@@ -297,6 +347,38 @@ function ProfileForm({ user }: { user: User }) {
           <button type="button" onClick={() => router.back()} className="rounded-md border border-stone-300 px-5 py-2.5 text-sm font-medium text-stone-700 hover:bg-stone-50">{t('profile_back')}</button>
         </div>
       </form>
+      {user.role === 'artisan' ? (
+        <form onSubmit={saveFormalization} className="space-y-4 rounded-lg border border-stone-200 bg-white p-6">
+          <div>
+            <h2 className="text-xl font-semibold text-stone-900">{english ? 'Formalization status' : 'Statut de formalisation'}</h2>
+            <p className="mt-1 text-sm text-stone-600">{english ? 'Current status' : 'Statut actuel'} : <strong>{formalizationStatus}</strong></p>
+            <p className="mt-1 text-sm text-stone-600">{english ? 'Answer these questions to help track your formalization progress.' : 'Répondez à ces questions pour suivre votre niveau de formalisation.'}</p>
+          </div>
+          {FORMALIZATION_QUESTIONS.map(({ field, fr, en }) => (
+            <label key={field} htmlFor={`formalization-${field}`} className="block text-sm font-medium text-stone-700">
+              {english ? en : fr}
+              <select
+                id={`formalization-${field}`}
+                value={formalizationAnswers[field] === null ? '' : String(formalizationAnswers[field])}
+                onChange={(event) => setFormalizationAnswers((current) => ({
+                  ...current,
+                  [field]: event.target.value === '' ? null : event.target.value === 'true',
+                }))}
+                className="field mt-1"
+              >
+                <option value="">{english ? 'Not provided' : 'Non renseigné'}</option>
+                <option value="true">{english ? 'Yes' : 'Oui'}</option>
+                <option value="false">{english ? 'No' : 'Non'}</option>
+              </select>
+            </label>
+          ))}
+          {formalizationNotice ? <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">{formalizationNotice}</p> : null}
+          {formalizationError ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{formalizationError}</p> : null}
+          <button type="submit" disabled={savingFormalization} className="rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-white hover:bg-amber-800 disabled:opacity-60">
+            {savingFormalization ? (english ? 'Saving…' : 'Enregistrement…') : (english ? 'Save formalization status' : 'Enregistrer le statut')}
+          </button>
+        </form>
+      ) : null}
       <ChangePasswordForm language={language} />
       {user.role === 'artisan' ? (
         <section className="space-y-4">
