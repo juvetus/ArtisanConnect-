@@ -112,6 +112,8 @@ La contrainte unique `(opportunityId, userId, channel)` evite de diffuser plusie
 sur le meme canal. Les notifications internes sont inserees transactionnellement avec leur statut.
 
 - E-mail : configuration SMTP existante, `FRONTEND_URL` et adresse utilisateur verifiee.
+  Definir `OPPORTUNITY_EMAIL_ENABLED=true` apres verification de l'envoi SMTP depuis l'hebergement.
+  Le canal reste suspendu par defaut sans affecter les autres e-mails de la plateforme.
 - WhatsApp : configuration Meta et modele de notification existants, numero renseigne et consentement utilisateur.
   Le canal reste suspendu par defaut : definir `OPPORTUNITY_WHATSAPP_ENABLED=true` uniquement
   apres approbation et verification du modele Meta. Cette option ne modifie pas les autres notifications WhatsApp.

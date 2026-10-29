@@ -39,6 +39,7 @@ export interface OpportunityGroup {
 export interface OpportunityConfig {
   trades: string[];
   scheduled: boolean;
+  emailAvailable: boolean;
   whatsappAvailable: boolean;
   sources: { key: string; name: string; url: string; automatic: boolean }[];
 }

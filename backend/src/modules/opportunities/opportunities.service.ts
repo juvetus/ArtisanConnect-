@@ -25,6 +25,7 @@ export class OpportunitiesService {
     return {
       sources: WATCH_SOURCES, trades: OPPORTUNITY_TRADES,
       scheduled: this.config.get('OPPORTUNITY_WATCH_ENABLED', 'false') === 'true',
+      emailAvailable: this.config.get('OPPORTUNITY_EMAIL_ENABLED', 'false') === 'true',
       whatsappAvailable: this.config.get('OPPORTUNITY_WHATSAPP_ENABLED', 'false') === 'true',
     };
   }
