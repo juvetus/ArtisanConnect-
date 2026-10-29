@@ -8,7 +8,7 @@ import { User } from '../../entities/user.entity.js';
 import { Notification } from '../../entities/notification.entity.js';
 import { Opportunity, OpportunityGroup, OpportunityGroupMember, OpportunityPreference, OpportunityWatchRun } from '../../entities/opportunity.entity.js';
 import { isFormalized, OPPORTUNITY_TRADES, parseDeadline, requiredText, validSourceUrl, validateTrades } from './opportunity-policy.js';
-import { collectSource, type SourceKey, WATCH_SOURCES } from './opportunity-sources.js';
+import { AUTOMATIC_SOURCE_KEYS, collectSource, WATCH_SOURCES } from './opportunity-sources.js';
 
 @Injectable()
 export class OpportunitiesService {
@@ -71,9 +71,9 @@ export class OpportunitiesService {
       const result: { locked: boolean }[] = await runner.query('SELECT pg_try_advisory_lock(176130001) AS locked');
       locked = result[0].locked;
       if (!locked) throw new ConflictException('Une collecte est déjà en cours');
-      await this.runs.update({ status: 'running', source: In(['armp', 'ungm']) }, { status: 'failed', error: 'Collecte précédente interrompue', finishedAt: new Date() });
+      await this.runs.update({ status: 'running', source: In([...AUTOMATIC_SOURCE_KEYS]) }, { status: 'failed', error: 'Collecte précédente interrompue', finishedAt: new Date() });
       const results: OpportunityWatchRun[] = [];
-      for (const source of ['armp', 'ungm'] as SourceKey[]) {
+      for (const source of AUTOMATIC_SOURCE_KEYS) {
         const run = await this.runs.save(this.runs.create({ source, status: 'running' }));
         try {
           const notices = await collectSource(source);

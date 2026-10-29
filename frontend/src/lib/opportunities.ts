@@ -3,7 +3,7 @@ import type { Language } from './i18n';
 
 export interface Opportunity {
   id: string;
-  source: 'armp' | 'ungm' | 'manual';
+  source: 'armp' | 'ungm' | 'sangobids' | 'manual';
   sourceUrl: string;
   title: string;
   organization: string;
@@ -41,7 +41,12 @@ export interface OpportunityConfig {
   scheduled: boolean;
   emailAvailable: boolean;
   whatsappAvailable: boolean;
-  sources: { key: string; name: string; url: string; automatic: boolean }[];
+  sources: {
+    key: string; name: string; url: string | null; automatic: boolean;
+    group: 'public' | 'aggregator' | 'un' | 'council' | 'company';
+    status: 'automatic' | 'manual' | 'blocked' | 'covered' | 'planned';
+    note: string; noteEn: string;
+  }[];
 }
 
 export interface OpportunityDashboard extends OpportunityConfig {

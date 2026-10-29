@@ -8,6 +8,21 @@ import { useLanguage } from '@/lib/language-context';
 import { opportunityDate, type Opportunity } from '@/lib/opportunities';
 import { OpportunityTradePicker } from '@/components/OpportunityTradePicker';
 
+const sourceGroups = [
+  ['public', 'Marchés publics Cameroun — priorité 1', 'Cameroon public procurement — priority 1'],
+  ['aggregator', 'Agrégateurs', 'Aggregators'],
+  ['un', 'Nations Unies et programmes', 'United Nations and programmes'],
+  ['council', 'Mairies du Mfoundi', 'Mfoundi councils'],
+  ['company', 'Grandes entreprises', 'Major companies'],
+] as const;
+const sourceStatuses = {
+  automatic: ['Collecte automatique', 'Automatic collection'],
+  manual: ['Consultation manuelle', 'Manual review'],
+  blocked: ['Connecteur bloqué — non activé', 'Connector blocked — not enabled'],
+  covered: ['Via une source existante', 'Through an existing source'],
+  planned: ['Connecteur à développer', 'Connector planned'],
+};
+
 function localDeadline(value: string | null) {
   return value ? new Date(value).toLocaleString('sv-SE', { timeZone: 'Africa/Douala' }).slice(0, 16).replace(' ', 'T') : '';
 }
@@ -26,6 +41,7 @@ function ReviewNotice({ item, trades, writable, onAction, busy }: {
       <div className="flex flex-wrap justify-between gap-2"><p className="text-xs font-medium uppercase text-amber-800">{item.source} · {item.reference}</p><span className="rounded-full bg-stone-100 px-3 py-1 text-xs">{item.status === 'draft' ? (en ? 'Draft' : 'Brouillon') : item.status === 'published' ? (en ? 'Published' : 'Publié') : (en ? 'Archived' : 'Archivé')}</span></div>
       <h2 className="text-lg font-semibold">{item.title}</h2>
       <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-amber-800 underline">{en ? 'Check source notice' : 'Vérifier l’avis source'}</a>
+      {item.source === 'sangobids' && <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-900">{en ? 'Aggregator link: the imported title is derived from the URL and may be truncated. Check the original official notice, exact deadline and existing ARMP/UNGM notices before publication.' : 'Lien d’agrégateur : le titre importé provient de l’URL et peut être tronqué. Vérifiez l’avis officiel d’origine, l’échéance exacte et les avis ARMP/UNGM déjà présents avant publication.'}</p>}
       <p className="text-sm">{en ? 'Deadline' : 'Échéance'} : {opportunityDate(item.deadline, language)} ({en ? 'Cameroon time' : 'heure du Cameroun'})</p>
       {item.analysisError && <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-900">{en ? 'AI analysis' : 'Analyse IA'} : {item.analysisError}</p>}
       {item.status === 'draft' && writable ? (
@@ -82,7 +98,14 @@ export default function AdminOpportunitiesPage() {
         <section className="space-y-4 rounded-lg border border-stone-200 bg-white p-5">
           <h2 className="text-xl font-semibold">{en ? 'Sources & monitoring' : 'Sources et suivi'}</h2>
           <p className="text-sm">{en ? 'Daily collection at 06:00 (Cameroon)' : 'Collecte quotidienne à 06 h (Cameroun)'} : <strong>{dashboard.scheduled ? (en ? 'Enabled' : 'Activée') : (en ? 'Disabled — set OPPORTUNITY_WATCH_ENABLED=true' : 'Désactivée — définir OPPORTUNITY_WATCH_ENABLED=true')}</strong></p>
-          <ul className="space-y-2 text-sm">{dashboard.sources.map((source) => <li key={source.key}><a href={source.url} target="_blank" rel="noopener noreferrer" className="text-amber-800 underline">{source.name}</a> — {source.automatic ? (en ? 'Automatic metadata collection' : 'Collecte automatique des métadonnées') : (en ? 'Official link only — connector not enabled' : 'Lien officiel uniquement — connecteur non activé')}</li>)}</ul>
+          <p className="text-sm text-stone-600">{en ? 'Only sources marked “Automatic collection” are fetched. Other links require manual review; missing URLs are not invented. Coverage is not exhaustive.' : 'Seules les sources marquées « Collecte automatique » sont interrogées. Les autres liens nécessitent une consultation manuelle ; les URL manquantes ne sont pas inventées. La couverture n’est pas exhaustive.'}</p>
+          {sourceGroups.map(([group, fr, english]) => <details key={group} open={group === 'public' || group === 'aggregator'} className="rounded-md border border-stone-200 p-3">
+            <summary className="cursor-pointer font-semibold">{en ? english : fr} ({dashboard.sources.filter((source) => source.group === group).length})</summary>
+            <ul className="mt-3 space-y-3 text-sm">{dashboard.sources.filter((source) => source.group === group).map((source) => <li key={source.key}>
+              <div>{source.url ? <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-amber-800 underline">{source.name}</a> : <strong>{source.name}</strong>} <span className={`ml-2 inline-block rounded px-2 py-1 text-xs ${source.automatic ? 'bg-green-50 text-green-800' : 'bg-stone-100 text-stone-700'}`}>{sourceStatuses[source.status][en ? 1 : 0]}</span></div>
+              <p className="mt-1 text-stone-600">{en ? source.noteEn : source.note}</p>
+            </li>)}</ul>
+          </details>)}
           <p className="text-sm">{dashboard.drafts} {en ? 'drafts' : 'brouillons'} · {dashboard.published} {en ? 'published' : 'publiés'}</p>
           {writable && <div className="flex flex-wrap gap-3"><button disabled={busy} onClick={() => void action(async () => { await api.collectOpportunities(); setNotice(en ? 'Collection queued. It starts within a minute; follow progress in the logs below.' : 'Collecte mise en attente. Elle démarre sous une minute ; suivez sa progression dans les journaux ci-dessous.'); })} className="rounded-md bg-amber-700 px-4 py-2 text-sm text-white disabled:opacity-50">{busy ? (en ? 'Working…' : 'Traitement…') : (en ? 'Collect now' : 'Collecter maintenant')}</button><button disabled={busy} onClick={() => void action(async () => { const result = await api.dispatchOpportunityAlerts(); setNotice(`${result.processed} ${en ? 'alerts processed. Check channel delivery statuses below.' : 'alertes traitées. Vérifiez les états de livraison ci-dessous.'}`); })} className="rounded-md border border-stone-300 px-4 py-2 text-sm disabled:opacity-50">{en ? 'Process pending alerts' : 'Traiter les alertes en attente'}</button></div>}
         </section>

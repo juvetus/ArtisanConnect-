@@ -1,6 +1,7 @@
 import { load } from 'cheerio';
+import type { SourceKey } from './opportunity-source-catalog.js';
+export { AUTOMATIC_SOURCE_KEYS, WATCH_SOURCES, type SourceKey } from './opportunity-source-catalog.js';
 
-export type SourceKey = 'armp' | 'ungm';
 export interface CollectedNotice {
   source: SourceKey;
   externalId: string;
@@ -11,12 +12,6 @@ export interface CollectedNotice {
   reference: string;
   deadline: Date | null;
 }
-
-export const WATCH_SOURCES = [
-  { key: 'armp', name: 'ARMP Cameroun', url: 'https://armp.cm/', automatic: true },
-  { key: 'ungm', name: 'UNGM — Cameroun', url: 'https://www.ungm.org/Public/Notice', automatic: true },
-  { key: 'coleps', name: 'COLEPS', url: 'https://marchespublics.cm/index.do', automatic: false },
-] as const;
 
 const clean = (text: string) => text.replace(/\s+/g, ' ').trim();
 
@@ -82,6 +77,36 @@ export function parseUngm(html: string): { notices: CollectedNotice[]; total: nu
   return { notices, total: Number(totalMatch[1]) };
 }
 
+export function parseSangobids(html: string): CollectedNotice[] {
+  const $ = load(html);
+  if (!/appels d.offres du jour au cameroun/i.test(clean($('h1').text()))) {
+    throw new Error('SangoBids : structure de la liste publique non reconnue');
+  }
+  const links = $('li > a[href^="/tenders/"]').filter((_, element) => {
+    const href = $(element).attr('href') ?? '';
+    return !href.startsWith('/tenders/page/') && /^\/tenders\/[a-z0-9]+\/[a-z0-9-]+$/.test(href);
+  });
+  if (!links.length) throw new Error('SangoBids : aucun lien d’avis reconnu ; vérifier la page source');
+  const notices = new Map<string, CollectedNotice>();
+  links.slice(0, 200).each((_, element) => {
+    const link = $(element);
+    const href = link.attr('href');
+    if (!href) throw new Error('SangoBids : lien d’avis absent');
+    const [, , id, slug] = href.split('/');
+    // Only factual URL labels: do not copy the aggregator's generated summaries.
+    if (/^(?:additif|communique|decision|avis-d-attribution|attribution|resultat|report-|annulation|avis-d-annulation)/.test(slug)) return;
+    const metadata = clean(link.siblings('p').first().text());
+    const organization = metadata.split(' — ')[0];
+    if (!organization || !/publié le/i.test(metadata)) throw new Error('SangoBids : métadonnées de publication absentes');
+    notices.set(id, {
+      source: 'sangobids', externalId: id, sourceUrl: `https://sangobids.com${href}`,
+      title: slug.replace(/-/g, ' '), organization, location: 'Cameroun',
+      reference: id, deadline: null,
+    });
+  });
+  return [...notices.values()];
+}
+
 export async function fetchSource(url: string, init?: RequestInit): Promise<{ html: string; response: Response }> {
   const response = await fetch(url, {
     ...init, redirect: 'error', signal: AbortSignal.timeout(25000),
@@ -116,7 +141,10 @@ export async function collectSource(source: SourceKey): Promise<CollectedNotice[
       const $ = load(html);
       if (!$(`a[href="https://armp.cm?page=${page + 1}"]`).length) break;
     }
-  } else {
+  } else if (source === 'sangobids') {
+    const { html } = await fetchSource('https://sangobids.com/appels-offres/du-jour');
+    notices.push(...parseSangobids(html));
+  } else if (source === 'ungm') {
     const session = await fetchSource('https://www.ungm.org/Public/Notice');
     const $ = load(session.html);
     const token = $('input[name="__RequestVerificationToken"]').val();
@@ -136,6 +164,8 @@ export async function collectSource(source: SourceKey): Promise<CollectedNotice[
       notices.push(...result.notices);
       if ((page + 1) * 15 >= result.total) break;
     }
+  } else {
+    throw new Error(`Connecteur non pris en charge : ${String(source)}`);
   }
   return notices;
 }

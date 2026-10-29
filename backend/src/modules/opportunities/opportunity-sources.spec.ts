@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { collectSource, fetchSource, parseArmp, parseUngm } from './opportunity-sources.js';
+import { AUTOMATIC_SOURCE_KEYS, collectSource, fetchSource, parseArmp, parseSangobids, parseUngm, WATCH_SOURCES } from './opportunity-sources.js';
 import { isFormalized, parseDeadline, validateTrades, validSourceUrl } from './opportunity-policy.js';
 
 afterEach(() => vi.unstubAllGlobals());
@@ -60,6 +60,45 @@ describe('opportunity source parsers', () => {
     mock.mockResolvedValueOnce(new Response('a'.repeat(4_000_001), { headers: { 'Content-Type': 'text/html' } }));
     await expect(fetchSource('https://armp.cm/')).rejects.toThrow('volumineuse');
   });
+
+  it('collects only factual SangoBids URL labels and keeps unknown deadline times unset', () => {
+    const html = `<h1>Appels d'offres du jour au Cameroun</h1><ul>
+      <li><a href="/tenders/abc123/avis-appel-offres-mobilier">Résumé IA à ne pas copier</a><p>COMMUNE — publié le 28 octobre 2026 — clôture le 12 novembre 2026</p></li>
+      <li><a href="/tenders/abc123/avis-appel-offres-mobilier">Duplicate</a><p>COMMUNE — publié le 28 octobre 2026</p></li>
+      <li><a href="/tenders/abc124/additif-mobilier">Addendum</a></li>
+      <li><a href="/tenders/abc125/communique-resultat">Award</a></li>
+      <li><a href="/tenders/page/1">Archive</a></li></ul>`;
+    expect(parseSangobids(html)).toEqual([{
+      source: 'sangobids', externalId: 'abc123', sourceUrl: 'https://sangobids.com/tenders/abc123/avis-appel-offres-mobilier',
+      title: 'avis appel offres mobilier', organization: 'COMMUNE', location: 'Cameroun',
+      reference: 'abc123', deadline: null,
+    }]);
+  });
+
+  it('reports SangoBids structure changes and bounds collection to 200 public links', () => {
+    expect(() => parseSangobids('<h1>Access denied</h1>')).toThrow('structure');
+    expect(() => parseSangobids("<h1>Appels d'offres du jour au Cameroun</h1>")).toThrow('aucun lien');
+    const list = Array.from({ length: 205 }, (_, i) => `<li><a href="/tenders/id${i}/appel-offres-${i}">Text</a><p>COMMUNE — publié le 28 octobre 2026</p></li>`).join('');
+    expect(parseSangobids(`<h1>Appels d'offres du jour au Cameroun</h1><ul>${list}</ul>`)).toHaveLength(200);
+  });
+
+  it('exposes all requested sources without pretending blocked or planned connectors are automatic', () => {
+    expect(WATCH_SOURCES).toHaveLength(29);
+    expect(new Set(WATCH_SOURCES.map((source) => source.key)).size).toBe(WATCH_SOURCES.length);
+    expect(WATCH_SOURCES.filter((source) => source.automatic).map((source) => source.key).sort()).toEqual([...AUTOMATIC_SOURCE_KEYS].sort());
+    expect(WATCH_SOURCES.filter((source) => source.group === 'council')).toHaveLength(7);
+    expect(WATCH_SOURCES.filter((source) => source.group === 'company')).toHaveLength(10);
+    expect(WATCH_SOURCES.find((source) => source.key === 'coleps')).toMatchObject({ status: 'blocked', automatic: false });
+    expect(WATCH_SOURCES.every((source) => source.note && source.noteEn && (!source.url || source.url.startsWith('https://')))).toBe(true);
+  });
+
+  it('fetches only the public SangoBids HTML page, never its private API', async () => {
+    const mock = vi.fn().mockResolvedValue(new Response(`<h1>Appels d'offres du jour au Cameroun</h1><ul><li><a href="/tenders/id1/appel-offres">Text</a><p>COMMUNE — publié le 28 octobre 2026</p></li></ul>`, { headers: { 'Content-Type': 'text/html' } }));
+    vi.stubGlobal('fetch', mock);
+    expect(await collectSource('sangobids')).toHaveLength(1);
+    expect(mock).toHaveBeenCalledOnce();
+    expect(mock.mock.calls[0][0]).toBe('https://sangobids.com/appels-offres/du-jour');
+  });
 });
 
 describe('opportunity policy', () => {
@@ -83,13 +122,16 @@ describe('opportunity policy', () => {
 });
 
 describe.skipIf(process.env.OPPORTUNITY_LIVE_SOURCES !== 'true')('live public sources (opt-in)', () => {
-  it('collects current ARMP and UNGM metadata without credentials', async () => {
+  it('collects current ARMP, UNGM and SangoBids metadata without credentials', async () => {
     const armp = await collectSource('armp');
     const ungm = await collectSource('ungm');
+    const sangobids = await collectSource('sangobids');
     expect(armp.length).toBeGreaterThan(0);
     expect(ungm.length).toBeGreaterThan(0);
+    expect(sangobids.length).toBeGreaterThan(0);
     expect(armp.every((notice) => notice.sourceUrl.startsWith('https://armp.cm/details?'))).toBe(true);
     expect(ungm.every((notice) => notice.title && notice.sourceUrl.startsWith('https://www.ungm.org/Public/Notice/'))).toBe(true);
-    console.info(`Public sources verified: ARMP ${armp.length} calls; UNGM ${ungm.length} Cameroon notices.`);
+    expect(sangobids.every((notice) => notice.title && notice.deadline === null && notice.sourceUrl.startsWith('https://sangobids.com/tenders/'))).toBe(true);
+    console.info(`Public sources verified: ARMP ${armp.length} calls; UNGM ${ungm.length} Cameroon notices; SangoBids ${sangobids.length} public links.`);
   }, 180000);
 });

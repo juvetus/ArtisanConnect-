@@ -72,13 +72,29 @@ echeance et lien officiel). Ils ne copient ni les dossiers ni les documents paya
   sont retenus ; les attributions, communiques et additifs ne deviennent pas de nouveaux appels.
 - UNGM : recherche publique des avis actifs concernant le Cameroun (pays 2327), dix pages de quinze avis maximum.
   La session publique et son jeton de formulaire sont utilises normalement, sans compte ni contournement.
-- COLEPS : lien officiel affiche ; **pas de collecteur active**. MINMAP, agregateurs, mairies et entreprises
-  ne sont pas annonces comme integres. Un administrateur peut saisir leurs avis publics manuellement.
+- SangoBids : une page HTML publique `https://sangobids.com/appels-offres/du-jour`, 200 liens maximum.
+  Les intitules sont derives des URL publiques (parfois tronques), sans copier les resumes IA,
+  les analyses, les documents ni appeler les API privees. Les liens d'additifs, decisions, communiques
+  et annulations identifies sont exclus. L'echeance reste inconnue : l'administrateur doit verifier
+  l'intitule exact, le dossier officiel et l'heure limite avant publication.
+- L'annuaire admin comporte 29 entrees, regroupees en marches publics, agregateurs, Nations Unies,
+  sept mairies du Mfoundi et dix grandes entreprises. Les statuts distinguent collecte automatique,
+  consultation manuelle, blocage technique, couverture via une autre source et connecteur a developper.
+- COLEPS : priorite 1, portail public verifie, mais negociation TLS refusee par Node ;
+  **aucun collecteur active et aucun affaiblissement TLS**. Katika renvoie HTTP 429 et le PNUD
+  francophone HTTP 403 lors des verifications du 29 octobre 2026 ; ces restrictions ne sont pas contournees.
+- MINMAP et ENEO restent en consultation manuelle ; les calendriers UNICEF ne sont pas des avis ouverts.
+  Les avis des agences ONU publies sur UNGM et concernant le Cameroun sont deja couverts par ce collecteur.
+  Les mairies sont suivies via ARMP et consultation COLEPS, sans collecte des sites municipaux.
+  Pour les entreprises, seuls les sites effectivement verifies sont lies ; les pages achats inconnues
+  ne sont pas inventees. Les liens institutionnels ne signifient pas qu'un connecteur existe.
 
 Cette couverture est volontairement bornee, non exhaustive. Les sources peuvent changer leur HTML,
 leurs conditions d'utilisation ou limiter les requetes : les erreurs HTTP et de structure sont
 consignees dans les journaux de collecte. Ne pas contourner les restrictions d'acces.
-La deduplication repose sur la source et l'identifiant de l'avis ; les corrections ou annulations
+La deduplication repose sur la source et l'identifiant de l'avis : un avis repris par SangoBids
+peut donc deja exister via ARMP ou UNGM. L'administration doit rechercher ces doublons avant publication.
+Les corrections ou annulations
 ulterieures doivent etre controlees sur le site officiel et peuvent etre archivees par l'administration.
 
 Definir `OPPORTUNITY_WATCH_ENABLED=true` pour programmer la collecte a **06:00, Africa/Douala**.
