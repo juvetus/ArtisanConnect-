@@ -57,6 +57,104 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
+## Veille des appels d'offres et opportunites artisanales
+
+- Administration : `/admin/opportunities` (admin/editeur : collecte, saisie manuelle, analyse, publication, archivage ; viewer : lecture).
+- Artisans : `/opportunities`, preferences d'alerte, consultation des avis et groupements.
+- Migration : `OpportunityWatch1761300000000`, apres `ArtisanFormalizationProfile1761200000000`. Elle est enregistree dans le module de base de donnees.
+
+### Sources et fonctionnement du pilote
+
+Les collecteurs lisent uniquement les metadonnees publiques (titre, organisme, localisation, reference,
+echeance et lien officiel). Ils ne copient ni les dossiers ni les documents payants :
+
+- ARMP : `https://armp.cm/`, dix premieres pages maximum par passage. Seuls les types AO, DC et AMI
+  sont retenus ; les attributions, communiques et additifs ne deviennent pas de nouveaux appels.
+- UNGM : recherche publique des avis actifs concernant le Cameroun (pays 2327), dix pages de quinze avis maximum.
+  La session publique et son jeton de formulaire sont utilises normalement, sans compte ni contournement.
+- COLEPS : lien officiel affiche ; **pas de collecteur active**. MINMAP, agregateurs, mairies et entreprises
+  ne sont pas annonces comme integres. Un administrateur peut saisir leurs avis publics manuellement.
+
+Cette couverture est volontairement bornee, non exhaustive. Les sources peuvent changer leur HTML,
+leurs conditions d'utilisation ou limiter les requetes : les erreurs HTTP et de structure sont
+consignees dans les journaux de collecte. Ne pas contourner les restrictions d'acces.
+La deduplication repose sur la source et l'identifiant de l'avis ; les corrections ou annulations
+ulterieures doivent etre controlees sur le site officiel et peuvent etre archivees par l'administration.
+
+Definir `OPPORTUNITY_WATCH_ENABLED=true` pour programmer la collecte a **06:00, Africa/Douala**.
+Une collecte manuelle est placee dans une file PostgreSQL et prise en charge sous une minute par le
+backend ; elle ne bloque pas une requete HTTP pendant les acces aux sources. Une seule collecte est
+executee a la fois, y compris avec plusieurs instances. Les travaux interrompus sont signales ; une
+nouvelle collecte est possible apres vingt minutes. Le backend doit rester actif pour executer les taches.
+
+Avec cette option activee, l'analyse IA traite cinq brouillons en attente toutes les dix minutes.
+Elle utilise `AI_API_KEY`, `AI_BASE_URL` et `AI_MODEL`, uniquement avec les metadonnees publiques.
+Sans configuration IA, l'analyse est marquee en echec, jamais remplacee par une fausse analyse.
+L'admin peut relancer une analyse ou renseigner manuellement resume et metiers.
+Une date limite manquante ou douteuse doit etre verifiee avant publication. Les heures ARMP et les
+formulaires admin sont interpretes dans le fuseau du Cameroun ; les decalages GMT d'UNGM sont conserves.
+
+Chaque avis est importe en **brouillon**. L'admin/editeur verifie la source, le resume, l'organisme,
+la localisation, les metiers et une echeance future avant publication. L'IA ne determine ni une
+eligibilite juridique ni une qualification effective au marche. Aucun depot d'offre automatique.
+
+### Alertes, consentement et suivi
+
+Les destinataires doivent etre des artisans actifs non-demo, avec RCCM + NIU + carte professionnelle
+declares, ou un dossier de formalisation approuve. Ils choisissent leurs metiers dans les preferences
+et s'abonnent explicitement. Les metiers d'alerte utilisent les identifiants du catalogue existant.
+L'e-mail et WhatsApp disposent chacun d'un consentement distinct ; WhatsApp est desactive par defaut.
+Le desabonnement reste possible meme si l'artisan ne remplit plus les conditions de formalisation.
+
+Les alertes des avis publies non expires sont preparees et traitees toutes les dix minutes
+(cent livraisons par passage pour le pilote). Le ciblage et le consentement sont verifies avant envoi.
+La contrainte unique `(opportunityId, userId, channel)` evite de diffuser plusieurs fois le meme avis
+sur le meme canal. Les notifications internes sont inserees transactionnellement avec leur statut.
+
+- E-mail : configuration SMTP existante, `FRONTEND_URL` et adresse utilisateur verifiee.
+- WhatsApp : configuration Meta et modele de notification existants, numero renseigne et consentement utilisateur.
+  Le canal reste suspendu par defaut : definir `OPPORTUNITY_WHATSAPP_ENABLED=true` uniquement
+  apres approbation et verification du modele Meta. Cette option ne modifie pas les autres notifications WhatsApp.
+- SMS et push mobile : **non inclus** dans ce pilote.
+
+Les etats `pending`, `sending`, `sent`, `failed`, `skipped` sont visibles en administration.
+`sent` signifie accepte par le canal, pas lu ni garanti livre. Un canal non configure est un echec
+explicite. Un envoi interrompu est marque en echec au passage suivant apres quinze minutes.
+Il n'y a pas de relance automatique d'un echec externe : un fournisseur peut avoir accepte un envoi
+avant une coupure reseau. Verifier son journal avant toute intervention pour eviter les doublons.
+Les preferences et l'historique ne sont pas transmis aux fournisseurs IA.
+
+### Groupements
+
+Un artisan eligible cree un groupement de 2 a 20 personnes (5 par defaut), lui compris.
+Les autres artisans demandent a rejoindre volontairement ; seul le createur accepte ou refuse.
+Les acceptations sont serialisees par verrou de ligne pour ne jamais depasser la capacite.
+Les demandes en attente ne sont visibles que par leur auteur et le createur.
+Les membres acceptes peuvent contacter le coordinateur via la messagerie existante.
+Un membre peut retirer sa demande ou quitter le groupement ; le createur peut fermer les adhesions.
+Des notifications **internes uniquement** signalent les demandes et decisions.
+Il s'agit d'une mise en relation, pas de la constitution juridique d'un groupement ni d'une garantie
+d'eligibilite, de disponibilite ou de succes de la candidature.
+
+### Validation ciblee
+
+```powershell
+# Parseurs et regles (sans reseau ni base)
+npm run test -- src/modules/opportunities/opportunity-sources.spec.ts
+
+# Test reel des sources publiques (requiert un acces Internet)
+$env:OPPORTUNITY_LIVE_SOURCES='true'
+npm run test -- src/modules/opportunities/opportunity-sources.spec.ts
+
+# Workflow PostgreSQL isole : uniquement une base locale, schema temporaire cree puis supprime
+$env:OPPORTUNITY_INTEGRATION='true'
+node --env-file=.env node_modules\vitest\vitest.mjs run src/modules/opportunities/opportunities.integration.spec.ts
+```
+
+Le test PostgreSQL ne modifie pas les tables applicatives existantes. Il couvre la migration,
+l'acces, la file de collecte, la deduplication, la validation humaine, l'IA invalide,
+le ciblage, le consentement, les echecs de canaux et les acceptations concurrentes d'un groupement.
+
 ## Deployment
 
 ### Première initialisation d’un staging Render

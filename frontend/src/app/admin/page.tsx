@@ -246,6 +246,34 @@ export default function AdminPage() {
         </section>
       )}
 
+      {view === 'overview' && stats.formalizationStatuses && (
+        <section className="rounded-lg border border-stone-200 bg-white p-5">
+          <div>
+            <h2 className="text-lg font-semibold text-stone-900">{english ? 'Artisan formalization' : 'Formalisation des artisans'}</h2>
+            <p className="mt-1 text-sm text-stone-600">{english ? 'Registered artisans: ' : 'Artisans recensés : '}<strong>{stats.artisans.toLocaleString(english ? 'en-US' : 'fr-FR')}</strong></p>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {([
+              ['informal', english ? 'Informal' : 'Informels'],
+              ['inProgress', english ? 'In progress' : 'En cours de formalisation'],
+              ['formalized', english ? 'Formalized' : 'Formalisés'],
+              ['certified', english ? 'Certified' : 'Certifiés'],
+              ['unclassified', english ? 'Not provided' : 'Non renseignés'],
+            ] as const).map(([key, label]) => {
+              const count = stats.formalizationStatuses![key];
+              const percentage = stats.artisans ? Math.round((count / stats.artisans) * 100) : 0;
+              return (
+                <div key={key} className="rounded-md border border-stone-100 bg-stone-50 p-4">
+                  <p className="text-sm text-stone-600">{label}</p>
+                  <p className="mt-1 text-2xl font-semibold text-stone-900">{count.toLocaleString(english ? 'en-US' : 'fr-FR')}</p>
+                  <p className="text-xs text-stone-500">{percentage}% {english ? 'of artisans' : 'des artisans'}</p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {view === 'overview' && (
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[

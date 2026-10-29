@@ -33,6 +33,7 @@ import { ModerationModule } from './modules/moderation/moderation.module.js';
 import { AnalyticsModule } from './modules/analytics/analytics.module.js';
 import { AssistantModule } from './modules/assistant/assistant.module.js';
 import { InvoicesModule } from './modules/invoices/invoices.module.js';
+import { OpportunitiesModule } from './modules/opportunities/opportunities.module.js';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { InvoicesModule } from './modules/invoices/invoices.module.js';
     AnalyticsModule,
     AssistantModule,
     InvoicesModule,
+    OpportunitiesModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: JwtAuthGuard }],

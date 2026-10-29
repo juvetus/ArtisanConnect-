@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../../entities/index.js';
@@ -145,5 +145,16 @@ export class UsersService {
     Object.assign(user, updateData);
     await this.usersRepository.save(user);
     return this.findById(id);
+  }
+
+  async updateArtisanFormalization(
+    id: string,
+    data: Partial<Pick<User, 'hasRccm' | 'hasNiu' | 'hasProfessionalArtisanCard' | 'hasProfessionalAccount' | 'hasFixedWorkshop'>>,
+  ): Promise<User> {
+    const user = await this.usersRepository.findOne({ where: { id } });
+    if (!user) throw new NotFoundException('Utilisateur introuvable');
+    if (user.role !== 'artisan') throw new ForbiddenException('Cette rubrique est réservée aux artisans');
+    Object.assign(user, data);
+    return this.usersRepository.save(user);
   }
 }

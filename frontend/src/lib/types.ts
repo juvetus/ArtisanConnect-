@@ -194,6 +194,11 @@ export interface User {
   name: string;
   role: Role;
   gender?: 'female' | 'male' | 'cooperative' | 'other' | null;
+  hasRccm?: boolean | null;
+  hasNiu?: boolean | null;
+  hasProfessionalArtisanCard?: boolean | null;
+  hasProfessionalAccount?: boolean | null;
+  hasFixedWorkshop?: boolean | null;
   bio?: string;
   location?: string;
   phone?: string;
@@ -342,6 +347,13 @@ export interface NotificationsResponse {
 export interface AdminStats {
   users: number;
   artisans: number;
+  formalizationStatuses?: {
+    informal: number;
+    inProgress: number;
+    formalized: number;
+    certified: number;
+    unclassified: number;
+  };
   clients: number;
   institutions?: number;
   listings: number;
