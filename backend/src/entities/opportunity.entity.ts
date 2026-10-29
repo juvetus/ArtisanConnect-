@@ -9,7 +9,7 @@ export class Opportunity {
   id: string;
 
   @Column()
-  source: 'armp' | 'ungm' | 'manual';
+  source: 'armp' | 'ungm' | 'sangobids' | 'manual';
 
   @Column()
   externalId: string;

@@ -96,17 +96,17 @@ describe.skipIf(!enabled)('Opportunity workflow on isolated local PostgreSQL sch
 
   it('persists collection jobs, prevents duplicate queues and deduplicates imported notices', async () => {
     const collect = vi.spyOn(sources, 'collectSource').mockImplementation(async (source) => [{
-      source, externalId: 'ref', sourceUrl: `https://${source === 'armp' ? 'armp.cm' : 'www.ungm.org'}/notice`,
+      source, externalId: 'ref', sourceUrl: `https://${{ armp: 'armp.cm', ungm: 'www.ungm.org', sangobids: 'sangobids.com' }[source]}/notice`,
       title: 'Mobilier test', organization: 'Commune', location: 'Centre', reference: 'TEST', deadline: null,
     }]);
     const job = await service.queueCollection();
     expect(job.status).toBe('queued');
     await expect(service.queueCollection()).rejects.toThrow('déjà en attente');
     await service.processCollectionQueue();
-    expect(await db.getRepository(OpportunityWatchRun).findOneByOrFail({ id: job.id })).toMatchObject({ status: 'completed', imported: 2 });
+    expect(await db.getRepository(OpportunityWatchRun).findOneByOrFail({ id: job.id })).toMatchObject({ status: 'completed', imported: 3 });
     await service.collect();
-    expect(await db.getRepository(Opportunity).count()).toBe(2);
-    expect(collect).toHaveBeenCalledTimes(4);
+    expect(await db.getRepository(Opportunity).count()).toBe(3);
+    expect(collect).toHaveBeenCalledTimes(6);
     collect.mockRejectedValue(new Error('Source indisponible'));
     const failed = await service.collect();
     expect(failed.every((run) => run.status === 'failed' && run.error === 'Source indisponible')).toBe(true);
@@ -121,6 +121,21 @@ describe.skipIf(!enabled)('Opportunity workflow on isolated local PostgreSQL sch
     expect(() => controller.preferences(client)).toThrow('artisans');
     await expect(controller.list(client)).rejects.toThrow('Utilisateur introuvable');
     expect(() => controller.adminList(viewer, '-1')).toThrow('Pagination invalide');
+  });
+
+  it('isolates a failed aggregator connector from working official sources', async () => {
+    vi.spyOn(sources, 'collectSource').mockImplementation(async (source) => {
+      if (source === 'sangobids') throw new Error('Source HTTP 429');
+      return [];
+    });
+    const job = await service.queueCollection();
+    await service.processCollectionQueue();
+    expect(await db.getRepository(OpportunityWatchRun).findOneByOrFail({ id: job.id })).toMatchObject({
+      status: 'failed', error: 'sangobids : Source HTTP 429',
+    });
+    const runs = await db.getRepository(OpportunityWatchRun).find({ order: { createdAt: 'DESC' }, take: 3 });
+    expect(runs.filter((run) => run.source !== 'sangobids').every((run) => run.status === 'completed')).toBe(true);
+    expect(runs.find((run) => run.source === 'sangobids')).toMatchObject({ status: 'failed', error: 'Source HTTP 429' });
   });
 
   it('requires formalization or an approved dossier and an active artisan role', async () => {
