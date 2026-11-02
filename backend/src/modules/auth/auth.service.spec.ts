@@ -26,7 +26,7 @@ function createAuthService() {
     configService as never,
   );
 
-  return { service, usersService, jwtService };
+  return { service, usersService, jwtService, emailService };
 }
 
 describe('AuthService.register email validation', () => {
@@ -56,6 +56,32 @@ describe('AuthService.register email validation', () => {
     expect(result.verifiedEmail).toBe(false);
     expect(result.verificationEmailSent).toBe(true);
     expect(usersService.create).toHaveBeenCalledWith('user@example.com', 'Password123!', 'Test User', 'client', undefined);
+  });
+});
+
+describe('AuthService.resendVerification', () => {
+  it('reports provider failure instead of claiming the confirmation was sent', async () => {
+    const { service, usersService, emailService } = createAuthService();
+    usersService.findByEmail.mockResolvedValue({
+      id: 'user-1', email: 'user@example.com', name: 'Test User', verifiedEmail: false,
+    });
+    emailService.sendVerificationEmail.mockResolvedValue(false);
+
+    await expect(service.resendVerification({ email: 'user@example.com' }))
+      .rejects.toThrow('L’envoi de l’e-mail est indisponible. Veuillez réessayer plus tard.');
+  });
+
+  it('reports success only after the email service accepts the confirmation', async () => {
+    const { service, usersService, emailService } = createAuthService();
+    usersService.findByEmail.mockResolvedValue({
+      id: 'user-1', email: 'user@example.com', name: 'Test User', verifiedEmail: false,
+    });
+
+    await expect(service.resendVerification({ email: 'user@example.com' })).resolves.toEqual({
+      success: true, message: 'Un nouvel email de confirmation vous a été envoyé.',
+    });
+    expect(emailService.sendVerificationEmail).toHaveBeenCalledOnce();
+    expect(usersService.setVerificationToken).toHaveBeenCalledOnce();
   });
 });
 

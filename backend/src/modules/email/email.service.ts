@@ -25,8 +25,13 @@ export class EmailService {
 
   async send(message: EmailMessage): Promise<boolean> {
     if (!this.enabled) {
-      this.logger.debug(`SMTP disabled; email skipped for ${message.to}`);
+      this.logger.debug(`Email disabled; email skipped for ${message.to}`);
       return false;
+    }
+
+    const apiKey = this.config.get<string>('BREVO_EMAIL_API_KEY')?.trim();
+    if (apiKey) {
+      return this.sendWithBrevo(message, apiKey);
     }
 
     if (!this.from || !this.config.get('SMTP_HOST')) {
@@ -49,6 +54,67 @@ export class EmailService {
       this.logger.error(`Email delivery failed for ${message.to}`, error instanceof Error ? error.stack : undefined);
       return false;
     }
+  }
+
+  private async sendWithBrevo(message: EmailMessage, apiKey: string): Promise<boolean> {
+    const sender = this.parseMailbox(this.from);
+    const recipient = this.parseMailbox(message.to);
+    const replyTo = message.replyTo ? this.parseMailbox(message.replyTo) : undefined;
+    if (!sender || !recipient || (message.replyTo && !replyTo)) {
+      this.logger.error('Brevo email configuration or message contains an invalid sender, recipient or reply-to address');
+      return false;
+    }
+
+    try {
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+          'api-key': apiKey,
+        },
+        signal: AbortSignal.timeout(15_000),
+        body: JSON.stringify({
+          sender,
+          to: [recipient],
+          ...(replyTo ? { replyTo } : {}),
+          subject: message.subject,
+          textContent: message.text,
+          ...(message.html ? { htmlContent: message.html } : {}),
+          ...(message.attachments?.length ? {
+            attachment: message.attachments.map((attachment) => ({
+              name: attachment.filename,
+              content: attachment.content.toString('base64'),
+            })),
+          } : {}),
+        }),
+      });
+
+      if (!response.ok) {
+        this.logger.error(`Brevo email API refused delivery (HTTP ${response.status})`);
+        return false;
+      }
+
+      const result: unknown = await response.json();
+      if (!result || typeof result !== 'object' || !('messageId' in result)
+        || typeof result.messageId !== 'string' || !result.messageId.trim()) {
+        this.logger.error('Brevo email API returned no messageId; delivery is not confirmed');
+        return false;
+      }
+      return true;
+    } catch (error) {
+      // Do not log request data, credentials or confirmation/reset links.
+      this.logger.error(`Brevo email API request failed (${error instanceof Error ? error.name : 'unknown error'})`);
+      return false;
+    }
+  }
+
+  private parseMailbox(value: string): { email: string; name?: string } | null {
+    const match = /^(?:([^<>\r\n]+)\s*<([^<>\s]+)>|([^<>\s]+))$/.exec(value.trim());
+    const email = match?.[2] || match?.[3];
+    if (!email || !/^[^@,;]+@[^@,;]+\.[^@,;]+$/.test(email)) return null;
+    const name = match?.[1]?.trim().replace(/^"(.*)"$/, '$1');
+    return { email, ...(name ? { name } : {}) };
   }
 
   async sendVerificationEmail(data: {

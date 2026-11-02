@@ -57,6 +57,31 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
+## E-mails transactionnels
+
+Tous les e-mails du service partage (confirmation, reinitialisation, notifications et pieces
+jointes) utilisent Brevo HTTPS lorsque `BREVO_EMAIL_API_KEY` est renseignee. La cle est dediee
+aux e-mails : `BREVO_API_KEY`, utilisee par les SMS, n'est pas modifiee.
+
+- Conserver `SMTP_ENABLED=true` pour autoriser les envois, quel que soit le transport.
+  `false` suspend les deux transports.
+- Definir `SMTP_FROM` avec un expediteur valide dans Brevo, sous la forme
+  `ArtisanConnect <adresse@domaine.tld>` ou `adresse@domaine.tld`.
+- Avec la cle email, les connexions utilisent `https://api.brevo.com/v3/smtp/email`
+  (delai maximal de 15 secondes). Aucun parametre de connexion SMTP n'est necessaire.
+  Les restrictions d'IP du compte Brevo restent applicables aux appels API.
+- Sans la cle email, le transport SMTP conserve son fonctionnement et ses variables
+  `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER` et `SMTP_PASSWORD`.
+  Railway Hobby bloque le SMTP sortant ; utiliser HTTPS sur ce forfait.
+- Un refus HTTP, une expiration ou une reponse sans `messageId` est signale dans les
+  journaux et retourne un echec. Il n'y a ni repli SMTP ni nouvelle tentative automatique
+  apres un echec HTTPS, pour eviter les doubles envois. Un `messageId` confirme
+  l'acceptation par Brevo, pas la reception finale : verifier les evenements Brevo et la boite.
+
+Configurer la cle uniquement dans les variables du backend de l'environnement concerne,
+jamais dans le frontend, les journaux ou Git, puis redeployer. Ne pas modifier les cles SMS.
+Les alertes d'opportunites restent soumises a `OPPORTUNITY_EMAIL_ENABLED` et au consentement.
+
 ## Veille des appels d'offres et opportunites artisanales
 
 - Administration : `/admin/opportunities` (admin/editeur : collecte, saisie manuelle, analyse, publication, archivage ; viewer : lecture).
