@@ -40,7 +40,7 @@ export class AuthService {
     });
 
     if (!sent) {
-      this.logger.warn(`Impossible d'envoyer l'email de vérification à ${user.email} (SMTP désactivé ou erreur)`);
+      this.logger.warn(`Impossible d'envoyer l'email de vérification à ${user.email} (envoi désactivé ou erreur du fournisseur)`);
     }
 
     return sent;
@@ -242,7 +242,7 @@ export class AuthService {
 
     const sent = await this.sendVerificationEmailForUser(user);
     if (!sent) {
-      throw new ServiceUnavailableException('L’envoi de l’e-mail est indisponible. Vérifiez la configuration SMTP du staging.');
+      throw new ServiceUnavailableException('L’envoi de l’e-mail est indisponible. Veuillez réessayer plus tard.');
     }
 
     return {
@@ -315,4 +315,3 @@ export class AuthService {
     }
   }
 }
-
