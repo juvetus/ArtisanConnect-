@@ -67,8 +67,8 @@ export class IwomipayService {
     motif: string;
     cardDetails?: IwomipayCardDetails;
   }): Promise<IwomipayPaymentResult> {
-    if (!Number.isInteger(input.amount) || input.amount < 100) {
-      throw new BadRequestException('Iwomipay exige un montant entier d’au moins 100 FCFA');
+    if (!Number.isInteger(input.amount) || input.amount < 50) {
+      throw new BadRequestException('Iwomipay sandbox exige un montant entier d’au moins 50 FCFA');
     }
     if (!/^[a-zA-Z0-9_-]{1,16}$/.test(input.externalId)) {
       throw new BadRequestException('La référence Iwomipay doit contenir au plus 16 caractères alphanumériques');
@@ -85,13 +85,15 @@ export class IwomipayService {
       };
     }
 
+    const accountKey = this.getAccountKey(input.method);
     const token = await this.getAccessToken();
     const response = await this.post<IwomipayApiResponse>('iwomipay', {
       country: 'CM',
+      currency: 'xaf',
       amount: String(input.amount),
       motif: input.motif,
       tel,
-      op_type: 'debit',
+      op_type: 'credit',
       type: input.method === 'orange_money' ? 'om' : input.method,
       external_id: input.externalId,
       callback_url: this.callbackUrl,
@@ -104,10 +106,8 @@ export class IwomipayService {
         address: input.cardDetails.address,
         city: input.cardDetails.city,
       } : {}),
-      apiKey: this.apiKey,
-      apiSecret: this.apiSecret,
     }, {
-      accountKey: Buffer.from(`${this.apiKey}:${this.apiSecret}`).toString('base64'),
+      accountKey,
       authorization: `Bearer ${token}`,
     });
 
@@ -165,12 +165,29 @@ export class IwomipayService {
     };
   }
 
+  private getAccountKey(method: IwomipayMethod): string {
+    const variable = {
+      momo: 'IWOMIPAY_MOMO_ACCOUNT_KEY',
+      orange_money: 'IWOMIPAY_OM_ACCOUNT_KEY',
+      card: 'IWOMIPAY_CARD_ACCOUNT_KEY',
+    }[method];
+    if (!variable) {
+      throw new BadRequestException('Moyen de paiement Iwomipay invalide');
+    }
+    const accountKey = this.config.get<string>(variable)?.trim();
+    if (accountKey) return accountKey;
+    if (this.apiKey && this.apiSecret) {
+      return Buffer.from(`${this.apiKey}:${this.apiSecret}`).toString('base64');
+    }
+    throw new BadRequestException(`Configurez ${variable} ou la paire IWOMIPAY_API_KEY / IWOMIPAY_API_SECRET dans le backend`);
+  }
+
   private async getAccessToken(): Promise<string> {
     if (this.cachedToken && this.cachedToken.expiresAt > Date.now() + 30_000) {
       return this.cachedToken.value;
     }
-    if (!this.username || !this.password || !this.apiKey || !this.apiSecret) {
-      throw new BadRequestException('Configurez les quatre identifiants Iwomipay dans les variables d’environnement du backend');
+    if (!this.username || !this.password) {
+      throw new BadRequestException('Configurez IWOMIPAY_USERNAME et IWOMIPAY_PASSWORD dans les variables d’environnement du backend');
     }
 
     const response = await this.post<IwomipayApiResponse>('authenticate', {

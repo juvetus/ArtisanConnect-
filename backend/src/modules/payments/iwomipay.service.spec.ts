@@ -78,11 +78,14 @@ describe('IwomipayService', () => {
       country: 'CM',
       amount: '5000',
       tel: '237699000000',
-      op_type: 'debit',
+      op_type: 'credit',
+      currency: 'xaf',
       type: 'om',
       external_id: 'order123',
       callback_url: 'https://api.example/payments/iwomipay/callback',
     });
+    expect(request).not.toHaveProperty('apiKey');
+    expect(request).not.toHaveProperty('apiSecret');
     expect(fetchMock.mock.calls[1][1].headers).toMatchObject({
       accountKey: Buffer.from('account-key:account-secret').toString('base64'),
       authorization: 'Bearer sandbox-token',
@@ -137,7 +140,7 @@ describe('IwomipayService', () => {
   it('rejects amounts below the provider minimum and invalid payer numbers', async () => {
     const service = createService();
     const base = {
-      amount: 99,
+      amount: 49,
       externalId: 'order123',
       payerPhone: '123',
       motif: 'Order',
@@ -145,6 +148,77 @@ describe('IwomipayService', () => {
 
     await expect(service.initiatePayment({ ...base, method: 'orange_money' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(service.initiatePayment({ ...base, amount: 100, method: 'orange_money' })).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('uses the channel AccountKey from Postman without shared API credentials', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ status: '01', token: 'sandbox-token' }))
+      .mockResolvedValueOnce(jsonResponse({ status: '1000', internal_id: 'momo-id' }))
+      .mockResolvedValueOnce(jsonResponse({ status: '1000', internal_id: 'om-id' }))
+      .mockResolvedValueOnce(jsonResponse({ status: '1000', internal_id: 'card-id' }));
+    vi.stubGlobal('fetch', fetchMock);
+    const service = createService({
+      IWOMIPAY_MODE: 'sandbox',
+      IWOMIPAY_USERNAME: 'sandbox-user',
+      IWOMIPAY_PASSWORD: 'sandbox-password',
+      IWOMIPAY_MOMO_ACCOUNT_KEY: 'momo-account',
+      IWOMIPAY_OM_ACCOUNT_KEY: 'om-account',
+      IWOMIPAY_CARD_ACCOUNT_KEY: 'card-account',
+      IWOMIPAY_API_KEY: 'legacy-key',
+      IWOMIPAY_API_SECRET: 'legacy-secret',
+    });
+    for (const method of ['momo', 'orange_money', 'card'] as const) {
+      await service.initiatePayment({
+        method, amount: 50, externalId: method, motif: 'Sandbox test',
+        payerPhone: '237699000000',
+        ...(method === 'card' ? {
+          cardDetails: { firstName: 'Test', lastName: 'User', email: 'test@example.com', address: 'Street', city: 'Douala' },
+        } : {}),
+      });
+    }
+    expect(fetchMock.mock.calls.slice(1).map((call) => call[1].headers.accountKey))
+      .toEqual(['momo-account', 'om-account', 'card-account']);
+    for (const call of fetchMock.mock.calls.slice(1)) {
+      expect(JSON.parse(call[1].body)).toMatchObject({ amount: '50', op_type: 'credit', currency: 'xaf' });
+    }
+    expect(JSON.parse(fetchMock.mock.calls[3][1].body)).toHaveProperty('first_name', 'Test');
+    expect(JSON.parse(fetchMock.mock.calls[3][1].body)).not.toHaveProperty('fist_name');
+  });
+
+  it('accepts a channel key without the legacy pair', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ status: '01', token: 'sandbox-token' }))
+      .mockResolvedValueOnce(jsonResponse({ status: '1000', internal_id: 'om-id' }));
+    vi.stubGlobal('fetch', fetchMock);
+    const service = createService({
+      IWOMIPAY_MODE: 'sandbox', IWOMIPAY_USERNAME: 'user', IWOMIPAY_PASSWORD: 'password',
+      IWOMIPAY_OM_ACCOUNT_KEY: 'om-account',
+    });
+    await expect(service.initiatePayment({
+      method: 'orange_money', amount: 50, externalId: 'test50', motif: 'Test', payerPhone: '237699000000',
+    })).resolves.toMatchObject({ status: 'PENDING' });
+  });
+
+  it('rejects a missing channel key before making any external request', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const service = createService({
+      IWOMIPAY_MODE: 'sandbox', IWOMIPAY_USERNAME: 'user', IWOMIPAY_PASSWORD: 'password',
+      IWOMIPAY_MOMO_ACCOUNT_KEY: 'momo-only',
+    });
+    await expect(service.initiatePayment({
+      method: 'orange_money', amount: 50, externalId: 'test50', motif: 'Test', payerPhone: '237699000000',
+    })).rejects.toThrow('IWOMIPAY_OM_ACCOUNT_KEY');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it.each([0, -50, 49, 50.5, NaN, Infinity])('rejects invalid sandbox amount %s without network requests', async (amount) => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(createService().initiatePayment({
+      method: 'momo', amount, externalId: 'amountTest', motif: 'Test', payerPhone: '237699000000',
+    })).rejects.toBeInstanceOf(BadRequestException);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('rejects unexpected provider statuses and mismatched transaction references', async () => {
