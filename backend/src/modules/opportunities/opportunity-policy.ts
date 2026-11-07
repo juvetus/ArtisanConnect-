@@ -23,6 +23,28 @@ export function validateTrades(value: unknown): string[] {
   return [...new Set<string>(value)];
 }
 
+export function normalizeAiTrades(value: unknown): string[] {
+  if (!Array.isArray(value) || value.length > OPPORTUNITY_TRADES.length) {
+    throw new BadRequestException('Métiers invalides');
+  }
+
+  const canonicalByNormalizedName = new Map(
+    OPPORTUNITY_TRADES.map((trade) => [normalizeTradeName(trade), trade]),
+  );
+  const normalized = value.map((trade) => {
+    if (typeof trade !== 'string') throw new BadRequestException('Métiers invalides');
+    const canonical = canonicalByNormalizedName.get(normalizeTradeName(trade));
+    if (!canonical) throw new BadRequestException('Métiers invalides');
+    return canonical;
+  });
+  return [...new Set(normalized)];
+}
+
+function normalizeTradeName(value: string): string {
+  return value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+}
+
 export function validSourceUrl(value: unknown): string {
   if (typeof value !== 'string' || value.length > 2000) throw new BadRequestException('Lien source invalide');
   let url: URL;
