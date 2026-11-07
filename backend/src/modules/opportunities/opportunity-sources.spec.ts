@@ -59,6 +59,34 @@ describe('opportunity source parsers', () => {
     await expect(fetchSource('https://armp.cm/')).rejects.toThrow('HTML');
     mock.mockResolvedValueOnce(new Response('a'.repeat(4_000_001), { headers: { 'Content-Type': 'text/html' } }));
     await expect(fetchSource('https://armp.cm/')).rejects.toThrow('volumineuse');
+    expect(mock).toHaveBeenCalledTimes(3);
+  });
+
+  it('retries a timed-out public GET once with a fresh timeout signal', async () => {
+    const mock = vi.fn()
+      .mockRejectedValueOnce(new DOMException('Timed out', 'TimeoutError'))
+      .mockResolvedValueOnce(new Response('ok', { headers: { 'Content-Type': 'text/html' } }));
+    vi.stubGlobal('fetch', mock);
+    expect((await fetchSource('https://armp.cm/?page=2')).html).toBe('ok');
+    expect(mock).toHaveBeenCalledTimes(2);
+    expect(mock.mock.calls[0][1].signal).not.toBe(mock.mock.calls[1][1].signal);
+  });
+
+  it('bounds GET timeout retries and includes the failing page in the error', async () => {
+    const mock = vi.fn().mockRejectedValue(new DOMException('Timed out', 'TimeoutError'));
+    vi.stubGlobal('fetch', mock);
+    await expect(fetchSource('https://armp.cm/?page=3')).rejects.toThrow('https://armp.cm/?page=3 : Timed out');
+    expect(mock).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not retry POST requests or non-timeout network failures', async () => {
+    const mock = vi.fn()
+      .mockRejectedValueOnce(new DOMException('Timed out', 'TimeoutError'))
+      .mockRejectedValueOnce(new TypeError('Network failure'));
+    vi.stubGlobal('fetch', mock);
+    await expect(fetchSource('https://www.ungm.org/Public/Notice/Search', { method: 'POST' })).rejects.toThrow('Timed out');
+    await expect(fetchSource('https://armp.cm/')).rejects.toThrow('Network failure');
+    expect(mock).toHaveBeenCalledTimes(2);
   });
 
   it('collects only factual SangoBids URL labels and keeps unknown deadline times unset', () => {
@@ -80,6 +108,22 @@ describe('opportunity source parsers', () => {
     expect(() => parseSangobids("<h1>Appels d'offres du jour au Cameroun</h1>")).toThrow('aucun lien');
     const list = Array.from({ length: 205 }, (_, i) => `<li><a href="/tenders/id${i}/appel-offres-${i}">Text</a><p>COMMUNE — publié le 28 octobre 2026</p></li>`).join('');
     expect(parseSangobids(`<h1>Appels d'offres du jour au Cameroun</h1><ul>${list}</ul>`)).toHaveLength(200);
+  });
+
+  it('accepts SangoBids organizations without publication dates, without inventing deadlines', () => {
+    const notices = parseSangobids(`<h1>Appels d'offres du jour au Cameroun</h1><ul>
+      <li><a href="/tenders/id1/appel-offres-mobilier">Text</a><p>COMMUNE</p></li>
+      <li><a href="/tenders/id2/appel-offres-atelier">Text</a><p>Banque Mondiale — Projet</p></li></ul>`);
+    expect(notices).toHaveLength(2);
+    expect(notices.map((notice) => notice.organization)).toEqual(['COMMUNE', 'Banque Mondiale']);
+    expect(notices.every((notice) => notice.deadline === null)).toBe(true);
+  });
+
+  it('still rejects SangoBids notices without an organization', () => {
+    for (const metadata of ['', ' — publié le 28 octobre 2026', 'publié le 28 octobre 2026']) {
+      expect(() => parseSangobids(`<h1>Appels d'offres du jour au Cameroun</h1><ul>
+        <li><a href="/tenders/id1/appel-offres">Text</a><p>${metadata}</p></li></ul>`)).toThrow('organisme absent');
+    }
   });
 
   it('exposes all requested sources without pretending blocked or planned connectors are automatic', () => {

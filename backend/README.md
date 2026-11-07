@@ -95,6 +95,9 @@ echeance et lien officiel). Ils ne copient ni les dossiers ni les documents paya
 
 - ARMP : `https://armp.cm/`, dix premieres pages maximum par passage. Seuls les types AO, DC et AMI
   sont retenus ; les attributions, communiques et additifs ne deviennent pas de nouveaux appels.
+  Les lectures GET disposent d'une seule nouvelle tentative apres un depassement du delai de
+  25 secondes, avec une pause d'une seconde et un avertissement journalise. Les erreurs finales
+  indiquent l'URL concernee ; les erreurs HTTP, de structure et les POST ne sont pas reessayes.
 - UNGM : recherche publique des avis actifs concernant le Cameroun (pays 2327), dix pages de quinze avis maximum.
   La session publique et son jeton de formulaire sont utilises normalement, sans compte ni contournement.
 - SangoBids : une page HTML publique `https://sangobids.com/appels-offres/du-jour`, 200 liens maximum.
@@ -102,6 +105,7 @@ echeance et lien officiel). Ils ne copient ni les dossiers ni les documents paya
   les analyses, les documents ni appeler les API privees. Les liens d'additifs, decisions, communiques
   et annulations identifies sont exclus. L'echeance reste inconnue : l'administrateur doit verifier
   l'intitule exact, le dossier officiel et l'heure limite avant publication.
+  L'organisme est obligatoire ; la mention de date de publication est facultative sur la page publique.
 - L'annuaire admin comporte 29 entrees, regroupees en marches publics, agregateurs, Nations Unies,
   sept mairies du Mfoundi et dix grandes entreprises. Les statuts distinguent collecte automatique,
   consultation manuelle, blocage technique, couverture via une autre source et connecteur a developper.
