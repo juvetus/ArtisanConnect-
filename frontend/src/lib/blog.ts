@@ -87,13 +87,6 @@ export const blogArticles: BlogArticle[] = [
             'La participation de Juvet Tajo sous la bannière d’ONU Femmes concerne son intervention à cet événement. Elle ne vaut pas annonce d’un partenariat contractuel, d’une labellisation ou d’une approbation officielle d’ArtisanConnect par ONU Femmes.',
           ],
         },
-        {
-          heading: 'Un certificat de participation annoncé par CITS26',
-          paragraphs: [
-            'À la suite du sommet, CITS26 a annoncé à Juvet Tajo la disponibilité d’un certificat dans la catégorie « Summit Participants », accessible depuis la rubrique « My certificates » de l’application des participants après connexion avec l’adresse utilisée pour l’événement.',
-            'Il s’agit d’un certificat de participation : il n’est pas présenté ici comme une certification de speaker ou une distinction. Les informations personnelles de connexion et le certificat nominatif ne sont pas publiés.',
-          ],
-        },
       ],
       en: [
         {
@@ -121,13 +114,6 @@ export const blogArticles: BlogArticle[] = [
           paragraphs: [
             'Participation in the summit places the project within a broader discussion about the role of crafts in Cameroon’s digital transformation. ArtisanConnect continues its work on showcasing skills, presenting businesses and supporting formalisation.',
             'Juvet Tajo’s participation under the UN Women banner relates to his contribution at this event. It does not announce a contractual partnership, accreditation or official endorsement of ArtisanConnect by UN Women.',
-          ],
-        },
-        {
-          heading: 'A participation certificate announced by CITS26',
-          paragraphs: [
-            'Following the summit, CITS26 notified Juvet Tajo that a certificate in the “Summit Participants” category was available through “My certificates” in the attendee app, after signing in with the email address used for the event.',
-            'This is a participation certificate, not presented here as a speaker certification or an award. Private login information and the personalised certificate are not published.',
           ],
         },
       ],
