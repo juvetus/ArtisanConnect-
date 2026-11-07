@@ -7,7 +7,7 @@ import ServiceDetailClient from './ServiceDetailClient';
 
 type PageProps = { params: Promise<{ id: string }> };
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://artisanconnectcm.info';
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://artisanconnect.africa';
 
 export const dynamic = 'force-dynamic';
 

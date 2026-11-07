@@ -2,7 +2,7 @@ import { CATEGORIES } from '@/lib/categories';
 import { CITIES, slugify } from '@/lib/locations';
 import { api } from '@/lib/api';
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://artisanconnectcm.info';
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://artisanconnect.africa';
 
 /** Métiers les plus recherchés : inutile d'exposer les 80 catégories × 10 villes. */
 const INDEXED_CATEGORIES = [

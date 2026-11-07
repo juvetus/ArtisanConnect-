@@ -11,7 +11,7 @@ import { DirectoryResultsInfo } from '@/components/DirectoryResultsInfo';
 import { DirectorySectionLabel } from '@/components/DirectorySectionLabel';
 import { DirectoryNoResultsAction } from '@/components/DirectoryNoResultsAction';
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://artisanconnectcm.info';
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://artisanconnect.africa';
 const MIN_INDEXABLE_ARTISANS = 2;
 const MIN_INDEXABLE_OFFERS = 2;
 

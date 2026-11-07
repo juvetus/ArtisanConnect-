@@ -60,7 +60,7 @@ export default async function ShopPublicPage({ params }: { params: Promise<{ id:
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
   const shopWhatsapp = whatsappHref(shop.seller?.whatsappPhone ?? shop.seller?.phone, `Bonjour ${shop.seller?.name ?? shop.name}, je souhaite découvrir vos créations sur ArtisanConnect.`);
-  const shopUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://artisanconnectcm.info'}/shop/${shop.id}`;
+  const shopUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://artisanconnect.africa'}/shop/${shop.id}`;
   const shareShopWhatsapp = `https://wa.me/?text=${encodeURIComponent(`Découvrez la boutique « ${shop.name} » sur ArtisanConnect : ${shopUrl}`)}`;
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(shopUrl)}`;
   const quoteHref = `/customer-requests?category=${encodeURIComponent(shop.category ?? '')}&city=${encodeURIComponent(shop.city ?? '')}&neighborhood=${encodeURIComponent(shop.neighborhood ?? '')}`;

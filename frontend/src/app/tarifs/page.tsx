@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { api } from '@/lib/api';
 import { PricingContent, type PricingPlan } from './PricingContent';
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://artisanconnectcm.info';
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://artisanconnect.africa';
 
 export const metadata: Metadata = {
   title: 'Tarifs ArtisanConnect | Gratuit, Pro, Premium et Boost',
