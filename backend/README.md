@@ -106,6 +106,10 @@ nouvelle collecte est possible apres vingt minutes. Le backend doit rester actif
 Avec cette option activee, l'analyse IA traite cinq brouillons en attente toutes les dix minutes.
 Elle utilise `AI_API_KEY`, `AI_BASE_URL` et `AI_MODEL`, uniquement avec les metadonnees publiques.
 Sans configuration IA, l'analyse est marquee en echec, jamais remplacee par une fausse analyse.
+Les suggestions de metiers sont normalisees (accents, casse et separateurs) vers les
+identifiants du catalogue ; un metier inconnu reste refuse. Les formulaires manuels
+conservent leur validation stricte. Le resume IA reste obligatoire, non vide et limite
+a 700 caracteres : une reponse invalide est signalee, sans publication automatique.
 L'admin peut relancer une analyse ou renseigner manuellement resume et metiers.
 Une date limite manquante ou douteuse doit etre verifiee avant publication. Les heures ARMP et les
 formulaires admin sont interpretes dans le fuseau du Cameroun ; les decalages GMT d'UNGM sont conserves.
