@@ -16,7 +16,7 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://artisanconnectcm.info';
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://artisanconnect.africa';
 const siteName = 'ArtisanConnect';
 const siteDescription =
   'Marketplace artisanale au Cameroun : trouvez des artisans, achetez des produits artisanaux et demandez des services locaux en ligne.';

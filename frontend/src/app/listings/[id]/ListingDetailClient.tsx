@@ -184,7 +184,7 @@ export default function ListingDetailClient({ listing, rating, reviews }: {
   const deliveryLabel = deliveryMethod === 'home' ? 'Livraison à domicile' : deliveryMethod === 'carrier' ? 'Transporteur' : "Retrait à l'atelier";
   const sellerWhatsapp = whatsappHref(listing.seller?.whatsappPhone ?? listing.seller?.phone, `Bonjour ${listing.seller?.name ?? ''}, je suis intéressé par votre annonce « ${listing.title} » sur ArtisanConnect.`);
     const sellerShopId = listing.shop?.id ?? listing.shopId;
-  const shareUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://artisanconnectcm.info'}/listings/${listing.id}`;
+  const shareUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://artisanconnect.africa'}/listings/${listing.id}`;
   const shareWhatsapp = `https://wa.me/?text=${encodeURIComponent(`Découvrez « ${listing.title} » sur ArtisanConnect : ${shareUrl}`)}`;
 
   return (

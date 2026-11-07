@@ -635,7 +635,7 @@ export default function DashboardPage() {
           <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {shops.map((shop) => {
               const metrics = shopMetrics[shop.id] ?? { views: 0, whatsappContactClicks: 0, whatsappShareClicks: 0 };
-              const shopUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://artisanconnectcm.info'}/shop/${shop.id}`;
+              const shopUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://artisanconnect.africa'}/shop/${shop.id}`;
               const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(shopUrl)}`;
               return (
                 <article key={shop.id} className="flex flex-col items-center rounded-md border border-stone-200 p-4 text-center">
