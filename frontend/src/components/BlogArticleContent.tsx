@@ -50,6 +50,12 @@ export function BlogArticleContent({ article }: { article: BlogArticle }) {
             <h2 className="text-2xl font-semibold text-stone-950">{section.heading}</h2>
             {section.paragraphs.map((paragraph) => <p key={paragraph} className="mt-4 text-base leading-8">{paragraph}</p>)}
             {section.bullets ? <ul className="mt-4 list-disc space-y-2 pl-6 leading-7">{section.bullets.map((bullet) => <li key={bullet}>{bullet}</li>)}</ul> : null}
+            {section.image ? (
+              <figure className="mt-6">
+                <Image src={section.image.src} alt={section.image.alt} width={1600} height={1067} sizes="(min-width: 768px) 768px, 100vw" className="h-auto w-full rounded-md" />
+                <figcaption className="mt-2 text-sm leading-6 text-stone-500">{section.image.caption}</figcaption>
+              </figure>
+            ) : null}
           </section>
         ))}
       </div>
