@@ -32,11 +32,11 @@ export default function ListingDetailClient({ listing, rating, reviews }: {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'momo' | 'orange_money' | 'card'>('cash');
   const [deliveryMethod, setDeliveryMethod] = useState<'workshop' | 'home' | 'carrier'>('workshop');
   const [deliveryAddress, setDeliveryAddress] = useState('');
-  const [payerPhone, setPayerPhone] = useState('');
-  const [cardName, setCardName] = useState('');
-  const [cardEmail, setCardEmail] = useState('');
+  const [payerPhone, setPayerPhone] = useState<string | undefined>();
+  const [cardName, setCardName] = useState<string | undefined>();
+  const [cardEmail, setCardEmail] = useState<string | undefined>();
   const [cardAddress, setCardAddress] = useState('');
-  const [cardCity, setCardCity] = useState('');
+  const [cardCity, setCardCity] = useState<string | undefined>();
   const [offeredUnitPrice, setOfferedUnitPrice] = useState('');
   const [offerMessage, setOfferMessage] = useState('');
   const [offering, setOffering] = useState(false);
@@ -94,14 +94,15 @@ export default function ListingDetailClient({ listing, rating, reviews }: {
       setError(t('carrier_coming_soon'));
       return;
     }
-    const selectedPayerPhone = (payerPhone || user?.phone || '').trim();
+    const selectedPayerPhone = (payerPhone ?? user.phone ?? '').trim();
     if (paymentMethod !== 'cash' && !selectedPayerPhone) {
       setError('Veuillez saisir un numéro de téléphone valide pour le paiement.');
       return;
     }
-    const selectedCardName = (cardName || user.name || '').trim();
-    const selectedCardEmail = (cardEmail || user.email || '').trim();
-    if (paymentMethod === 'card' && (selectedCardName.split(/\s+/).length < 2 || !selectedCardEmail || !cardAddress.trim() || !cardCity.trim())) {
+    const selectedCardName = (cardName ?? user.name ?? '').trim();
+    const selectedCardEmail = (cardEmail ?? user.email ?? '').trim();
+    const selectedCardCity = (cardCity ?? user.city ?? '').trim();
+    if (paymentMethod === 'card' && (selectedCardName.split(/\s+/).length < 2 || !selectedCardEmail || !cardAddress.trim() || !selectedCardCity)) {
       setError('Pour payer par carte, renseignez prénom, nom, email, adresse et ville.');
       return;
     }
@@ -132,7 +133,7 @@ export default function ListingDetailClient({ listing, rating, reviews }: {
             lastName: cardParts.slice(1).join(' '),
             email: selectedCardEmail,
             address: cardAddress.trim(),
-            city: cardCity.trim(),
+            city: selectedCardCity,
           } : undefined,
         );
         if (payment.redirectUrl) {
@@ -355,7 +356,7 @@ export default function ListingDetailClient({ listing, rating, reviews }: {
                 />
                 <span>
                   <strong>Carte bancaire</strong>
-                  <span className="block text-xs text-stone-500">{MOBILE_MONEY_ENABLED ? 'Paiement sécurisé via Iwomipay' : t('mobile_money_coming_soon')}</span>
+                  <span className="block text-xs text-stone-500">{MOBILE_MONEY_ENABLED ? 'Saisie de la carte sur la page sécurisée IWOMIPAY (sandbox)' : t('mobile_money_coming_soon')}</span>
                 </span>
               </label>}
               <label className={`flex items-center gap-3 rounded-md border p-3 text-sm ${MOBILE_MONEY_ENABLED ? 'cursor-pointer border-stone-200 hover:border-orange-500' : 'cursor-not-allowed border-stone-200 bg-stone-100 text-stone-500'}`}>
@@ -452,15 +453,23 @@ export default function ListingDetailClient({ listing, rating, reviews }: {
           </div>
         )}
 
+        {paymentMethod === 'card' && (
+          <div role="note" className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            <strong>Étape 1 : coordonnées de facturation</strong>
+            <p className="mt-1">Renseignez vos coordonnées ci-dessous, puis continuez vers IWOMIPAY. Le numéro de carte, la date d&apos;expiration et le cryptogramme seront saisis uniquement sur sa page sécurisée. Ce parcours est en sandbox : utilisez uniquement les données de test fournies par IWOMIPAY.</p>
+          </div>
+        )}
+
         {paymentMethod !== 'cash' && (
           <div className="mt-4">
             <label htmlFor="payerPhone" className="block text-sm font-medium">
-              {paymentMethod === 'momo' ? 'Numéro MoMo' : paymentMethod === 'orange_money' ? 'Numéro Orange Money' : 'Numéro de téléphone'}
+              {paymentMethod === 'momo' ? 'Numéro MoMo' : paymentMethod === 'orange_money' ? 'Numéro Orange Money' : 'Téléphone de contact (requis par IWOMIPAY)'}
             </label>
             <input
               id="payerPhone"
               type="tel"
-              value={payerPhone || user?.phone || ''}
+              autoComplete="tel"
+              value={payerPhone ?? user?.phone ?? ''}
               onChange={(event) => setPayerPhone(event.target.value)}
               placeholder="Ex: 237699000000"
               className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600"
@@ -471,12 +480,12 @@ export default function ListingDetailClient({ listing, rating, reviews }: {
         {paymentMethod === 'card' && (
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <label className="text-sm font-medium text-stone-700">
-              Nom complet
-              <input value={cardName || user?.name || ''} onChange={(event) => setCardName(event.target.value)} autoComplete="name" className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600" />
+              Prénom et nom du titulaire
+              <input value={cardName ?? user?.name ?? ''} onChange={(event) => setCardName(event.target.value)} autoComplete="name" className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600" />
             </label>
             <label className="text-sm font-medium text-stone-700">
               Email
-              <input type="email" value={cardEmail || user?.email || ''} onChange={(event) => setCardEmail(event.target.value)} autoComplete="email" className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600" />
+              <input type="email" value={cardEmail ?? user?.email ?? ''} onChange={(event) => setCardEmail(event.target.value)} autoComplete="email" className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600" />
             </label>
             <label className="text-sm font-medium text-stone-700">
               Adresse de facturation
@@ -484,7 +493,7 @@ export default function ListingDetailClient({ listing, rating, reviews }: {
             </label>
             <label className="text-sm font-medium text-stone-700">
               Ville
-              <input value={cardCity || user?.location || ''} onChange={(event) => setCardCity(event.target.value)} autoComplete="address-level2" className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600" />
+              <input value={cardCity ?? user?.city ?? ''} onChange={(event) => setCardCity(event.target.value)} autoComplete="address-level2" className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600" />
             </label>
             <p className="text-xs text-stone-500 sm:col-span-2">Les coordonnées de carte sont saisies uniquement sur la page sécurisée d’Iwomipay; elles ne transitent pas par ArtisanConnect.</p>
           </div>
@@ -511,7 +520,7 @@ export default function ListingDetailClient({ listing, rating, reviews }: {
             disabled={ordering || listing.stock === 0 || !ready || !hasAvailablePayment || !hasAvailableDelivery}
             className="mt-6 w-full rounded-md bg-amber-700 py-3 font-medium text-white hover:bg-amber-800 disabled:opacity-60"
           >
-            {ordering ? 'Commande en cours…' : user ? 'Commander' : 'Se connecter pour commander'}
+            {ordering ? 'Commande en cours…' : user ? paymentMethod === 'card' ? 'Continuer vers IWOMIPAY (sandbox)' : 'Commander' : 'Se connecter pour commander'}
           </button>
         )}
           </>

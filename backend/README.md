@@ -295,3 +295,12 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+### Parcours carte IWOMIPAY (sandbox)
+
+ArtisanConnect collecte les coordonnees de facturation et le telephone de contact
+requis par IWOMIPAY, puis redirige vers la `redirectUrl` du fournisseur. Le numero
+de carte, la date d'expiration et le cryptogramme ne sont jamais collectes par
+ArtisanConnect. Utiliser uniquement les donnees de test fournies par IWOMIPAY.
+La ville pre-remplie provient du champ structure `User.city`, pas du texte libre
+historique `location`. Un retour navigateur ne confirme pas le paiement :
+le statut doit etre verifie aupres du fournisseur.

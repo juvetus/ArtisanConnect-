@@ -83,12 +83,12 @@ export default function OrdersPage() {
   };
 
   const payWithIwomipay = async (order: Order, method: 'momo' | 'orange_money' | 'card') => {
-    const payerPhone = (momoPhones[order.id] || user?.phone || '').trim();
+    const payerPhone = (momoPhones[order.id] ?? user?.phone ?? '').trim();
     if (!payerPhone) {
       setMomoError((current) => ({ ...current, [order.id]: 'Veuillez saisir un numéro de téléphone valide pour le paiement.' }));
       return;
     }
-    const details = cardDetails[order.id] ?? { name: user?.name ?? '', email: user?.email ?? '', address: '', city: user?.location ?? '' };
+    const details = cardDetails[order.id] ?? { name: user?.name ?? '', email: user?.email ?? '', address: '', city: user?.city ?? '' };
     const nameParts = details.name.trim().split(/\s+/);
     if (method === 'card' && (nameParts.length < 2 || !details.email.trim() || !details.address.trim() || !details.city.trim())) {
       setMomoError((current) => ({ ...current, [order.id]: 'Pour payer par carte, renseignez prénom, nom, email, adresse et ville.' }));
@@ -329,11 +329,14 @@ export default function OrdersPage() {
                     )}
                     {order.paymentMethod === 'card' && order.payment?.status === 'pending' && (
                       <div className="grid w-full gap-2 sm:grid-cols-2">
+                        <p role="note" className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 sm:col-span-2">
+                          {english ? 'Step 1: billing details. Card number, expiry date and security code are entered only on the secure IWOMIPAY page. Sandbox: use only test details supplied by IWOMIPAY.' : 'Étape 1 : coordonnées de facturation. Le numéro de carte, la date d’expiration et le cryptogramme sont saisis uniquement sur la page sécurisée IWOMIPAY. Sandbox : utilisez uniquement les données de test fournies par IWOMIPAY.'}
+                        </p>
                         <input
                           aria-label={english ? 'Cardholder full name' : 'Prénom et nom du titulaire'}
                           autoComplete="name"
                           value={cardDetails[order.id]?.name ?? user.name}
-                          onChange={(event) => setCardDetails((current) => ({ ...current, [order.id]: { name: event.target.value, email: current[order.id]?.email ?? user.email, address: current[order.id]?.address ?? '', city: current[order.id]?.city ?? user.location ?? '' } }))}
+                          onChange={(event) => setCardDetails((current) => ({ ...current, [order.id]: { name: event.target.value, email: current[order.id]?.email ?? user.email, address: current[order.id]?.address ?? '', city: current[order.id]?.city ?? user.city ?? '' } }))}
                           placeholder={english ? 'Full name' : 'Prénom et nom'}
                           className="rounded-md border border-stone-200 px-3 py-2 text-sm"
                         />
@@ -342,27 +345,27 @@ export default function OrdersPage() {
                           type="email"
                           autoComplete="email"
                           value={cardDetails[order.id]?.email ?? user.email}
-                          onChange={(event) => setCardDetails((current) => ({ ...current, [order.id]: { name: current[order.id]?.name ?? user.name, email: event.target.value, address: current[order.id]?.address ?? '', city: current[order.id]?.city ?? user.location ?? '' } }))}
+                          onChange={(event) => setCardDetails((current) => ({ ...current, [order.id]: { name: current[order.id]?.name ?? user.name, email: event.target.value, address: current[order.id]?.address ?? '', city: current[order.id]?.city ?? user.city ?? '' } }))}
                           className="rounded-md border border-stone-200 px-3 py-2 text-sm"
                         />
                         <input
                           aria-label={english ? 'Billing address' : 'Adresse de facturation'}
                           autoComplete="street-address"
                           value={cardDetails[order.id]?.address ?? ''}
-                          onChange={(event) => setCardDetails((current) => ({ ...current, [order.id]: { name: current[order.id]?.name ?? user.name, email: current[order.id]?.email ?? user.email, address: event.target.value, city: current[order.id]?.city ?? user.location ?? '' } }))}
+                          onChange={(event) => setCardDetails((current) => ({ ...current, [order.id]: { name: current[order.id]?.name ?? user.name, email: current[order.id]?.email ?? user.email, address: event.target.value, city: current[order.id]?.city ?? user.city ?? '' } }))}
                           placeholder={english ? 'Billing address' : 'Adresse de facturation'}
                           className="rounded-md border border-stone-200 px-3 py-2 text-sm"
                         />
                         <input
                           aria-label={english ? 'Billing city' : 'Ville de facturation'}
                           autoComplete="address-level2"
-                          value={cardDetails[order.id]?.city ?? user.location ?? ''}
+                          value={cardDetails[order.id]?.city ?? user.city ?? ''}
                           onChange={(event) => setCardDetails((current) => ({ ...current, [order.id]: { name: current[order.id]?.name ?? user.name, email: current[order.id]?.email ?? user.email, address: current[order.id]?.address ?? '', city: event.target.value } }))}
                           placeholder={english ? 'City' : 'Ville'}
                           className="rounded-md border border-stone-200 px-3 py-2 text-sm"
                         />
                         <input
-                          aria-label={english ? 'Card payment phone number' : 'Téléphone pour le paiement par carte'}
+                          aria-label={english ? 'Contact phone (required by IWOMIPAY)' : 'Téléphone de contact (requis par IWOMIPAY)'}
                           type="tel"
                           autoComplete="tel"
                           value={momoPhones[order.id] ?? user.phone ?? ''}
@@ -375,7 +378,7 @@ export default function OrdersPage() {
                           disabled={!MOBILE_MONEY_ENABLED || busyId === order.id}
                           className="rounded-md bg-orange-600 px-3 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-50"
                         >
-                          {english ? 'Pay by card' : 'Payer par carte'}
+                          {english ? 'Continue to IWOMIPAY (sandbox)' : 'Continuer vers IWOMIPAY (sandbox)'}
                         </button>
                       </div>
                     )}
