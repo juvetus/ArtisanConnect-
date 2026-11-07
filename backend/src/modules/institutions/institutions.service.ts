@@ -4,6 +4,7 @@ import { In, Repository } from 'typeorm';
 import { ArtisanFormalization, InstitutionalProgram, InstitutionalResource, Listing, Order, ProgramApplication, User } from '../../entities/index.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { isDemoMode } from '../../demo-mode.js';
+import { normalizeGeography, normalizedGeographySql, validateGeography, type InstitutionGeography } from './institution-geography.js';
 
 type ResourceType = 'training' | 'guide' | 'template';
 type ProgramType = 'training' | 'support' | 'funding' | 'grant';
@@ -143,51 +144,59 @@ export class InstitutionsService {
     return saved;
   }
 
-  async dashboard(institutionId: string) {
-    const realOnly = isDemoMode() ? {} : { isDemo: false as const };
-    const totalArtisans = await this.users.count({ where: { role: 'artisan', ...realOnly } });
+  private artisanQuery(input: InstitutionGeography = {}) {
+    const filters = validateGeography(input);
+    const query = this.users.createQueryBuilder('u').leftJoin('u.shops', 's')
+      .where("u.role = 'artisan'");
+    if (!isDemoMode()) query.andWhere('u.isDemo = false');
+    for (const key of ['city', 'district', 'neighborhood'] as const) {
+      if (filters[key]) query.andWhere(`${normalizedGeographySql(`CASE WHEN s.id IS NULL THEN u.${key} ELSE s.${key} END`)} = :${key}`, { [key]: normalizeGeography(filters[key]) });
+    }
+    if (Object.keys(filters).length && !isDemoMode()) query.andWhere('s.isDemo IS DISTINCT FROM true');
+    return query;
+  }
 
-    // 1. Femmes artisanes (exclut les coopératives)
-    const womenArtisanRows = await this.users
-      .createQueryBuilder('u')
-      .leftJoin('u.shops', 's')
-      .where(`u.role = 'artisan'${isDemoMode() ? '' : ' AND u.isDemo = false'}`)
-      .andWhere("(u.gender = 'female' OR s.isWomenLed = true)")
-      .select('DISTINCT u.id', 'id')
-      .getRawMany();
+  async geographyOptions() {
+    return this.artisanQuery().andWhere('(s.city IS NOT NULL OR (s.id IS NULL AND u.city IS NOT NULL))')
+      .andWhere(isDemoMode() ? '1 = 1' : 's.isDemo IS DISTINCT FROM true')
+      .select('CASE WHEN s.id IS NULL THEN u.city ELSE s.city END', 'city')
+      .addSelect('CASE WHEN s.id IS NULL THEN u.district ELSE s.district END', 'district')
+      .addSelect('CASE WHEN s.id IS NULL THEN u.neighborhood ELSE s.neighborhood END', 'neighborhood')
+      .distinct(true).orderBy('city', 'ASC').getRawMany<{
+        city: string; district: string | null; neighborhood: string | null;
+      }>();
+  }
 
-    // 2. Coopératives & Groupements d'intérêt communautaire (GIC)
-    const cooperativeRows = await this.users
-      .createQueryBuilder('u')
-      .leftJoin('u.shops', 's')
-      .where(`u.role = 'artisan'${isDemoMode() ? '' : ' AND u.isDemo = false'}`)
-      .andWhere("(u.gender = 'cooperative' OR s.isCooperative = true)")
-      .select('DISTINCT u.id', 'id')
-      .getRawMany();
-
-    const womenArtisans = womenArtisanRows.length;
-    const cooperativeArtisans = cooperativeRows.length;
+  async dashboard(institutionId: string, filters: InstitutionGeography = {}) {
+    const query = this.artisanQuery(filters);
+    const [totalArtisans, womenArtisans, cooperativeArtisans, artisanRows] = await Promise.all([
+      query.clone().getCount(),
+      query.clone().andWhere("(u.gender = 'female' OR s.isWomenLed = true)").getCount(),
+      query.clone().andWhere("(u.gender = 'cooperative' OR s.isCooperative = true)").getCount(),
+      Object.keys(validateGeography(filters)).length ? query.clone().select('u.id', 'id').distinct(true).getRawMany<{ id: string }>() : Promise.resolve(null),
+    ]);
+    const scoped = artisanRows ? { artisan: { id: In(artisanRows.map((row) => row.id)) } } : {};
 
     const [resources, programs, pendingApps, approvedApps, pendingForm, approvedForm] = await Promise.all([
       this.resources.count({ where: { institution: { id: institutionId } } }),
       this.programs.count({ where: { institutionId, status: 'active' } }),
       this.applications.count({
         where: [
-          { program: { institutionId }, status: 'submitted' },
-          { program: { institutionId }, status: 'in_review' },
+          { program: { institutionId }, status: 'submitted', ...scoped },
+          { program: { institutionId }, status: 'in_review', ...scoped },
         ],
       }),
       this.applications.count({
-        where: { program: { institutionId }, status: 'accepted' },
+        where: { program: { institutionId }, status: 'accepted', ...scoped },
       }),
       this.formalizations.count({
         where: [
-          { reviewedBy: { id: institutionId }, status: 'submitted' },
-          { reviewedBy: { id: institutionId }, status: 'in_review' },
+          { reviewedBy: { id: institutionId }, status: 'submitted', ...scoped },
+          { reviewedBy: { id: institutionId }, status: 'in_review', ...scoped },
         ],
       }),
       this.formalizations.count({
-        where: { reviewedBy: { id: institutionId }, status: 'approved' },
+        where: { reviewedBy: { id: institutionId }, status: 'approved', ...scoped },
       }),
     ]);
 
@@ -214,9 +223,11 @@ export class InstitutionsService {
     };
   }
 
-  async listArtisans() {
-    const realOnly = isDemoMode() ? {} : { isDemo: false as const };
-    return this.users.find({ where: { role: 'artisan', ...realOnly }, select: { id: true, name: true, email: true, location: true, verifiedEmail: true }, order: { createdAt: 'DESC' } });
+  async listArtisans(filters: InstitutionGeography = {}) {
+    return this.artisanQuery(filters)
+      .select(['u.id', 'u.name', 'u.email', 'u.location', 'u.verifiedEmail', 'u.city', 'u.district', 'u.neighborhood'])
+      .addSelect(['s.id', 's.city', 's.district', 's.neighborhood'])
+      .orderBy('u.createdAt', 'DESC').getMany();
   }
 
   async listFormalizations(institutionId?: string) {
@@ -241,16 +252,22 @@ export class InstitutionsService {
     return this.formalizations.save(record);
   }
 
-  async csvReport(institutionId: string) {
+  async csvReport(institutionId: string, input: InstitutionGeography = {}) {
+    const filters = validateGeography(input);
+    const artisans = await this.listArtisans(filters);
+    const artisanIds = Object.keys(filters).length ? artisans.map((artisan) => artisan.id) : null;
     const [stats, records] = await Promise.all([
-      this.dashboard(institutionId),
+      this.dashboard(institutionId, filters),
       this.formalizations.find({
-        where: { reviewedBy: { id: institutionId } },
+        where: { reviewedBy: { id: institutionId }, ...(artisanIds ? { artisan: { id: In(artisanIds) } } : {}) },
         relations: { artisan: true },
       }),
     ]);
     const rows = [
       ['indicateur', 'valeur'],
+      ['ville', filters.city ?? 'Toutes'],
+      ['arrondissement', filters.district ?? 'Tous'],
+      ['quartier', filters.neighborhood ?? 'Tous'],
       ['artisans_suivis', stats.stats.artisans],
       ['femmes_artisanes_suivies', stats.stats.womenArtisans],
       ['taux_entrepreneuriat_feminin', `${stats.stats.womenPercentage}%`],
@@ -261,6 +278,14 @@ export class InstitutionsService {
       ['dossiers_en_attente', stats.stats.pendingFormalizations],
       ['dossiers_approuves', stats.stats.approvedFormalizations],
       [],
+      ['artisan', 'ville', 'arrondissement', 'quartier'],
+      ...artisans.map((artisan) => [
+        artisan.name,
+        artisan.shops?.length ? artisan.shops.map((shop) => shop.city ?? '').join(' ; ') : artisan.city ?? '',
+        artisan.shops?.length ? artisan.shops.map((shop) => shop.district ?? '').join(' ; ') : artisan.district ?? '',
+        artisan.shops?.length ? artisan.shops.map((shop) => shop.neighborhood ?? '').join(' ; ') : artisan.neighborhood ?? '',
+      ]),
+      [],
       ['artisan', 'profil_genre_ou_coop', 'entreprise', 'statut', 'progression'],
       ...records.map((record) => [
         record.artisan?.name ?? '',
@@ -270,6 +295,9 @@ export class InstitutionsService {
         record.progress,
       ]),
     ];
-    return rows.map((row) => row.map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`).join(',')).join('\n');
+    return rows.map((row) => row.map((value) => {
+      const text = String(value ?? '');
+      return `"${(/^[\s]*[=+@\-\t\r]/.test(text) ? "'" : '') + text.replaceAll('"', '""')}"`;
+    }).join(',')).join('\n');
   }
 }

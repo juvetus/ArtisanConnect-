@@ -218,6 +218,7 @@ describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
       type: 'artisan',
       name: 'Atelier Bois Noble',
       description: 'Atelier de menuiserie artisanale',
+      district: ' Yaoundé I ',
       mobileMoneyNumber: '+237699001122',
       deliveryMode: 'workshop',
       kycDocuments: [
@@ -231,6 +232,7 @@ describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
 
     expect(shop).toBeDefined();
     expect(shop.status).toBe('pending');
+    expect(shop.district).toBe('Yaoundé I');
     expect(mockShopsRepo.save).toHaveBeenCalled();
     expect(mockNotificationsService.notify).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -239,6 +241,23 @@ describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
         title: 'Nouvelle boutique artisan à valider',
       }),
     );
+  });
+
+  it('enregistre et efface l’arrondissement sans modifier les anciens paiements', async () => {
+    mockShopsRepo.findOne = vi.fn().mockResolvedValue({ id: 'shop-1', sellerId: 'artisan-1' });
+    await service.update('shop-1', 'artisan-1', { city: 'Yaoundé', district: ' Yaoundé I ', neighborhood: 'Bastos' });
+    expect(mockShopsRepo.update).toHaveBeenLastCalledWith('shop-1', { city: 'Yaoundé', district: 'Yaoundé I', neighborhood: 'Bastos' });
+    await service.update('shop-1', 'artisan-1', { district: '' });
+    expect(mockShopsRepo.update).toHaveBeenLastCalledWith('shop-1', { district: null });
+    await service.update('shop-1', 'artisan-1', { availability: 'busy' });
+    expect(mockShopsRepo.update).toHaveBeenLastCalledWith('shop-1', { availability: 'busy' });
+  });
+
+  it('refuse un arrondissement invalide et les modifications par un autre vendeur', async () => {
+    mockShopsRepo.findOne = vi.fn().mockResolvedValue({ id: 'shop-1', sellerId: 'artisan-1' });
+    await expect(service.update('shop-1', 'artisan-1', { district: 'x'.repeat(151) })).rejects.toThrow(BadRequestException);
+    await expect(service.update('shop-1', 'other', { district: 'Yaoundé I' })).rejects.toThrow(ForbiddenException);
+    expect(mockShopsRepo.update).not.toHaveBeenCalled();
   });
 
   it('doit créer une boutique revendeur automatiquement avec le statut ACTIVE si preuves complètes', async () => {

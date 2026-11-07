@@ -8,6 +8,7 @@ import { ApiError, api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
 import type { Service, Shop, User } from '@/lib/types';
+import { GeographyFields } from '@/components/GeographyFields';
 
 const FORMALIZATION_QUESTIONS = [
   { field: 'hasRccm', fr: 'Disposez-vous d’un RCCM ?', en: 'Do you have an RCCM registration?' },
@@ -24,6 +25,7 @@ function ShopPaymentForm({ shop, language }: { shop: Shop; language: 'fr' | 'en'
   const [provider, setProvider] = useState<'momo' | 'orange_money' | 'both'>(shop.mobileMoneyProvider ?? 'both');
   const [deliveryMethods, setDeliveryMethods] = useState<('workshop' | 'home' | 'carrier')[]>(shop.deliveryMethods?.length ? shop.deliveryMethods : [shop.deliveryMode]);
   const [availability, setAvailability] = useState<'available' | 'busy' | 'unavailable'>(shop.availability ?? 'available');
+  const [geography, setGeography] = useState({ city: shop.city ?? '', district: shop.district ?? '', neighborhood: shop.neighborhood ?? '' });
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -36,10 +38,10 @@ function ShopPaymentForm({ shop, language }: { shop: Shop; language: 'fr' | 'en'
     try {
       if ((provider === 'momo' || provider === 'both') && !momoNumber.trim()) throw new Error(english ? 'A MoMo number is required.' : 'Le numéro MoMo est requis.');
       if ((provider === 'orange_money' || provider === 'both') && !orangeMoneyNumber.trim()) throw new Error(english ? 'An Orange Money number is required.' : 'Le numéro Orange Money est requis.');
-      await api.updateShop(shop.id, { mobileMoneyNumber: momoNumber.trim() || orangeMoneyNumber.trim(), momoNumber: momoNumber.trim(), orangeMoneyNumber: orangeMoneyNumber.trim(), mobileMoneyProvider: provider, deliveryMethods, availability });
+      await api.updateShop(shop.id, { ...geography, mobileMoneyNumber: momoNumber.trim() || orangeMoneyNumber.trim(), momoNumber: momoNumber.trim(), orangeMoneyNumber: orangeMoneyNumber.trim(), mobileMoneyProvider: provider, deliveryMethods, availability });
       setNotice(english ? 'Shop settings updated.' : 'Paramètres de la boutique mis à jour.');
     } catch (saveError) {
-      setError(saveError instanceof ApiError ? saveError.message : (english ? 'Could not update payment settings.' : 'Impossible de mettre à jour les paiements.'));
+      setError(saveError instanceof Error ? saveError.message : (english ? 'Could not update shop settings.' : 'Impossible de mettre à jour la boutique.'));
     } finally {
       setSaving(false);
     }
@@ -51,6 +53,7 @@ function ShopPaymentForm({ shop, language }: { shop: Shop; language: 'fr' | 'en'
         <h2 className="font-semibold text-stone-900">{english ? `Shop payments: ${shop.name}` : `Paiements de la boutique : ${shop.name}`}</h2>
         <p className="mt-1 text-sm text-stone-600">{english ? 'Choose the payment methods accepted by this shop.' : 'Choisissez les moyens de paiement acceptés par cette boutique.'}</p>
       </div>
+      <GeographyFields value={geography} onChange={setGeography} language={language} />
       <div>
         <p className="block text-sm font-medium text-stone-700">{english ? 'Accepted delivery methods' : 'Modes de livraison acceptés'}</p>
         <div className="mt-2 grid gap-2 sm:grid-cols-3">
@@ -179,6 +182,7 @@ function ProfileForm({ user }: { user: User }) {
   const [phone, setPhone] = useState(user.phone ?? '');
   const [whatsappPhone, setWhatsappPhone] = useState(user.whatsappPhone ?? user.phone ?? '');
   const [location, setLocation] = useState(user.location ?? '');
+  const [profileGeography, setProfileGeography] = useState({ city: user.city ?? '', district: user.district ?? '', neighborhood: user.neighborhood ?? '' });
   const [bio, setBio] = useState(user.bio ?? '');
   const [bioSuggestion, setBioSuggestion] = useState('');
   const [suggestingBio, setSuggestingBio] = useState(false);
@@ -237,7 +241,7 @@ function ProfileForm({ user }: { user: User }) {
     setNotice('');
     setError('');
     try {
-      const updated = await api.updateProfile(user.id, { name: name.trim(), phone: phone.trim(), whatsappPhone: whatsappPhone.trim(), location: location.trim(), bio: bio.trim() });
+      const updated = await api.updateProfile(user.id, { ...profileGeography, name: name.trim(), phone: phone.trim(), whatsappPhone: whatsappPhone.trim(), location: location.trim(), bio: bio.trim() });
       updateUser(updated);
       setNotice(english ? 'Profile updated successfully.' : 'Profil mis à jour avec succès.');
     } catch (saveError) {
@@ -331,6 +335,7 @@ function ProfileForm({ user }: { user: User }) {
           <label htmlFor="profile-location" className="block text-sm font-medium text-stone-700">{t('profile_location')}</label>
           <input id="profile-location" value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Douala, Cameroun" className="field mt-1" />
         </div>
+        {user.role === 'artisan' ? <GeographyFields value={profileGeography} onChange={setProfileGeography} language={language} /> : null}
         <div>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <label htmlFor="profile-bio" className="block text-sm font-medium text-stone-700">{t('profile_bio')}</label>

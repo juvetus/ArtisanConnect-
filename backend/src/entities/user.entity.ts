@@ -33,6 +33,15 @@ export class User {
   @Column({ nullable: true })
   location: string;
 
+  @Column({ type: 'varchar', nullable: true })
+  city: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  district: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  neighborhood: string | null;
+
   @Column({ nullable: true })
   phone: string;
 

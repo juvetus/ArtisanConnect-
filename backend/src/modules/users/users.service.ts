@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../../entities/index.js';
 import bcrypt from 'bcrypt';
+import { validateProfileGeography, type Geography } from '../../geography.js';
 
 @Injectable()
 export class UsersService {
@@ -29,14 +30,14 @@ export class UsersService {
   async findByIdentifierWithPassword(identifier: string): Promise<User | null> {
     return this.usersRepository.findOne({
       where: [{ email: identifier }, { phone: identifier }],
-      select: { id: true, email: true, phone: true, whatsappPhone: true, avatarUrl: true, name: true, role: true, gender: true, passwordHash: true, isActive: true, verifiedEmail: true, verifiedPhone: true },
+      select: { id: true, email: true, phone: true, whatsappPhone: true, avatarUrl: true, name: true, role: true, gender: true, passwordHash: true, isActive: true, verifiedEmail: true, verifiedPhone: true, city: true, district: true, neighborhood: true, location: true },
     });
   }
 
   async findByEmailWithPassword(email: string): Promise<User | null> {
     return this.usersRepository.findOne({
       where: { email },
-      select: { id: true, email: true, phone: true, whatsappPhone: true, avatarUrl: true, name: true, role: true, gender: true, passwordHash: true, isActive: true, verifiedEmail: true, verifiedPhone: true },
+      select: { id: true, email: true, phone: true, whatsappPhone: true, avatarUrl: true, name: true, role: true, gender: true, passwordHash: true, isActive: true, verifiedEmail: true, verifiedPhone: true, city: true, district: true, neighborhood: true, location: true },
     });
   }
 
@@ -114,7 +115,8 @@ export class UsersService {
     });
   }
 
-  async create(email: string, password: string, name: string, role: 'artisan' | 'client' | 'institution' | 'admin' | 'editor' | 'viewer' = 'client', gender?: 'female' | 'male' | 'cooperative' | 'other'): Promise<User> {
+  async create(email: string, password: string, name: string, role: 'artisan' | 'client' | 'institution' | 'admin' | 'editor' | 'viewer' = 'client', gender?: 'female' | 'male' | 'cooperative' | 'other', geography: Geography = {}): Promise<User> {
+    const validatedGeography = validateProfileGeography(geography);
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = this.usersRepository.create({
       email,
@@ -122,6 +124,7 @@ export class UsersService {
       name,
       role,
       gender: gender ?? null,
+      ...validatedGeography,
     });
     return this.usersRepository.save(user);
   }
@@ -140,9 +143,10 @@ export class UsersService {
   }
 
   async update(id: string, updateData: Partial<User>): Promise<User | null> {
+    const geography = validateProfileGeography(updateData);
     const user = await this.usersRepository.findOne({ where: { id } });
     if (!user) return null;
-    Object.assign(user, updateData);
+    Object.assign(user, updateData, geography);
     await this.usersRepository.save(user);
     return this.findById(id);
   }

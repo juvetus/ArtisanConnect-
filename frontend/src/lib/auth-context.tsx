@@ -10,7 +10,7 @@ interface AuthContextValue {
   user: User | null;
   ready: boolean;
   login: (identifier: string, password: string) => Promise<void>;
-  register: (data: { email?: string; phone?: string; password: string; name: string; role: Role; gender?: 'female' | 'male' | 'cooperative' | 'other' }) => Promise<{ developmentOtp?: string; accountStatus?: string; verificationEmailSent?: boolean }>;
+  register: (data: { email?: string; phone?: string; password: string; name: string; role: Role; gender?: 'female' | 'male' | 'cooperative' | 'other'; city?: string; district?: string; neighborhood?: string }) => Promise<{ developmentOtp?: string; accountStatus?: string; verificationEmailSent?: boolean }>;
   updateUser: (partial: Partial<User>) => void;
   logout: () => void;
 }

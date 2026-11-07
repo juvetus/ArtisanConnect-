@@ -9,7 +9,7 @@ export class AuthController {
 
   @Public()
   @Post('register')
-  async register(@Body() body: { email?: string; phone?: string; password: string; name: string; role?: 'artisan' | 'client' | 'institution'; gender?: 'female' | 'male' | 'cooperative' | 'other' }) {
+  async register(@Body() body: { email?: string; phone?: string; password: string; name: string; role?: 'artisan' | 'client' | 'institution'; gender?: 'female' | 'male' | 'cooperative' | 'other'; city?: string; district?: string; neighborhood?: string }) {
     return this.authService.register(body, body.password, body.name, body.role, body.gender);
   }
 
@@ -65,4 +65,3 @@ export class AuthController {
     return this.authService.resetPassword(body.token, body.password);
   }
 }
-

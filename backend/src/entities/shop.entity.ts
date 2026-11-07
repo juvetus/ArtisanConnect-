@@ -44,6 +44,9 @@ export class Shop {
   city: string | null;
 
   @Column({ type: 'varchar', nullable: true })
+  district: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
   neighborhood: string | null;
 
   @Column({ type: 'varchar', nullable: true })

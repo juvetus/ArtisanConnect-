@@ -1,5 +1,14 @@
 import type { AdminOverview, AdminSubscription, AnalyticsFunnel, ArtisanFormalization, AuthSession, CustomerRequestStatus, InstitutionDashboard, InstitutionalProgram, InstitutionalResource, Listing, ListingOffer, Message, NotificationsResponse, Order, Paginated, Payment, ProgramApplication, ProgramApplicationStatus, ProgramType, PublicArtisan, Report, ReportReason, ReportStatus, ReportTargetType, ResourceType, Review, Role, Service, ServiceReview, Shop, ShopType, Thread, User } from './types';
 import type { Opportunity, OpportunityConfig, OpportunityDashboard, OpportunityGroup, OpportunityPreferences } from './opportunities';
+import type { InstitutionArtisan, InstitutionGeography } from './types';
+
+function institutionQuery(filters: InstitutionGeography): string {
+  const query = new URLSearchParams();
+  for (const key of ['city', 'district', 'neighborhood'] as const) {
+    if (filters[key]) query.set(key, filters[key]);
+  }
+  return query.size ? `?${query}` : '';
+}
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
@@ -91,7 +100,7 @@ export const api = {
   publishOpportunity: (id: string, data: { title: string; organization: string; location: string; summary: string; deadline: string; trades: string[] }) => post<Opportunity>(`/opportunities/admin/notices/${id}/publish`, data),
   archiveOpportunity: (id: string) => post<Opportunity>(`/opportunities/admin/notices/${id}/archive`),
 
-  register: (data: { email?: string; phone?: string; password: string; name: string; role: Role; gender?: 'female' | 'male' | 'cooperative' | 'other' }) =>
+  register: (data: { email?: string; phone?: string; password: string; name: string; role: Role; gender?: 'female' | 'male' | 'cooperative' | 'other'; city?: string; district?: string; neighborhood?: string }) =>
     post<User & { developmentOtp?: string; accountStatus?: string; verificationEmailSent?: boolean }>('/auth/register', data),
 
   login: (data: { identifier: string; password: string }) => post<AuthSession>('/auth/login', data),
@@ -143,7 +152,7 @@ export const api = {
   },
   assistantImageQuota: () => request<{ planSlug: string | null; limit: number; used: number; remaining: number; subscriptionId: string | null }>('/assistant/image-quota'),
 
-    updateProfile: (id: string, data: { name?: string; phone?: string; whatsappPhone?: string; location?: string; bio?: string; avatarUrl?: string }) => patch<User>(`/users/${id}`, data),
+    updateProfile: (id: string, data: { name?: string; phone?: string; whatsappPhone?: string; location?: string; bio?: string; avatarUrl?: string; city?: string; district?: string; neighborhood?: string }) => patch<User>(`/users/${id}`, data),
 
     updateArtisanFormalization: (data: Pick<User, 'hasRccm' | 'hasNiu' | 'hasProfessionalArtisanCard' | 'hasProfessionalAccount' | 'hasFixedWorkshop'>) =>
       patch<User>('/users/me/formalization', data),
@@ -344,7 +353,9 @@ export const api = {
 
   institutionMyPrograms: () => request<InstitutionalProgram[]>('/institutions/my-programs'),
 
-  institutionDashboard: () => request<InstitutionDashboard>('/institutions/dashboard'),
+  institutionDashboard: (filters: InstitutionGeography = {}) => request<InstitutionDashboard>(`/institutions/dashboard${institutionQuery(filters)}`),
+  institutionArtisans: (filters: InstitutionGeography = {}) => request<InstitutionArtisan[]>(`/institutions/artisans${institutionQuery(filters)}`),
+  institutionGeography: () => request<{ city: string; district: string | null; neighborhood: string | null }[]>('/institutions/geography'),
 
   institutionFormalizations: () => request<ArtisanFormalization[]>('/institutions/formalizations'),
   adminFormalizations: () => request<ArtisanFormalization[]>('/admin/formalizations'),
@@ -453,6 +464,7 @@ export const api = {
     description: string;
     category?: string;
     city?: string;
+    district?: string;
     neighborhood?: string;
     market?: string;
     latitude?: number;
@@ -489,7 +501,7 @@ export const api = {
   incrementShopMetric: (id: string, metric: 'views' | 'whatsappContactClicks' | 'whatsappShareClicks', delta = 1) =>
     post<{ views: number; whatsappContactClicks: number; whatsappShareClicks: number }>(`/shops/${id}/metrics`, { metric, delta }),
 
-  updateShop: (id: string, data: { name?: string; description?: string; category?: string; availability?: 'available' | 'busy' | 'unavailable'; city?: string; neighborhood?: string; market?: string; latitude?: number; longitude?: number; deliveryMode?: 'workshop' | 'home'; deliveryMethods?: ('workshop' | 'home' | 'carrier')[]; mobileMoneyNumber?: string; momoNumber?: string; orangeMoneyNumber?: string; mobileMoneyProvider?: 'momo' | 'orange_money' | 'both'; isWomenLed?: boolean; isCooperative?: boolean }) =>
+  updateShop: (id: string, data: { name?: string; description?: string; category?: string; availability?: 'available' | 'busy' | 'unavailable'; city?: string; district?: string; neighborhood?: string; market?: string; latitude?: number; longitude?: number; deliveryMode?: 'workshop' | 'home'; deliveryMethods?: ('workshop' | 'home' | 'carrier')[]; mobileMoneyNumber?: string; momoNumber?: string; orangeMoneyNumber?: string; mobileMoneyProvider?: 'momo' | 'orange_money' | 'both'; isWomenLed?: boolean; isCooperative?: boolean }) =>
     patch<Shop>(`/shops/${id}`, data),
 
   setShopActive: (id: string, active: boolean) => patch<Shop>(`/shops/${id}/status`, { active }),
@@ -585,8 +597,8 @@ export const api = {
 
   markAllNotificationsRead: () => post<{ success: boolean }>('/notifications/read-all'),
 
-  downloadInstitutionReport: async () => {
-    const res = await fetch(`${API_URL}/institutions/report.csv`, {
+  downloadInstitutionReport: async (filters: InstitutionGeography = {}) => {
+    const res = await fetch(`${API_URL}/institutions/report.csv${institutionQuery(filters)}`, {
       headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
     });
     if (!res.ok) throw new ApiError('Le rapport ne peut pas être téléchargé.', res.status);
