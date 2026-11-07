@@ -1,4 +1,6 @@
 import { load } from 'cheerio';
+import { Logger } from '@nestjs/common';
+import { setTimeout as delay } from 'node:timers/promises';
 import type { SourceKey } from './opportunity-source-catalog.js';
 export { AUTOMATIC_SOURCE_KEYS, WATCH_SOURCES, type SourceKey } from './opportunity-source-catalog.js';
 
@@ -14,6 +16,7 @@ export interface CollectedNotice {
 }
 
 const clean = (text: string) => text.replace(/\s+/g, ' ').trim();
+const logger = new Logger('OpportunitySources');
 
 export function parseArmp(html: string): CollectedNotice[] {
   const $ = load(html);
@@ -96,8 +99,10 @@ export function parseSangobids(html: string): CollectedNotice[] {
     // Only factual URL labels: do not copy the aggregator's generated summaries.
     if (/^(?:additif|communique|decision|avis-d-attribution|attribution|resultat|report-|annulation|avis-d-annulation)/.test(slug)) return;
     const metadata = clean(link.siblings('p').first().text());
-    const organization = metadata.split(' — ')[0];
-    if (!organization || !/publié le/i.test(metadata)) throw new Error('SangoBids : métadonnées de publication absentes');
+    const organization = metadata.split(/\s*—\s*/)[0];
+    if (!organization || /^(?:publié le|clôture le)\b/i.test(organization)) {
+      throw new Error('SangoBids : organisme absent des métadonnées');
+    }
     notices.set(id, {
       source: 'sangobids', externalId: id, sourceUrl: `https://sangobids.com${href}`,
       title: slug.replace(/-/g, ' '), organization, location: 'Cameroun',
@@ -108,6 +113,23 @@ export function parseSangobids(html: string): CollectedNotice[] {
 }
 
 export async function fetchSource(url: string, init?: RequestInit): Promise<{ html: string; response: Response }> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return await fetchSourceOnce(url, init);
+    } catch (error) {
+      const timedOut = error instanceof Error && error.name === 'TimeoutError';
+      if (attempt === 0 && timedOut && (init?.method ?? 'GET').toUpperCase() === 'GET') {
+        logger.warn(`Délai dépassé pour ${url} ; nouvelle tentative unique dans une seconde`);
+        await delay(1000);
+        continue;
+      }
+      throw new Error(`${url} : ${error instanceof Error ? error.message : 'Erreur de collecte'}`, { cause: error });
+    }
+  }
+  throw new Error(`Source inaccessible : ${url}`);
+}
+
+async function fetchSourceOnce(url: string, init?: RequestInit): Promise<{ html: string; response: Response }> {
   const response = await fetch(url, {
     ...init, redirect: 'error', signal: AbortSignal.timeout(25000),
     headers: { 'User-Agent': 'ArtisanConnect-OpportunityWatch/1.0', ...init?.headers },
