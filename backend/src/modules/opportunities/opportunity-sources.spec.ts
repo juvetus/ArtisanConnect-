@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AUTOMATIC_SOURCE_KEYS, collectSource, fetchSource, parseArmp, parseSangobids, parseUngm, WATCH_SOURCES } from './opportunity-sources.js';
-import { isFormalized, parseDeadline, validateTrades, validSourceUrl } from './opportunity-policy.js';
+import { isFormalized, normalizeAiTrades, parseDeadline, validateTrades, validSourceUrl } from './opportunity-policy.js';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -113,6 +113,11 @@ describe('opportunity policy', () => {
   it('validates trade vocabulary, public source link scheme and zoned future deadlines', () => {
     expect(validateTrades(['menuiserie', 'menuiserie'])).toEqual(['menuiserie']);
     expect(() => validateTrades(['invented'])).toThrow('invalides');
+    expect(normalizeAiTrades(['maçonnerie', 'électricité', 'Menuiserie', 'aluminium / vitrerie']))
+      .toEqual(['maconnerie', 'electricite', 'menuiserie', 'aluminium_vitrerie']);
+    expect(normalizeAiTrades([])).toEqual([]);
+    expect(() => normalizeAiTrades(['métier inconnu'])).toThrow('invalides');
+    expect(() => normalizeAiTrades('maçonnerie')).toThrow('invalides');
     expect(() => validSourceUrl('javascript:alert(1)')).toThrow();
     expect(() => validSourceUrl('https://user:password@example.com')).toThrow();
     expect(() => parseDeadline('2030-11-15T10:00')).toThrow('fuseau');
