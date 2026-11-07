@@ -4,6 +4,7 @@ export type BlogSection = {
   heading: string;
   paragraphs: string[];
   bullets?: string[];
+  image?: { src: string; alt: string; caption: string };
 };
 
 export type BlogSource = {
@@ -33,6 +34,105 @@ export type BlogArticle = {
 };
 
 export const blogArticles: BlogArticle[] = [
+  {
+    slug: 'cits26-juvet-tajo-onu-femmes-artisanat',
+    category: { fr: 'Événements', en: 'Events' },
+    title: {
+      fr: 'CITS26 : Juvet Tajo prend la parole sur l’artisanat sous la bannière d’ONU Femmes',
+      en: 'CITS26: Juvet Tajo speaks on crafts under the UN Women banner',
+    },
+    excerpt: {
+      fr: 'Au Palais des Congrès de Yaoundé, le porteur d’ArtisanConnect a participé au Cameroon International Tech Summit 2026 comme intervenant, autour de la formalisation, de la digitalisation et de l’inclusion financière.',
+      en: 'At the Palais des Congrès in Yaoundé, the founder of ArtisanConnect took part in the Cameroon International Tech Summit 2026 as a speaker, addressing formalisation, digitalisation and financial inclusion.',
+    },
+    coverImage: '/images/cits26-juvet-tajo-summit.webp',
+    coverAlt: {
+      fr: 'Intervention de Juvet Tajo au CITS26, devant la signalétique du sommet et Women Count',
+      en: 'Juvet Tajo speaking at CITS26, in front of the summit and Women Count signage',
+    },
+    sources: [
+      { label: 'CITS26 — application officielle des participants', url: 'https://my.citscm.com/events/cits26' },
+      { label: 'CITS — programme du sommet', url: 'https://citscm.com/schedule/' },
+    ],
+    author: 'L’équipe ArtisanConnect',
+    publishedAt: '2026-11-07',
+    readingTime: 3,
+    keywords: ['CITS26', 'Cameroon International Tech Summit', 'Juvet Tajo', 'ONU Femmes', 'ArtisanConnect', 'formalisation artisanat', 'digitalisation Cameroun', 'inclusion financière'],
+    sections: {
+      fr: [
+        {
+          heading: 'L’artisanat au cœur d’un rendez-vous technologique à Yaoundé',
+          paragraphs: [
+            'Le Cameroon International Tech Summit 2026 s’est tenu du 15 au 17 octobre au Palais des Congrès de Yaoundé. Juvet Tajo, porteur du projet ArtisanConnect, y a participé comme speaker sous la bannière d’ONU Femmes.',
+            'Ce retour sur sa participation met en lumière trois thèmes abordés : la formalisation du secteur artisanal, la digitalisation et l’inclusion financière. Les photographies de l’événement accompagnent cet article pour partager ce moment avec la communauté ArtisanConnect.',
+          ],
+        },
+        {
+          heading: 'Formalisation, digitalisation et inclusion financière',
+          paragraphs: [
+            'Pour ArtisanConnect, la formalisation et la visibilité numérique sont des sujets complémentaires. Rendre une activité identifiable, présenter ses produits et services et mieux comprendre les démarches administratives peuvent aider les artisans à structurer leur développement.',
+            'L’inclusion financière fait également partie de cette réflexion : comment rendre les outils et services plus accessibles aux petites activités, notamment aux femmes artisanes et aux structures collectives ? Ces enjeux demandent un accompagnement adapté, au-delà de la seule mise à disposition d’une plateforme.',
+            'Ces pistes ne constituent ni une promesse de financement, ni une garantie d’accès à un marché. Elles expriment les préoccupations qui guident le développement d’ArtisanConnect.',
+          ],
+          image: {
+            src: '/images/cits26-juvet-tajo-intervention.webp',
+            alt: 'Juvet Tajo au microphone pendant son intervention au CITS26',
+            caption: 'Une prise de parole au CITS26, au Palais des Congrès de Yaoundé. Photo fournie pour publication.',
+          },
+        },
+        {
+          heading: 'Une participation qui nourrit la démarche ArtisanConnect',
+          paragraphs: [
+            'Cette présence au sommet inscrit le projet dans une réflexion plus large sur la place de l’artisanat dans la transformation numérique au Cameroun. ArtisanConnect poursuit son travail sur la visibilité des savoir-faire, la présentation des activités et l’accompagnement de la formalisation.',
+            'La participation de Juvet Tajo sous la bannière d’ONU Femmes concerne son intervention à cet événement. Elle ne vaut pas annonce d’un partenariat contractuel, d’une labellisation ou d’une approbation officielle d’ArtisanConnect par ONU Femmes.',
+          ],
+        },
+        {
+          heading: 'Un certificat de participation annoncé par CITS26',
+          paragraphs: [
+            'À la suite du sommet, CITS26 a annoncé à Juvet Tajo la disponibilité d’un certificat dans la catégorie « Summit Participants », accessible depuis la rubrique « My certificates » de l’application des participants après connexion avec l’adresse utilisée pour l’événement.',
+            'Il s’agit d’un certificat de participation : il n’est pas présenté ici comme une certification de speaker ou une distinction. Les informations personnelles de connexion et le certificat nominatif ne sont pas publiés.',
+          ],
+        },
+      ],
+      en: [
+        {
+          heading: 'Crafts at a technology gathering in Yaoundé',
+          paragraphs: [
+            'The Cameroon International Tech Summit 2026 took place from 15 to 17 October at the Palais des Congrès in Yaoundé. Juvet Tajo, founder of ArtisanConnect, participated as a speaker under the UN Women banner.',
+            'This account highlights three topics addressed: formalisation of the craft sector, digitalisation and financial inclusion. Photographs from the event accompany the article to share this moment with the ArtisanConnect community.',
+          ],
+        },
+        {
+          heading: 'Formalisation, digitalisation and financial inclusion',
+          paragraphs: [
+            'For ArtisanConnect, formalisation and digital visibility are complementary topics. Making a business identifiable, presenting its products and services and understanding administrative procedures can help artisans structure their development.',
+            'Financial inclusion is also part of this reflection: how can tools and services become more accessible to small businesses, particularly women artisans and collective enterprises? These issues require appropriate support beyond simply providing a platform.',
+            'These ideas are neither a promise of funding nor a guarantee of market access. They reflect the concerns guiding ArtisanConnect’s development.',
+          ],
+          image: {
+            src: '/images/cits26-juvet-tajo-intervention.webp',
+            alt: 'Juvet Tajo at the microphone during his CITS26 contribution',
+            caption: 'Speaking at CITS26, at the Palais des Congrès in Yaoundé. Photo supplied for publication.',
+          },
+        },
+        {
+          heading: 'A contribution informing the ArtisanConnect approach',
+          paragraphs: [
+            'Participation in the summit places the project within a broader discussion about the role of crafts in Cameroon’s digital transformation. ArtisanConnect continues its work on showcasing skills, presenting businesses and supporting formalisation.',
+            'Juvet Tajo’s participation under the UN Women banner relates to his contribution at this event. It does not announce a contractual partnership, accreditation or official endorsement of ArtisanConnect by UN Women.',
+          ],
+        },
+        {
+          heading: 'A participation certificate announced by CITS26',
+          paragraphs: [
+            'Following the summit, CITS26 notified Juvet Tajo that a certificate in the “Summit Participants” category was available through “My certificates” in the attendee app, after signing in with the email address used for the event.',
+            'This is a participation certificate, not presented here as a speaker certification or an award. Private login information and the personalised certificate are not published.',
+          ],
+        },
+      ],
+    },
+  },
   {
     slug: 'cooperation-cameroun-union-europeenne-pme-artisanat',
     category: { fr: 'Actualités', en: 'News' },
