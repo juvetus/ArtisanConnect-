@@ -82,6 +82,32 @@ Configurer la cle uniquement dans les variables du backend de l'environnement co
 jamais dans le frontend, les journaux ou Git, puis redeployer. Ne pas modifier les cles SMS.
 Les alertes d'opportunites restent soumises a `OPPORTUNITY_EMAIL_ENABLED` et au consentement.
 
+## Filtres geographiques de l'espace institution
+
+L'espace `/institution` filtre les statistiques d'artisans, les dossiers comptabilises, la liste
+des artisans et le rapport CSV par `city`, `district` et `neighborhood`. Les ressources et
+programmes restent ceux de l'institution, independamment de la zone des artisans.
+Les routes protegees `/institutions/dashboard`, `/institutions/artisans` et
+`/institutions/report.csv` acceptent ces trois parametres ; `/institutions/geography` fournit
+les localisations declarees pour les listes de choix. La comparaison est exacte, sans distinction
+de casse ni d'accents francais. Tous les criteres doivent correspondre a une meme boutique ;
+un artisan ayant plusieurs boutiques est compte une seule fois.
+
+La migration `ShopDistrict1761400000000` ajoute un arrondissement nullable aux boutiques.
+L'artisan peut le renseigner a la creation ou depuis `/profile`. Aucun rattachement quartier /
+arrondissement n'est devine. Sans filtre, les artisans sans boutique ou sans arrondissement
+restent comptes ; une zone precise exclut ceux dont la localisation correspondante est inconnue.
+Les donnees de demonstration sont exclues hors mode demo.
+La migration `UserGeography1761500000000` conserve egalement ville, arrondissement et quartier
+dans le profil. L'inscription artisan propose les sept arrondissements de Yaounde et une liste
+non exhaustive de quartiers, sans association automatique quartier / arrondissement.
+Les suggestions restent modifiables librement et sont partagees avec le profil et la creation
+de boutique ; celle-ci reprend les valeurs du compte. Changer de ville dans le formulaire efface
+les selections dependantes. Les statistiques utilisent le profil structure uniquement pour
+un artisan sans boutique, sans analyser l'ancien champ libre `location`.
+Tests PostgreSQL locaux sur schema isole : `INSTITUTION_INTEGRATION=true npm test -- src/modules/institutions/institutions.geography.spec.ts`
+(utiliser les variables DB locales ; aucune base distante n'est acceptee).
+
 ## Veille des appels d'offres et opportunites artisanales
 
 - Administration : `/admin/opportunities` (admin/editeur : collecte, saisie manuelle, analyse, publication, archivage ; viewer : lecture).

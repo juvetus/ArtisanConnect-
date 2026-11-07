@@ -1,4 +1,5 @@
-import { BadRequestException, Body, Controller, Delete, Get, Header, Param, Patch, Post, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Header, Param, Patch, Post, Query, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
+import type { InstitutionGeography } from './institution-geography.js';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { CurrentUser, type AuthUser } from '../auth/current-user.decorator.js';
 import { InstitutionGuard } from './institution.guard.js';
@@ -117,11 +118,15 @@ export class InstitutionsController {
 
   @UseGuards(InstitutionGuard)
   @Get('dashboard')
-  dashboard(@CurrentUser() user: AuthUser) { return this.service.dashboard(user.id); }
+  dashboard(@CurrentUser() user: AuthUser, @Query() filters: InstitutionGeography) { return this.service.dashboard(user.id, filters); }
+
+  @UseGuards(InstitutionGuard)
+  @Get('geography')
+  geography() { return this.service.geographyOptions(); }
 
   @UseGuards(InstitutionGuard)
   @Get('artisans')
-  artisans() { return this.service.listArtisans(); }
+  artisans(@Query() filters: InstitutionGeography) { return this.service.listArtisans(filters); }
 
   @UseGuards(InstitutionGuard)
   @Get('formalizations')
@@ -145,5 +150,5 @@ export class InstitutionsController {
   @Get('report.csv')
   @Header('Content-Type', 'text/csv; charset=utf-8')
   @Header('Content-Disposition', 'attachment; filename="artisanconnect-rapport.csv"')
-  report(@CurrentUser() user: AuthUser) { return this.service.csvReport(user.id); }
+  report(@CurrentUser() user: AuthUser, @Query() filters: InstitutionGeography) { return this.service.csvReport(user.id, filters); }
 }

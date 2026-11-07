@@ -81,6 +81,7 @@ export class ShopsService {
       description: string;
       category?: string;
       city?: string;
+      district?: string;
       neighborhood?: string;
       market?: string;
       latitude?: number;
@@ -96,6 +97,7 @@ export class ShopsService {
       isCooperative?: boolean;
     },
   ): Promise<Shop> {
+    const district = this.validateDistrict(data.district);
     const required = Shop.requiredDocuments(data.type);
     const provided = new Set(data.kycDocuments.map((doc) => doc.label));
     const missing = required.filter((label) => !provided.has(label));
@@ -110,7 +112,7 @@ export class ShopsService {
     const fallbackNumber = data.mobileMoneyNumber;
     const momoNumber = data.momoNumber ? this.normalizeCameroonPhoneNumber(data.momoNumber) : fallbackNumber ? this.normalizeCameroonPhoneNumber(fallbackNumber) : null;
     const orangeMoneyNumber = data.orangeMoneyNumber ? this.normalizeCameroonPhoneNumber(data.orangeMoneyNumber) : fallbackNumber ? this.normalizeCameroonPhoneNumber(fallbackNumber) : null;
-    const shop = this.shopsRepository.create({ ...data, mobileMoneyNumber: momoNumber ?? orangeMoneyNumber!, momoNumber, orangeMoneyNumber, mobileMoneyProvider: provider, deliveryMethods: data.deliveryMethods?.length ? data.deliveryMethods : [data.deliveryMode ?? 'workshop'], sellerId, status, isDemo: isDemoMode() });
+    const shop = this.shopsRepository.create({ ...data, district, mobileMoneyNumber: momoNumber ?? orangeMoneyNumber!, momoNumber, orangeMoneyNumber, mobileMoneyProvider: provider, deliveryMethods: data.deliveryMethods?.length ? data.deliveryMethods : [data.deliveryMode ?? 'workshop'], sellerId, status, isDemo: isDemoMode() });
     const savedShop = await this.shopsRepository.save(shop);
 
     // Si la boutique artisan nécessite une validation manuelle, notifier tous les admins
@@ -521,17 +523,26 @@ export class ShopsService {
   async update(
     id: string,
     sellerId: string,
-    data: Partial<Pick<Shop, 'name' | 'description' | 'category' | 'availability' | 'deliveryMode' | 'deliveryMethods' | 'mobileMoneyNumber' | 'momoNumber' | 'orangeMoneyNumber' | 'mobileMoneyProvider'>>,
+    data: Partial<Pick<Shop, 'name' | 'description' | 'category' | 'availability' | 'city' | 'district' | 'neighborhood' | 'market' | 'latitude' | 'longitude' | 'isWomenLed' | 'isCooperative' | 'deliveryMode' | 'deliveryMethods' | 'mobileMoneyNumber' | 'momoNumber' | 'orangeMoneyNumber' | 'mobileMoneyProvider'>>,
   ): Promise<Shop | null> {
     const shop = await this.shopsRepository.findOne({ where: { id } });
     if (!shop) throw new NotFoundException('Boutique introuvable');
     if (shop.sellerId !== sellerId) throw new ForbiddenException('Cette boutique ne vous appartient pas');
     const updateData = { ...data };
+    if (data.district !== undefined) updateData.district = this.validateDistrict(data.district);
     if (updateData.mobileMoneyNumber) updateData.mobileMoneyNumber = this.normalizeCameroonPhoneNumber(updateData.mobileMoneyNumber);
     if (updateData.momoNumber) updateData.momoNumber = this.normalizeCameroonPhoneNumber(updateData.momoNumber);
     if (updateData.orangeMoneyNumber) updateData.orangeMoneyNumber = this.normalizeCameroonPhoneNumber(updateData.orangeMoneyNumber);
     await this.shopsRepository.update(id, updateData);
     return this.findById(id);
+  }
+
+  private validateDistrict(value?: string | null): string | null {
+    if (value === undefined || value === null) return null;
+    if (typeof value !== 'string' || value.length > 150 || [...value].some((character) => character.charCodeAt(0) < 32)) {
+      throw new BadRequestException('Arrondissement invalide (150 caracteres maximum)');
+    }
+    return value.trim() || null;
   }
 
   /** Validation manuelle admin (boutiques Artisan, ou réexamen). */

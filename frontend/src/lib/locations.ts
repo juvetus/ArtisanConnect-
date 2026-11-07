@@ -12,6 +12,11 @@ export const CITIES = [
   'Ngaoundéré',
 ];
 
+/** Suggestions uniquement : aucun rattachement quartier / arrondissement n'est presume. */
+export const DISTRICTS: Record<string, string[]> = {
+  yaounde: ['Yaoundé I', 'Yaoundé II', 'Yaoundé III', 'Yaoundé IV', 'Yaoundé V', 'Yaoundé VI', 'Yaoundé VII'],
+};
+
 /** Quartiers courants proposés dans les filtres. La saisie artisan reste libre pour les autres quartiers. */
 export const NEIGHBORHOODS: Record<string, string[]> = {
   yaounde: [

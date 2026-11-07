@@ -55,7 +55,15 @@ describe('AuthService.register email validation', () => {
     expect(result.email).toBe('user@example.com');
     expect(result.verifiedEmail).toBe(false);
     expect(result.verificationEmailSent).toBe(true);
-    expect(usersService.create).toHaveBeenCalledWith('user@example.com', 'Password123!', 'Test User', 'client', undefined);
+    expect(usersService.create).toHaveBeenCalledWith('user@example.com', 'Password123!', 'Test User', 'client', undefined, { city: undefined, district: undefined, neighborhood: undefined });
+  });
+
+  it('passes declared artisan geography to account creation', async () => {
+    const { service, usersService } = createAuthService();
+    usersService.findByEmail.mockResolvedValue(null);
+    usersService.create.mockResolvedValue({ id: 'artisan-1', email: 'user@example.com', name: 'Test', role: 'artisan' });
+    await service.register({ email: 'user@example.com', city: 'Yaoundé', district: 'Yaoundé VII', neighborhood: 'Autre quartier' }, 'Password123!', 'Test', 'artisan');
+    expect(usersService.create).toHaveBeenCalledWith('user@example.com', 'Password123!', 'Test', 'artisan', undefined, { city: 'Yaoundé', district: 'Yaoundé VII', neighborhood: 'Autre quartier' });
   });
 });
 

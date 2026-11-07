@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
 import type { Role } from '@/lib/types';
 import { PHONE_COUNTRIES } from '@/lib/countries';
+import { GeographyFields, type GeographyValue } from '@/components/GeographyFields';
 
 export default function RegisterPage() {
   return (
@@ -19,7 +20,7 @@ export default function RegisterPage() {
 
 function RegisterFlow() {
   const { register } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const searchParams = useSearchParams();
   const roleParam = searchParams.get('role');
   const selectedRole: Role | null = roleParam === 'client' || roleParam === 'artisan' || roleParam === 'institution' ? roleParam : null;
@@ -45,13 +46,14 @@ function RegisterFlow() {
   const [gender, setGender] = useState<'female' | 'male' | 'cooperative' | 'other'>('female');
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
+  const [geography, setGeography] = useState<GeographyValue>({ city: '', district: '', neighborhood: '' });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setPending(true);
     try {
-      const result = await register({ name, email: contactType === 'email' ? email : undefined, phone: contactType === 'phone' ? `${phoneCountry}${phone}` : undefined, password, role, gender });
+      const result = await register({ name, email: contactType === 'email' ? email : undefined, phone: contactType === 'phone' ? `${phoneCountry}${phone}` : undefined, password, role, gender, ...(role === 'artisan' ? geography : {}) });
       if (role === 'institution') {
         setError('Votre demande institutionnelle a été reçue. Elle sera vérifiée par notre équipe avant activation. Vous recevrez une confirmation par e-mail.');
         return;
@@ -210,6 +212,8 @@ function RegisterFlow() {
           </div>
           <p className="mt-1 text-xs text-stone-500">{t('register_phone_help')}</p>
         </div>}
+
+        {role === 'artisan' ? <GeographyFields value={geography} onChange={setGeography} language={language} disabled={phoneAccountCreated || emailAccountCreated || pending} /> : null}
 
         <div>
           <label htmlFor="password" className="block text-sm font-medium">

@@ -7,7 +7,10 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
 import { AiTextSuggestion } from '@/components/AiTextSuggestion';
+import type { InstitutionGeography } from '@/lib/types';
 import type { ArtisanFormalization, ProgramType, ResourceType, InstitutionalResource, InstitutionalProgram, ProgramApplication } from '@/lib/types';
+
+const locationKey = (value: string) => value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim().replace(/\s+/g, ' ');
 
 export default function InstitutionPage() {
   const { user, ready } = useAuth();
@@ -20,6 +23,7 @@ export default function InstitutionPage() {
   const [resourceMedia, setResourceMedia] = useState<{ imageUrls: string[]; videoUrls: string[]; pdfUrls: string[] }>({ imageUrls: [], videoUrls: [], pdfUrls: [] });
   const [programMedia, setProgramMedia] = useState<{ imageUrls: string[]; videoUrls: string[]; pdfUrls: string[] }>({ imageUrls: [], videoUrls: [], pdfUrls: [] });
   const [uploadingMedia, setUploadingMedia] = useState<'resource' | 'program' | null>(null);
+  const [filters, setFilters] = useState<InstitutionGeography>({});
 
   const resourceLabels: Record<ResourceType, string> = {
     training: language === 'en' ? 'Training' : 'Formation',
@@ -38,21 +42,24 @@ export default function InstitutionPage() {
   const [editingResource, setEditingResource] = useState<{ id: string; title: string; description: string; type: ResourceType; theme: string; contentUrl: string } | null>(null);
   const [editingProgram, setEditingProgram] = useState<{ id: string; title: string; description: string; type: ProgramType; eligibility: string; budget: string; interventionZone: string; startDate: string; endDate: string; objectives: string; targetBeneficiaries: string; impactIndicators: string; status: 'active' | 'closed' } | null>(null);
 
-  const { data, isLoading, mutate } = useSWR(user?.role === 'institution' ? 'institution-console' : null, async () => {
-    const [dashboard, resources, programs, formalizations, applications] = await Promise.all([
-      api.institutionDashboard(),
+  const { data: locations, error: geographyError } = useSWR(user?.role === 'institution' ? 'institution-geography' : null, api.institutionGeography);
+  const { data, error: dashboardError, isLoading, mutate } = useSWR(user?.role === 'institution' ? ['institution-console', filters] : null, async () => {
+    const [dashboard, resources, programs, formalizations, applications, artisans] = await Promise.all([
+      api.institutionDashboard(filters),
       api.institutionMyResources(),
       api.institutionMyPrograms(),
       api.institutionFormalizations(),
       api.institutionApplications(),
+      api.institutionArtisans(filters),
     ]);
-    return { dashboard, resources, programs, formalizations, applications };
+    return { dashboard, resources, programs, formalizations, applications, artisans };
   });
 
   useEffect(() => {
     if (ready && user?.role !== 'institution') router.replace('/');
   }, [ready, user, router]);
 
+  if (dashboardError) return <p role="alert" className="text-red-700">{dashboardError instanceof Error ? dashboardError.message : (language === 'en' ? 'Dashboard unavailable.' : 'Tableau de bord indisponible.')} <button onClick={() => void mutate()} className="underline">{language === 'en' ? 'Retry' : 'Réessayer'}</button></p>;
   if (!ready || user?.role !== 'institution' || isLoading || !data) return <p className="text-stone-600">{t('action_loading')}</p>;
 
   const publishResource = async (event: React.FormEvent) => {
@@ -215,13 +222,30 @@ export default function InstitutionPage() {
   };
 
   const downloadReport = async () => {
-    const blob = await api.downloadInstitutionReport();
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'artisanconnect-rapport.csv';
-    link.click();
-    URL.revokeObjectURL(url);
+    try {
+      const blob = await api.downloadInstitutionReport(filters);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'artisanconnect-rapport.csv';
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setNoticeType('error');
+      setNotice(error instanceof Error ? error.message : (language === 'en' ? 'Report unavailable.' : 'Rapport indisponible.'));
+    }
+  };
+
+  const optionLabels = (key: keyof InstitutionGeography) => {
+    const rows = (locations ?? []).filter((row) =>
+      (key === 'city' || !filters.city || locationKey(row.city) === locationKey(filters.city)) &&
+      (key !== 'neighborhood' || !filters.district || locationKey(row.district ?? '') === locationKey(filters.district)));
+    const unique = new Map<string, string>();
+    for (const row of rows) {
+      const value = row[key]?.trim();
+      if (value) unique.set(locationKey(value), value);
+    }
+    return [...unique.values()].sort((a, b) => a.localeCompare(b, language));
   };
 
   const stats = data.dashboard.stats;
@@ -253,6 +277,27 @@ export default function InstitutionPage() {
           {notice}
         </p>
       )}
+      <section className="rounded-lg border border-stone-200 bg-white p-5">
+        <h2 className="font-semibold">{language === 'en' ? 'Geographic filters' : 'Filtres géographiques'}</h2>
+        <p className="mt-1 text-sm text-stone-600">{language === 'en' ? 'Artisans are counted once, using their declared shop locations. Profiles without a district remain in overall totals. Resources and programs remain institution-wide.' : 'Chaque artisan est compté une seule fois, selon la localisation déclarée de ses boutiques. Les profils sans arrondissement restent dans les totaux généraux. Les ressources et programmes restent ceux de toute l’institution.'}</p>
+        {geographyError ? <p role="alert" className="mt-2 text-red-700">{language === 'en' ? 'Location options could not be loaded.' : 'Impossible de charger les localisations.'}</p> : null}
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          {([
+            ['city', language === 'en' ? 'City' : 'Ville'],
+            ['district', language === 'en' ? 'District' : 'Arrondissement'],
+            ['neighborhood', language === 'en' ? 'Neighborhood' : 'Quartier'],
+          ] as const).map(([key, label]) => (
+            <div key={key}>
+              <label htmlFor={`institution-${key}`} className="block text-sm font-medium">{label}</label>
+              <select id={`institution-${key}`} value={filters[key] ?? ''} disabled={!locations || (key !== 'city' && !filters.city)} onChange={(event) => setFilters((current) => key === 'city' ? { city: event.target.value } : key === 'district' ? { city: current.city, district: event.target.value } : { ...current, neighborhood: event.target.value })} className="field mt-1">
+                <option value="">{language === 'en' ? 'All' : 'Tous'}</option>
+                {optionLabels(key).map((label) => <option key={label} value={label}>{label}</option>)}
+              </select>
+            </div>
+          ))}
+        </div>
+        <button onClick={() => setFilters({})} className="mt-3 text-sm underline">{language === 'en' ? 'Reset filters' : 'Réinitialiser les filtres'}</button>
+      </section>
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {[
           [t('institution_stats_artisans'), stats.artisans],
@@ -278,6 +323,18 @@ export default function InstitutionPage() {
           <div className="border-l-4 border-green-600 bg-green-50 p-4"><p className="text-sm text-green-900">{t('institution_active_programs')}</p><p className="mt-2 text-2xl font-semibold text-green-950">{stats.programs}</p></div>
           <div className="border-l-4 border-blue-600 bg-blue-50 p-4"><p className="text-sm text-blue-900">{t('institution_available_resources')}</p><p className="mt-2 text-2xl font-semibold text-blue-950">{stats.resources}</p></div>
         </div>
+      </section>
+
+      <section className="rounded-lg border border-stone-200 bg-white p-5">
+        <h2 className="text-xl font-semibold">{language === 'en' ? 'Artisans in the selected area' : 'Artisans de la zone sélectionnée'} ({data.artisans.length})</h2>
+        {!data.artisans.length ? <p className="mt-3 text-sm text-stone-600">{language === 'en' ? 'No artisans match these filters.' : 'Aucun artisan ne correspond à ces filtres.'}</p> : (
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead><tr><th className="p-2">{language === 'en' ? 'Artisan' : 'Artisan'}</th><th className="p-2">E-mail</th><th className="p-2">{language === 'en' ? 'Declared locations' : 'Localisations déclarées'}</th></tr></thead>
+              <tbody>{data.artisans.map((artisan) => <tr key={artisan.id} className="border-t border-stone-200"><td className="p-2">{artisan.name}</td><td className="p-2">{artisan.email}</td><td className="p-2">{artisan.shops.length ? artisan.shops.map((shop) => [shop.city, shop.district, shop.neighborhood].filter(Boolean).join(' / ')).join(' ; ') : [artisan.city, artisan.district, artisan.neighborhood].filter(Boolean).join(' / ') || artisan.location || (language === 'en' ? 'Not specified' : 'Non renseignée')}</td></tr>)}</tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       <section>

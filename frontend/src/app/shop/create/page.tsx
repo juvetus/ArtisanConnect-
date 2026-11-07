@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
 import { PRODUCT_CATEGORIES, categoryGroups, categoryLabel } from '@/lib/categories';
 import { SHOP_OPTIONAL_DOCS, SHOP_REQUIRED_DOCS, type KycDocument, type ShopType } from '@/lib/types';
+import { GeographyFields } from '@/components/GeographyFields';
 const LocationPicker = dynamic(() => import('@/components/LocationPicker').then((module) => module.LocationPicker), { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-md bg-stone-100" /> });
 
 const SHOP_TYPES: ShopType[] = ['artisan', 'reseller', 'individual'];
@@ -23,6 +24,7 @@ export default function CreateShopPage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [city, setCity] = useState('');
+  const [district, setDistrict] = useState('');
   const [neighborhood, setNeighborhood] = useState('');
   const [market, setMarket] = useState('');
   const [latitude, setLatitude] = useState<number | null>(null);
@@ -47,6 +49,9 @@ export default function CreateShopPage() {
       setIsWomenLed(user.gender === 'female');
       setIsCooperative(user.gender === 'cooperative');
       if (user.whatsappPhone || user.phone) setWhatsappPhone(user.whatsappPhone ?? user.phone ?? '');
+      setCity(user.city ?? '');
+      setDistrict(user.district ?? '');
+      setNeighborhood(user.neighborhood ?? '');
     });
   }, [ready, user, router]);
 
@@ -83,6 +88,7 @@ export default function CreateShopPage() {
         name,
         description,
         city: city || undefined,
+        district: district || undefined,
         neighborhood: neighborhood || undefined,
         market: market || undefined,
         latitude: latitude ?? undefined,
@@ -251,9 +257,8 @@ export default function CreateShopPage() {
               className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600"
             />
           </div>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div><label htmlFor="shop-city" className="block text-sm font-medium">{t('create_shop_city')} <span className="text-red-700" aria-hidden="true">*</span><span className="sr-only"> (obligatoire)</span></label><input id="shop-city" required value={city} onChange={(e) => setCity(e.target.value)} placeholder="Douala, Yaoundé..." className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2" /></div>
-            <div><label htmlFor="shop-neighborhood" className="block text-sm font-medium">{t('create_shop_neighborhood')}</label><input id="shop-neighborhood" value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} placeholder="Bonamoussadi..." className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2" /></div>
+          <GeographyFields value={{ city, district, neighborhood }} onChange={(value) => { setCity(value.city); setDistrict(value.district); setNeighborhood(value.neighborhood); }} language={language} requiredCity />
+          <div>
             <div><label htmlFor="shop-market" className="block text-sm font-medium">{t('create_shop_market')}</label><input id="shop-market" value={market} onChange={(e) => setMarket(e.target.value)} placeholder="Marché central..." className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2" /></div>
           </div>
           <div><p className="mb-2 text-sm font-medium">{t('create_shop_position')}</p><LocationPicker latitude={latitude} longitude={longitude} onChange={([lat, lng]) => { setLatitude(lat); setLongitude(lng); }} /></div>

@@ -56,7 +56,7 @@ export class AuthService {
     return `+237${digits.replace(/^0/, '')}`;
   }
 
-  async register(contact: { email?: string; phone?: string }, password: string, name: string, role: 'artisan' | 'client' | 'institution' = 'client', gender?: 'female' | 'male' | 'cooperative' | 'other') {
+  async register(contact: { email?: string; phone?: string; city?: string; district?: string; neighborhood?: string }, password: string, name: string, role: 'artisan' | 'client' | 'institution' = 'client', gender?: 'female' | 'male' | 'cooperative' | 'other') {
     const rawEmail = typeof contact.email === 'string' ? contact.email.trim() : '';
     if (rawEmail && (rawEmail.length > 254 || !isEmail(rawEmail, { require_tld: true, allow_ip_domain: false }))) {
       throw new BadRequestException('Adresse email invalide. Vérifiez son format.');
@@ -70,7 +70,7 @@ export class AuthService {
     }
 
     const storedEmail = email ?? `${phone!.replace('+', '')}@phone.artisanconnect.local`;
-    const user = await this.usersService.create(storedEmail, password, name, role, gender);
+    const user = await this.usersService.create(storedEmail, password, name, role, gender, { city: contact.city, district: contact.district, neighborhood: contact.neighborhood });
     await this.usersService.update(user.id, { isDemo: isDemoMode() });
     if (role === 'institution') {
       await this.usersService.update(user.id, { isActive: false });
@@ -141,6 +141,10 @@ export class AuthService {
         phone: user.phone,
         whatsappPhone: user.whatsappPhone,
         avatarUrl: user.avatarUrl,
+        city: user.city,
+        district: user.district,
+        neighborhood: user.neighborhood,
+        location: user.location,
         name: user.name,
         role: user.role,
         gender: user.gender,

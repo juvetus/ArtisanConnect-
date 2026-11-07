@@ -36,6 +36,7 @@ export interface Shop {
   description: string;
   category?: string | null;
   city?: string | null;
+  district?: string | null;
   neighborhood?: string | null;
   market?: string | null;
   latitude?: number | null;
@@ -189,6 +190,9 @@ export type PaymentStatus = 'pending' | 'confirmed' | 'captured' | 'refunded';
 export type DeliveryMethod = 'workshop' | 'home' | 'carrier';
 
 export interface User {
+  city?: string | null;
+  district?: string | null;
+  neighborhood?: string | null;
   id: string;
   email: string;
   name: string;
@@ -454,6 +458,24 @@ export interface ArtisanFormalization {
   progress: number;
   institutionNotes?: string | null;
   updatedAt: string;
+}
+
+export interface InstitutionGeography {
+  city?: string;
+  district?: string;
+  neighborhood?: string;
+}
+
+export interface InstitutionArtisan {
+  city?: string | null;
+  district?: string | null;
+  neighborhood?: string | null;
+  id: string;
+  name: string;
+  email: string;
+  location?: string | null;
+  verifiedEmail: boolean;
+  shops: Pick<Shop, 'id' | 'city' | 'district' | 'neighborhood'>[];
 }
 
 export interface InstitutionDashboard {
