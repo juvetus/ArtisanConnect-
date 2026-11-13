@@ -27,8 +27,8 @@ export default function CreateShopPage() {
   const [district, setDistrict] = useState('');
   const [neighborhood, setNeighborhood] = useState('');
   const [market, setMarket] = useState('');
-  const [latitude, setLatitude] = useState<number | null>(null);
-  const [longitude, setLongitude] = useState<number | null>(null);
+  const [latitudeInput, setLatitudeInput] = useState('');
+  const [longitudeInput, setLongitudeInput] = useState('');
   const [category, setCategory] = useState('vannerie');
   const [isWomenLed, setIsWomenLed] = useState(false);
   const [isCooperative, setIsCooperative] = useState(false);
@@ -60,6 +60,13 @@ export default function CreateShopPage() {
     ? Boolean(momoNumber.trim() && orangeMoneyNumber.trim())
     : Boolean((mobileMoneyProvider === 'momo' ? momoNumber : orangeMoneyNumber).trim());
   const primaryMobileMoneyNumber = mobileMoneyProvider === 'orange_money' ? orangeMoneyNumber : momoNumber;
+  const latitude = latitudeInput.trim() ? Number(latitudeInput.trim().replace(',', '.')) : null;
+  const longitude = longitudeInput.trim() ? Number(longitudeInput.trim().replace(',', '.')) : null;
+  const hasCoordinates = latitude !== null || longitude !== null;
+  const validCoordinates = latitude !== null && longitude !== null
+    && Number.isFinite(latitude) && Math.abs(latitude) <= 90
+    && Number.isFinite(longitude) && Math.abs(longitude) <= 180;
+  const coordinatesError = hasCoordinates && !validCoordinates;
 
   const uploadDoc = async (label: string, file: File) => {
     setUploading(label);
@@ -80,6 +87,10 @@ export default function CreateShopPage() {
   };
 
   const handleSubmit = async () => {
+    if (coordinatesError) {
+      setError(t('location_coordinates_error'));
+      return;
+    }
     setSubmitting(true);
     setError('');
     try {
@@ -259,9 +270,24 @@ export default function CreateShopPage() {
           </div>
           <GeographyFields value={{ city, district, neighborhood }} onChange={(value) => { setCity(value.city); setDistrict(value.district); setNeighborhood(value.neighborhood); }} language={language} requiredCity />
           <div>
-            <div><label htmlFor="shop-market" className="block text-sm font-medium">{t('create_shop_market')}</label><input id="shop-market" value={market} onChange={(e) => setMarket(e.target.value)} placeholder="Marché central..." className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2" /></div>
+            <div><label htmlFor="shop-market" className="block text-sm font-medium">{t('create_shop_market')}</label><input id="shop-market" value={market} onChange={(e) => setMarket(e.target.value)} placeholder={t('create_shop_landmark_placeholder')} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2" /></div>
           </div>
-          <div><p className="mb-2 text-sm font-medium">{t('create_shop_position')}</p><LocationPicker latitude={latitude} longitude={longitude} onChange={([lat, lng]) => { setLatitude(lat); setLongitude(lng); }} /></div>
+          <fieldset className="space-y-3">
+            <legend className="mb-2 text-sm font-medium">{t('create_shop_position')}</legend>
+            <p id="shop-gps-help" className="text-xs text-stone-600">{t('location_coordinates_help')}</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label htmlFor="shop-latitude" className="block text-sm font-medium">{t('location_latitude')}</label>
+                <input id="shop-latitude" type="text" inputMode="decimal" value={latitudeInput} onChange={(event) => setLatitudeInput(event.target.value)} placeholder="4.051100" aria-invalid={coordinatesError} aria-describedby={coordinatesError ? 'shop-gps-help shop-gps-error' : 'shop-gps-help'} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2" />
+              </div>
+              <div>
+                <label htmlFor="shop-longitude" className="block text-sm font-medium">{t('location_longitude')}</label>
+                <input id="shop-longitude" type="text" inputMode="decimal" value={longitudeInput} onChange={(event) => setLongitudeInput(event.target.value)} placeholder="9.767900" aria-invalid={coordinatesError} aria-describedby={coordinatesError ? 'shop-gps-help shop-gps-error' : 'shop-gps-help'} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2" />
+              </div>
+            </div>
+            {coordinatesError && <p id="shop-gps-error" role="alert" className="text-sm text-red-700">{t('location_coordinates_error')}</p>}
+            <LocationPicker latitude={validCoordinates ? latitude : null} longitude={validCoordinates ? longitude : null} onChange={([lat, lng]) => { setLatitudeInput(lat.toFixed(6)); setLongitudeInput(lng.toFixed(6)); }} />
+          </fieldset>
           <div>
             <label htmlFor="shop-description" className="block text-sm font-medium">
               {t('create_shop_desc')} <span className="text-red-700" aria-hidden>*</span>
@@ -360,7 +386,7 @@ export default function CreateShopPage() {
             </button>
             <button
               type="button"
-              disabled={!name || !description || submitting}
+              disabled={!name || !description || submitting || coordinatesError}
               onClick={handleSubmit}
               className="flex-1 rounded-md bg-amber-700 py-2 font-medium text-white hover:bg-amber-800 disabled:opacity-60"
             >

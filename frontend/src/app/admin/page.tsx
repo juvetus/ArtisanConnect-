@@ -855,7 +855,7 @@ function ShopsAdmin({
                     </p>
                     {shop.city && (
                       <p className="text-xs text-stone-500">
-                        Localisation : {shop.city} {shop.neighborhood ? `· Quartier ${shop.neighborhood}` : ''} {shop.market ? `· Marché ${shop.market}` : ''}
+                        Localisation : {shop.city} {shop.neighborhood ? `· Quartier ${shop.neighborhood}` : ''} {shop.market ? `· Lieu-dit ${shop.market}` : ''}
                       </p>
                     )}
                     <p className="mt-1 text-sm">
