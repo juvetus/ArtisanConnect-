@@ -20,6 +20,23 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Product photos
+
+In the workshop listing form, the product name is entered under "Nom du produit".
+You can add up to five photos, including through successive file selections.
+Drag photos to reorder them on desktop, or use "Set as main" on mobile or with
+the keyboard. The first photo is always the main image. "Remove" removes a photo
+from the listing, not from media storage. Changes take effect when the listing is
+published or saved.
+
+## Tender alert trades
+
+The trade picker in alert preferences and tender administration is alphabetized
+by the displayed language (French or English). Search ignores case and accents;
+filtering does not remove existing selections. Digital services (`numerique`)
+and livestock (`elevage`) are included in the backend trade catalog used for
+preferences, tender publication, AI classification and matching alerts.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

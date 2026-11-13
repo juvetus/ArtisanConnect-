@@ -7,6 +7,7 @@ export const OPPORTUNITY_TRADES = [
   'couture', 'tissage', 'ameublement', 'traiteur', 'nettoyage', 'jardinage',
   'impression', 'graphisme', 'photographie', 'evenementiel', 'sonorisation',
   'transport', 'agriculture', 'transformation_agro', 'maintenance_groupes_electrogenes',
+  'numerique', 'elevage',
 ] as const;
 
 export function isFormalized(user: Pick<User, 'role' | 'isActive' | 'hasRccm' | 'hasNiu' | 'hasProfessionalArtisanCard'>, approved: boolean): boolean {

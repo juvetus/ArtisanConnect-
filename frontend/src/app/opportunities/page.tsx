@@ -6,7 +6,7 @@ import useSWR from 'swr';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useLanguage } from '@/lib/language-context';
-import { opportunityDate, opportunityTradeLabel, type OpportunityPreferences } from '@/lib/opportunities';
+import { opportunityDate, opportunityTradeLabel, sortOpportunityTrades, type OpportunityPreferences } from '@/lib/opportunities';
 import { OpportunityTradePicker } from '@/components/OpportunityTradePicker';
 
 function AlertPreferences({ initial, trades, emailAvailable, whatsappAvailable, onSave }: {
@@ -58,7 +58,7 @@ export default function OpportunitiesPage() {
       {(configError || preferenceError) && <p role="alert" className="text-red-700">{(configError || preferenceError).message}</p>}
       {config && preferences && <AlertPreferences key={user.id} initial={preferences} trades={config.trades} emailAvailable={config.emailAvailable} whatsappAvailable={config.whatsappAvailable} onSave={mutate} />}
       {error ? <div role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-4"><p>{error.message}</p><Link href="/profile" className="mt-2 inline-block text-amber-800 underline">{en ? 'Complete my formalization profile' : 'Compléter mon profil de formalisation'}</Link></div> : null}
-      {config && <label className="block text-sm font-medium">{en ? 'Filter this page by trade' : 'Filtrer cette page par métier'}<select className="field mt-1" value={trade} onChange={(event) => setTrade(event.target.value)}><option value="">{en ? 'All trades' : 'Tous les métiers'}</option>{config.trades.map((value) => <option key={value} value={value}>{opportunityTradeLabel(value, language)}</option>)}</select></label>}
+      {config && <label className="block text-sm font-medium">{en ? 'Filter this page by trade' : 'Filtrer cette page par métier'}<select className="field mt-1" value={trade} onChange={(event) => setTrade(event.target.value)}><option value="">{en ? 'All trades' : 'Tous les métiers'}</option>{sortOpportunityTrades(config.trades, language).map((value) => <option key={value} value={value}>{opportunityTradeLabel(value, language)}</option>)}</select></label>}
       {isLoading && <p>{en ? 'Loading notices…' : 'Chargement des avis…'}</p>}
       {data && !data.items.filter((item) => !trade || item.trades.includes(trade)).length && <p className="rounded-lg bg-stone-50 p-5">{en ? 'No matching notice on this page.' : 'Aucun avis correspondant sur cette page.'}</p>}
       {data?.items.filter((item) => !trade || item.trades.includes(trade)).map((item) => (

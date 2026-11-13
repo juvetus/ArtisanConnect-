@@ -61,7 +61,13 @@ export interface OpportunityDashboard extends OpportunityConfig {
 
 export function opportunityTradeLabel(trade: string, language: Language) {
   if (trade === 'peinture') return language === 'en' ? 'Painting' : 'Peinture';
+  if (trade === 'numerique') return language === 'en' ? 'Digital services' : 'Numérique';
   return categoryLabel(trade, language);
+}
+
+export function sortOpportunityTrades(trades: string[], language: Language): string[] {
+  const collator = new Intl.Collator(language, { sensitivity: 'base' });
+  return [...trades].sort((a, b) => collator.compare(opportunityTradeLabel(a, language), opportunityTradeLabel(b, language)));
 }
 
 export function opportunityDate(value: string | null, language: Language) {
