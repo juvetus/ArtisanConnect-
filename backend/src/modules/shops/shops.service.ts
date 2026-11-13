@@ -97,6 +97,7 @@ export class ShopsService {
       isCooperative?: boolean;
     },
   ): Promise<Shop> {
+    this.validateCoordinates(data.latitude, data.longitude);
     const district = this.validateDistrict(data.district);
     const required = Shop.requiredDocuments(data.type);
     const provided = new Set(data.kycDocuments.map((doc) => doc.label));
@@ -528,6 +529,12 @@ export class ShopsService {
     const shop = await this.shopsRepository.findOne({ where: { id } });
     if (!shop) throw new NotFoundException('Boutique introuvable');
     if (shop.sellerId !== sellerId) throw new ForbiddenException('Cette boutique ne vous appartient pas');
+    if (data.latitude !== undefined || data.longitude !== undefined) {
+      this.validateCoordinates(
+        data.latitude !== undefined ? data.latitude : shop.latitude,
+        data.longitude !== undefined ? data.longitude : shop.longitude,
+      );
+    }
     const updateData = { ...data };
     if (data.district !== undefined) updateData.district = this.validateDistrict(data.district);
     if (updateData.mobileMoneyNumber) updateData.mobileMoneyNumber = this.normalizeCameroonPhoneNumber(updateData.mobileMoneyNumber);
@@ -535,6 +542,14 @@ export class ShopsService {
     if (updateData.orangeMoneyNumber) updateData.orangeMoneyNumber = this.normalizeCameroonPhoneNumber(updateData.orangeMoneyNumber);
     await this.shopsRepository.update(id, updateData);
     return this.findById(id);
+  }
+
+  private validateCoordinates(latitude: unknown, longitude: unknown): void {
+    if (latitude == null && longitude == null) return;
+    if (typeof latitude !== 'number' || !Number.isFinite(latitude) || Math.abs(latitude) > 90
+      || typeof longitude !== 'number' || !Number.isFinite(longitude) || Math.abs(longitude) > 180) {
+      throw new BadRequestException('Coordonnées GPS invalides : latitude entre -90 et 90 et longitude entre -180 et 180 requises ensemble.');
+    }
   }
 
   private validateDistrict(value?: string | null): string | null {

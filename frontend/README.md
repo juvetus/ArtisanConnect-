@@ -37,6 +37,15 @@ filtering does not remove existing selections. Digital services (`numerique`)
 and livestock (`elevage`) are included in the backend trade catalog used for
 preferences, tender publication, AI classification and matching alerts.
 
+## Shop location
+
+The shop creation form uses "Lieu-dit" for the local landmark (the API keeps the
+existing `market` field). Optional GPS latitude and longitude can be entered in
+decimal degrees with a dot or comma. Both must be supplied together, within
+[-90, 90] and [-180, 180]. The map follows valid coordinates; clicking the map or
+dragging its marker fills both fields. The backend validates coordinate pairs on
+creation and update. No database migration is needed.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

@@ -253,6 +253,53 @@ describe('ShopsService - Validation manuelle des boutiques Artisan', () => {
     expect(mockShopsRepo.update).toHaveBeenLastCalledWith('shop-1', { availability: 'busy' });
   });
 
+  it.each([[4.0511, 9.7679], [0, 0], [-90, -180], [90, 180]])('enregistre les coordonnées GPS %s, %s et le lieu-dit', async (latitude, longitude) => {
+    const shop = await service.create('artisan-1', {
+      type: 'artisan', name: 'Atelier GPS', description: 'Atelier',
+      market: 'Face à la mairie', latitude, longitude,
+      mobileMoneyNumber: '+237699001122', deliveryMode: 'workshop', kycDocuments: [],
+    });
+    expect(shop).toMatchObject({ market: 'Face à la mairie', latitude, longitude });
+  });
+
+  it.each([
+    { latitude: 91, longitude: 10 },
+    { latitude: -91, longitude: 10 },
+    { latitude: 4, longitude: 181 },
+    { latitude: 4, longitude: -181 },
+    { latitude: NaN, longitude: 10 },
+    { latitude: 4, longitude: Infinity },
+    { latitude: 4 },
+    { longitude: 10 },
+  ])('refuse les coordonnées GPS invalides ou incomplètes %j sans écrire', async (coordinates) => {
+    await expect(service.create('artisan-1', {
+      type: 'artisan', name: 'Atelier GPS', description: 'Atelier',
+      mobileMoneyNumber: '+237699001122', deliveryMode: 'workshop', kycDocuments: [],
+      ...coordinates,
+    })).rejects.toThrow('Coordonnées GPS invalides');
+    expect(mockShopsRepo.save).not.toHaveBeenCalled();
+  });
+
+  it('valide la paire GPS finale lors d’une modification partielle et permet son effacement', async () => {
+    mockShopsRepo.findOne = vi.fn().mockResolvedValue({
+      id: 'shop-1', sellerId: 'artisan-1', latitude: 4, longitude: 10,
+    });
+    await service.update('shop-1', 'artisan-1', { latitude: 0 });
+    expect(mockShopsRepo.update).toHaveBeenLastCalledWith('shop-1', { latitude: 0 });
+    await expect(service.update('shop-1', 'artisan-1', { longitude: 181 })).rejects.toThrow('Coordonnées GPS invalides');
+    await expect(service.update('shop-1', 'artisan-1', { latitude: null })).rejects.toThrow('Coordonnées GPS invalides');
+    await service.update('shop-1', 'artisan-1', { latitude: null, longitude: null });
+    expect(mockShopsRepo.update).toHaveBeenLastCalledWith('shop-1', { latitude: null, longitude: null });
+  });
+
+  it('refuse de renseigner une seule coordonnée GPS sur une boutique non localisée', async () => {
+    mockShopsRepo.findOne = vi.fn().mockResolvedValue({
+      id: 'shop-1', sellerId: 'artisan-1', latitude: null, longitude: null,
+    });
+    await expect(service.update('shop-1', 'artisan-1', { latitude: 4 })).rejects.toThrow('Coordonnées GPS invalides');
+    expect(mockShopsRepo.update).not.toHaveBeenCalled();
+  });
+
   it('refuse un arrondissement invalide et les modifications par un autre vendeur', async () => {
     mockShopsRepo.findOne = vi.fn().mockResolvedValue({ id: 'shop-1', sellerId: 'artisan-1' });
     await expect(service.update('shop-1', 'artisan-1', { district: 'x'.repeat(151) })).rejects.toThrow(BadRequestException);
