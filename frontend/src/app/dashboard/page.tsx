@@ -54,7 +54,6 @@ export default function DashboardPage() {
   const [stock, setStock] = useState('1');
   const [acceptedPaymentMethods, setAcceptedPaymentMethods] = useState<('cash' | 'momo' | 'orange_money')[]>(['cash', 'momo', 'orange_money']);
   const [deliveryMethods, setDeliveryMethods] = useState<('workshop' | 'home' | 'carrier')[]>(['workshop', 'home', 'carrier']);
-  const [imageUrl, setImageUrl] = useState('');
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
   const [aiImageUrls, setAiImageUrls] = useState<string[]>([]);
@@ -93,7 +92,7 @@ export default function DashboardPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || uploadingImage || saving) return;
     setSaving(true);
     setFormError('');
     try {
@@ -115,8 +114,8 @@ export default function DashboardPage() {
       setDescription('');
       setPrice('');
       setStock('1');
-      setImageUrl('');
       setImageUrls([]);
+      setDraggedImageIndex(null);
       setAiImageUrls([]);
       setAiPrompt('');
       setShopId('');
@@ -138,8 +137,8 @@ export default function DashboardPage() {
     setStock(String(listing.stock));
     setAcceptedPaymentMethods(listing.acceptedPaymentMethods?.length ? listing.acceptedPaymentMethods : ['cash', 'momo', 'orange_money']);
     setDeliveryMethods(listing.deliveryMethods?.length ? listing.deliveryMethods : ['workshop', 'home', 'carrier']);
-    setImageUrl(listing.imageUrl ?? '');
     setImageUrls(listing.imageUrls?.length ? listing.imageUrls : listing.imageUrl ? [listing.imageUrl] : []);
+    setDraggedImageIndex(null);
     setAiImageUrls(listing.aiImageUrls ?? []);
     setShopId(listing.shopId || '');
     setFormError('');
@@ -156,8 +155,8 @@ export default function DashboardPage() {
     setStock('1');
     setAcceptedPaymentMethods(['cash', 'momo', 'orange_money']);
     setDeliveryMethods(['workshop', 'home', 'carrier']);
-    setImageUrl('');
     setImageUrls([]);
+    setDraggedImageIndex(null);
     setAiImageUrls([]);
     setAiPrompt('');
     setFormError('');
@@ -177,13 +176,14 @@ export default function DashboardPage() {
     }
   };
 
-  const reorderImages = (targetIndex: number) => {
-    if (draggedImageIndex === null || draggedImageIndex === targetIndex) return;
+  const reorderImages = (sourceIndex: number, targetIndex: number) => {
     setImageUrls((current) => {
+      if (sourceIndex === targetIndex || sourceIndex < 0 || targetIndex < 0
+        || sourceIndex >= current.length || targetIndex >= current.length) return current;
       const next = [...current];
-      const [moved] = next.splice(draggedImageIndex, 1);
+      const moved = next[sourceIndex];
+      next.splice(sourceIndex, 1);
       next.splice(targetIndex, 0, moved);
-      setImageUrl(next[0] ?? '');
       return next;
     });
     setDraggedImageIndex(null);
@@ -191,7 +191,7 @@ export default function DashboardPage() {
 
   const handleSaveListing = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingId) return;
+    if (!editingId || uploadingImage || saving) return;
     setSaving(true);
     setFormError('');
     try {
@@ -679,7 +679,8 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={cancelEditing}
-                className="text-sm text-stone-600 underline"
+                disabled={uploadingImage || saving}
+                className="text-sm text-stone-600 underline disabled:opacity-50"
               >
                 {t('action_cancel')}
               </button>
@@ -864,41 +865,96 @@ export default function DashboardPage() {
 
             <div>
               <label htmlFor="images" className="block text-sm font-medium">
-                Photos (jusqu&apos;à 5)
+                {t('dashboard_photos_label')}
               </label>
               <input
                 id="images"
                 type="file"
                 multiple
                 accept="image/jpeg,image/png,image/webp,image/gif"
+                disabled={uploadingImage || saving || imageUrls.length >= 5}
+                aria-describedby="listing-photos-help"
                 onChange={async (e) => {
                   const files = Array.from(e.target.files ?? []);
+                  e.target.value = '';
                   if (!files.length) return;
+                  if (imageUrls.length + files.length > 5) {
+                    setFormError(t('dashboard_photos_limit'));
+                    return;
+                  }
+                  setFormError('');
+                  setDraggedImageIndex(null);
                   setUploadingImage(true);
                   try {
                     const { imageUrls: uploaded } = await api.uploadListingImages(files);
-                    setImageUrls(uploaded);
-                    setImageUrl(uploaded[0] ?? '');
+                    setImageUrls((current) => [...current, ...uploaded]);
                   } catch {
-                    setFormError("Le téléversement d'une ou plusieurs images a échoué.");
+                    setFormError(t('dashboard_photos_upload_failed'));
                   } finally {
                     setUploadingImage(false);
                   }
                 }}
-                className="mt-1 w-full rounded-md border border-amber-300 bg-amber-50 p-2 text-sm text-stone-700 file:mr-3 file:rounded-md file:border-0 file:bg-amber-700 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-amber-800"
+                className="mt-1 w-full rounded-md border border-amber-300 bg-amber-50 p-2 text-sm text-stone-700 file:mr-3 file:rounded-md file:border-0 file:bg-amber-700 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-amber-800 disabled:opacity-50"
               />
+              <p id="listing-photos-help" className="mt-2 text-xs text-stone-600">
+                {t('dashboard_photos_help')}
+              </p>
               {uploadingImage && (
                 <p className="mt-1 text-xs text-stone-500">{t('action_loading')}</p>
               )}
               {imageUrls.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-2" aria-label="Réorganiser les photos du produit">
+                <ol className="mt-3 flex flex-wrap gap-3" aria-label={t('dashboard_photos_order')}>
                   {imageUrls.map((url, i) => (
-                    <div key={url} draggable onDragStart={() => setDraggedImageIndex(i)} onDragOver={(event) => event.preventDefault()} onDrop={() => reorderImages(i)} className={`relative cursor-grab rounded border ${i === 0 ? 'border-amber-600 ring-2 ring-amber-100' : 'border-stone-200'}`} title={url === imageUrl ? 'Image principale' : 'Glissez pour réorganiser'}>
-                      <Image src={resolveMediaUrl(url)} alt={`Aperçu ${i + 1}`} width={64} height={64} unoptimized className="h-16 w-16 rounded object-cover" />
-                      {i === 0 ? <span className="absolute bottom-0 left-0 right-0 bg-amber-700/90 px-1 py-0.5 text-center text-[10px] font-medium text-white">Principale</span> : null}
-                    </div>
+                    <li
+                      key={`${url}-${i}`}
+                      draggable={!uploadingImage && !saving}
+                      onDragStart={(event) => {
+                        event.dataTransfer.effectAllowed = 'move';
+                        event.dataTransfer.setData('text/plain', String(i));
+                        setDraggedImageIndex(i);
+                      }}
+                      onDragEnd={() => setDraggedImageIndex(null)}
+                      onDragOver={(event) => {
+                        if (draggedImageIndex === null || uploadingImage || saving) return;
+                        event.preventDefault();
+                        event.dataTransfer.dropEffect = 'move';
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        if (draggedImageIndex !== null && !uploadingImage && !saving) {
+                          reorderImages(draggedImageIndex, i);
+                        }
+                      }}
+                      className={`w-28 overflow-hidden rounded-md border bg-white ${i === 0 ? 'border-amber-600 ring-2 ring-amber-100' : 'border-stone-200'} ${draggedImageIndex === i ? 'opacity-50' : ''}`}
+                    >
+                      <div className="relative aspect-square cursor-grab active:cursor-grabbing">
+                        <Image src={resolveMediaUrl(url)} alt={t('dashboard_photo_preview', { number: i + 1 })} fill sizes="112px" draggable={false} unoptimized className="object-cover" />
+                        {i === 0 ? <span className="absolute bottom-0 left-0 right-0 bg-amber-700/90 px-1 py-1 text-center text-xs font-medium text-white">{t('dashboard_photo_main')}</span> : null}
+                      </div>
+                      <button
+                        type="button"
+                        disabled={i === 0 || uploadingImage || saving}
+                        onClick={() => reorderImages(i, 0)}
+                        aria-label={t('dashboard_photo_set_main_label', { number: i + 1 })}
+                        className="min-h-11 w-full px-1 py-2 text-xs font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600 disabled:opacity-50"
+                      >
+                        {t('dashboard_photo_set_main')}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={uploadingImage || saving}
+                        onClick={() => {
+                          setDraggedImageIndex(null);
+                          setImageUrls((current) => current.filter((_, index) => index !== i));
+                        }}
+                        aria-label={t('dashboard_photo_remove_label', { number: i + 1 })}
+                        className="min-h-11 w-full border-t border-stone-200 px-1 py-2 text-xs font-medium text-red-700 hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-red-600 disabled:opacity-50"
+                      >
+                        {t('dashboard_photo_remove')}
+                      </button>
+                    </li>
                   ))}
-                </div>
+                </ol>
               )}
             </div>
 
@@ -925,7 +981,7 @@ export default function DashboardPage() {
 
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || uploadingImage}
               className="w-full rounded-md bg-amber-700 py-2 font-medium text-white hover:bg-amber-800 disabled:opacity-60"
             >
               {saving ? t('action_loading') : editingId ? t('action_save') : t('dashboard_publish_button')}
@@ -973,7 +1029,8 @@ export default function DashboardPage() {
                     <button
                       type="button"
                       onClick={() => startEditing(listing)}
-                      className="rounded-md border border-amber-700 px-3 py-1.5 text-sm text-amber-800 hover:bg-amber-50"
+                      disabled={uploadingImage || saving}
+                      className="rounded-md border border-amber-700 px-3 py-1.5 text-sm text-amber-800 hover:bg-amber-50 disabled:opacity-50"
                     >
                       {t('action_edit')}
                     </button>

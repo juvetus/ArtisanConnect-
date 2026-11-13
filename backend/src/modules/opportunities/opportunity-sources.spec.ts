@@ -168,6 +168,11 @@ describe('opportunity policy', () => {
     expect(() => parseDeadline('2020-01-01T10:00:00Z')).toThrow('future');
     expect(parseDeadline('2099-01-01T10:00:00+01:00').toISOString()).toBe('2099-01-01T09:00:00.000Z');
   });
+  it('accepts digital services and livestock for preferences, publication and AI classification', () => {
+    expect(validateTrades(['numerique', 'elevage', 'numerique'])).toEqual(['numerique', 'elevage']);
+    expect(normalizeAiTrades(['Numérique', 'ÉLEVAGE', 'élevage'])).toEqual(['numerique', 'elevage']);
+    expect(() => validateTrades(['numérique'])).toThrow('invalides');
+  });
 });
 
 describe.skipIf(process.env.OPPORTUNITY_LIVE_SOURCES !== 'true')('live public sources (opt-in)', () => {
