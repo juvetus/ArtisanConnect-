@@ -390,6 +390,7 @@ export default function DashboardPage() {
           <h3 className="mt-2 text-xl font-semibold text-stone-900">
             {planStatus?.premium ? `★ ${planStatus.planName}` : 'Offre gratuite'}
           </h3>
+          {planStatus?.paymentStatus === 'pending' && <p role="status" className="mt-2 text-sm text-amber-900">Paiement en attente (pilote) : {Number(planStatus.amountDue).toLocaleString('fr-FR')} FCFA à régler en espèces auprès de l’équipe ArtisanConnect. Votre abonnement est actif.</p>}
           {planStatus?.premium ? (
             <p className="mt-1 text-sm text-stone-600">
               Annonces illimitées, mise en avant dans les résultats et priorité sur les demandes

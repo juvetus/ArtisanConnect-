@@ -14,6 +14,7 @@ export interface AdminSubscription {
   nextPaymentAt: string | null;
   paymentReference: string | null;
   provider: string;
+  paymentStatus?: 'pending' | 'not_required' | null;
   createdAt: string;
   user: { id: string; name: string; email: string } | null;
   plan: { id: string; slug: string; name: string } | null;

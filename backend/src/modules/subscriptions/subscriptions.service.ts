@@ -1,7 +1,7 @@
-import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, MoreThan, IsNull, Repository } from 'typeorm';
-import { AiImageGeneration, PromotionCode, PromotionRedemption, Subscription, SubscriptionPlan } from '../../entities/index.js';
+import { AiImageGeneration, PromotionCode, PromotionRedemption, Subscription, SubscriptionPlan, User } from '../../entities/index.js';
 import { MomoService } from '../momo/momo.service.js';
 import { isDemoMode } from '../../demo-mode.js';
 
@@ -157,15 +157,31 @@ export class SubscriptionsService {
     return plans.find((plan) => plan.slug === 'premium-growth') ?? plans[0];
   }
 
-  async createSubscription(userId: string, planId: string, payerPhone?: string, promotionCode?: string): Promise<Subscription & { redirectUrl?: string | null; discountPercent?: number; originalAmount?: number }> {
+  getCapabilities() {
+    return { promotionPilotEnabled: process.env.SUBSCRIPTION_PROMO_PILOT_ENABLED === 'true' };
+  }
+
+  async activateWithPromotion(userId: string, planId: string, promotionCode: unknown) {
+    if (!this.getCapabilities().promotionPilotEnabled) {
+      throw new ForbiddenException('L’activation par code promotionnel est désactivée.');
+    }
+    if (typeof promotionCode !== 'string' || !/^[A-Za-z0-9_-]{3,40}$/.test(promotionCode.trim())) {
+      throw new BadRequestException('Un code promotionnel valide est requis.');
+    }
+    return this.createSubscription(userId, planId, undefined, promotionCode.trim(), 'promotion_pilot');
+  }
+
+  async createSubscription(userId: string, planId: string, payerPhone?: string, promotionCode?: string, provider: 'momo' | 'promotion_pilot' = 'momo'): Promise<Subscription & { redirectUrl?: string | null; discountPercent?: number; originalAmount?: number }> {
     return this.dataSource.transaction(async (manager) => {
       const plan = await manager.findOne(SubscriptionPlan, { where: { id: planId } });
       if (!plan || !plan.isActive) throw new NotFoundException('Plan introuvable ou inactif');
+      const user = await manager.findOne(User, { where: { id: userId }, lock: { mode: 'pessimistic_write' } });
+      if (!user) throw new NotFoundException('Utilisateur introuvable');
       const activeSubscription = await manager.findOne(Subscription, { where: { userId, status: 'active' } });
       if (activeSubscription && (!activeSubscription.endDate || activeSubscription.endDate.getTime() > Date.now())) {
         throw new BadRequestException('Vous avez déjà un abonnement actif. Attendez son expiration avant de souscrire à un nouveau plan.');
       }
-      const promo = promotionCode ? await manager.findOne(PromotionCode, { where: { code: promotionCode.trim().toUpperCase(), active: true } }) : null;
+      const promo = promotionCode ? await manager.findOne(PromotionCode, { where: { code: promotionCode.trim().toUpperCase(), active: true }, lock: { mode: 'pessimistic_write' } }) : null;
       if (promotionCode && !promo) throw new BadRequestException('Code promotionnel invalide ou désactivé');
       if (promo?.expiresAt && promo.expiresAt.getTime() <= Date.now()) throw new BadRequestException('Ce code promotionnel a expiré');
       if (promo?.allowedPlanSlugs?.length && !promo.allowedPlanSlugs.includes(plan.slug)) {
@@ -191,9 +207,22 @@ export class SubscriptionsService {
           startDate: new Date(),
           endDate: new Date(Date.now() + plan.durationDays * 24 * 60 * 60 * 1000),
           nextPaymentAt: new Date(Date.now() + plan.durationDays * 24 * 60 * 60 * 1000),
-          provider: 'momo',
+          provider,
         }),
       );
+
+      if (provider === 'promotion_pilot') {
+        if (!promo) throw new BadRequestException('Un code promotionnel est requis.');
+        await manager.save(manager.create(PromotionRedemption, { promotionCodeId: promo.id, userId }));
+        promo.usedCount += 1;
+        await manager.save(promo);
+        subscription.status = 'active';
+        subscription.paymentStatus = amount > 0 ? 'pending' : 'not_required';
+        subscription.lastPaymentAt = null;
+        subscription.nextPaymentAt = null;
+        const saved = await manager.save(subscription);
+        return Object.assign(saved, { redirectUrl: null, discountPercent, originalAmount });
+      }
 
       if (amount === 0) {
         if (promo) {
@@ -211,7 +240,7 @@ export class SubscriptionsService {
 
       const result = await this.momoService.initiateCollectionPayment({
         orderId: `SUB-${subscription.id}`,
-        amount: Number(plan.price),
+        amount,
         currency: 'XAF',
         externalId: `SUB-${subscription.id}`,
         payerPhone: normalizedPhone,
@@ -241,6 +270,9 @@ export class SubscriptionsService {
   async renewSubscription(subscriptionId: string): Promise<Subscription> {
     const subscription = await this.subscriptionRepository.findOne({ where: { id: subscriptionId }, relations: { plan: true } });
     if (!subscription) throw new NotFoundException('Abonnement introuvable');
+    if (subscription.provider === 'promotion_pilot') {
+      throw new BadRequestException('Cet abonnement pilote ne peut pas être renouvelé automatiquement par MoMo.');
+    }
 
     const result = await this.momoService.initiateCollectionPayment({
       orderId: `RENEW-${subscription.id}`,
@@ -373,6 +405,8 @@ export class SubscriptionsService {
       planSlug: current?.plan?.slug ?? latestWithPlan?.plan?.slug ?? null,
       endDate: current?.endDate ?? latestWithPlan?.endDate ?? null,
       listingLimit: isPaidPlan ? null : FREE_PLAN_LISTING_LIMIT,
+      paymentStatus: current?.paymentStatus ?? null,
+      amountDue: current?.paymentStatus === 'pending' ? Number(current.amount) : 0,
     };
   }
 
@@ -394,6 +428,9 @@ export class SubscriptionsService {
       relations: { plan: true },
     });
     if (!subscription) throw new NotFoundException('Abonnement introuvable pour cette référence MoMo');
+    if (subscription.provider === 'promotion_pilot') {
+      throw new BadRequestException('Cet abonnement pilote ne correspond pas à un paiement MoMo.');
+    }
 
     const result = await this.momoService.getPaymentStatus(subscription.paymentReference || `SUB-${subscription.id}`);
     if (result.status === 'SUCCESS') {
@@ -426,6 +463,9 @@ export class SubscriptionsService {
     const subscription = await this.subscriptionRepository.findOne({ where: { id: subscriptionKey } });
     if (!subscription) {
       return { success: false, message: `Abonnement introuvable ${subscriptionKey}` };
+    }
+    if (subscription.provider === 'promotion_pilot') {
+      throw new BadRequestException('Un webhook MoMo ne peut pas modifier un abonnement pilote.');
     }
 
     if (status === 'SUCCESS') {

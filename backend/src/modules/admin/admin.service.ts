@@ -265,6 +265,7 @@ export class AdminService implements OnModuleInit {
       nextPaymentAt: subscription.nextPaymentAt,
       paymentReference: subscription.paymentReference,
       provider: subscription.provider,
+      paymentStatus: subscription.paymentStatus,
       createdAt: subscription.createdAt,
       user: subscription.user ? { id: subscription.user.id, name: subscription.user.name, email: subscription.user.email } : null,
       plan: subscription.plan ? { id: subscription.plan.id, slug: subscription.plan.slug, name: subscription.plan.name } : null,
