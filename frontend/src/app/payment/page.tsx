@@ -31,14 +31,18 @@ function PaymentPageContent() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [promotionPilotEnabled, setPromotionPilotEnabled] = useState(false);
+  const [activatedWithPromotion, setActivatedWithPromotion] = useState(false);
 
   useEffect(() => {
-    if (!ready || !user) {
+    if (!ready) return;
+    if (!user) {
       router.push('/login');
       return;
     }
 
-    api.getSubscriptionPlans().then((data) => {
+    Promise.all([api.getSubscriptionPlans(), api.getSubscriptionCapabilities()]).then(([data, capabilities]) => {
+      setPromotionPilotEnabled(capabilities.promotionPilotEnabled);
       setPlans(data);
       const requested = data.find((plan) => plan.id === requestedPlan || plan.name.toLowerCase().replace(/\s+/g, '-') === requestedPlan);
       if (requested) {
@@ -49,6 +53,29 @@ function PaymentPageContent() {
     }).catch(() => setError('Impossible de charger les plans d’abonnement.'));
 
   }, [ready, requestedPlan, router, user]);
+
+  const handleActivatePromotion = async () => {
+    if (!selectedPlanId || !promotionCode.trim()) {
+      setError('Choisissez un plan et saisissez un code promotionnel.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    setMessage('');
+    try {
+      const result = await api.activateSubscriptionWithPromotion(selectedPlanId, promotionCode.trim());
+      setActivatedWithPromotion(true);
+      setSuccess(true);
+      setMessage(result.paymentStatus === 'pending'
+        ? `Votre abonnement est actif avec une remise de ${result.discountPercent} %. Paiement en attente : ${Number(result.amount).toLocaleString('fr-FR')} FCFA, à régler en espèces auprès de l’équipe ArtisanConnect. Aucun paiement mobile n’a été effectué.`
+        : 'Votre abonnement est actif. Aucun montant à payer après application du code promotionnel.');
+      trackEvent('subscription_created', { targetId: selectedPlanId, label: 'promotion_pilot' });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'L’activation du code promotionnel a échoué.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handlePay = async () => {
     if (!MOBILE_MONEY_ENABLED) return;
@@ -111,6 +138,7 @@ function PaymentPageContent() {
                 <button
                   key={plan.id}
                   type="button"
+                  disabled={loading || success}
                   onClick={() => setSelectedPlanId(plan.id)}
                   className={`w-full rounded-xl border p-4 text-left transition ${selectedPlanId === plan.id ? 'border-amber-600 bg-amber-50' : 'border-stone-200 bg-stone-50 hover:border-stone-300'}`}
                 >
@@ -131,8 +159,9 @@ function PaymentPageContent() {
         </div>
 
         <div className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-6 shadow-sm">
-          <p className="text-sm font-medium text-amber-700 uppercase tracking-[0.18em]">{MOBILE_MONEY_TEST_MODE ? 'Mode test' : 'Paiement'}</p>
-          <h3 className="mt-3 text-2xl font-semibold text-stone-900">Payer avec MoMo</h3>
+          <p className="text-sm font-medium text-amber-700 uppercase tracking-[0.18em]">{promotionPilotEnabled ? 'Phase pilote' : MOBILE_MONEY_TEST_MODE ? 'Mode test' : 'Paiement'}</p>
+          <h3 className="mt-3 text-2xl font-semibold text-stone-900">{promotionPilotEnabled ? 'Activer avec un code promotionnel' : 'Payer avec MoMo'}</h3>
+          {promotionPilotEnabled && <p className="mt-2 text-sm text-stone-700">Un code valide active immédiatement le plan. Le montant restant après remise est enregistré comme paiement en attente, à régler en espèces auprès de l’équipe ArtisanConnect.</p>}
           <p role="note" className={`mt-2 rounded-md border p-3 text-sm ${MOBILE_MONEY_ENABLED ? 'border-amber-200 bg-amber-50 text-amber-950' : 'border-stone-200 bg-stone-100 text-stone-600'}`}>
             {!MOBILE_MONEY_ENABLED ? 'Paiement mobile bientôt disponible.' : MOBILE_MONEY_TEST_MODE ? 'Sandbox/mock : aucune somme réelle ne sera encaissée. N’effectuez pas de transfert réel à la suite de ce test.' : 'Suivez les instructions de paiement et vérifiez la confirmation avant de considérer la transaction comme réglée.'}
           </p>
@@ -151,17 +180,19 @@ function PaymentPageContent() {
           />
 
           <label htmlFor="promotionCode" className="mt-5 block text-sm font-medium text-stone-800">
-            Code promotionnel (facultatif)
+            {promotionPilotEnabled ? 'Code promotionnel' : 'Code promotionnel (facultatif)'}
           </label>
           <input
             id="promotionCode"
             type="text"
             value={promotionCode}
+            disabled={loading || success}
             onChange={(event) => setPromotionCode(event.target.value.toUpperCase())}
             placeholder="Ex: PILOTE2026"
             className="mt-2 w-full rounded-md border border-stone-200 px-3 py-2 text-sm uppercase outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-100"
           />
-          <p className="mt-1 text-xs text-stone-500">Laissez vide si vous ne disposez pas d’un code.</p>
+          <p className="mt-1 text-xs text-stone-500">{promotionPilotEnabled ? 'Un code créé par l’administrateur est requis pour l’activation pilote.' : 'Laissez vide si vous ne disposez pas d’un code.'}</p>
+          {promotionPilotEnabled && <button type="button" disabled={loading || success || !selectedPlanId || !promotionCode.trim()} onClick={handleActivatePromotion} className="mt-4 w-full rounded-md bg-amber-700 px-4 py-3 text-sm font-medium text-white disabled:opacity-50">{loading ? 'Activation…' : 'Activer mon abonnement avec ce code'}</button>}
 
           {error && <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
           {message && <p className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{message}</p>}
@@ -169,7 +200,7 @@ function PaymentPageContent() {
           <button
             type="button"
             onClick={() => void handlePay()}
-            disabled={!MOBILE_MONEY_ENABLED || loading || !selectedPlanId}
+            disabled={!MOBILE_MONEY_ENABLED || loading || success || !selectedPlanId}
             className="mt-6 w-full rounded-md bg-amber-700 px-4 py-3 text-sm font-medium text-white hover:bg-amber-800 disabled:cursor-not-allowed disabled:bg-stone-400 disabled:text-stone-100 transition"
           >
             {!MOBILE_MONEY_ENABLED ? 'Bientôt disponible' : loading ? 'Traitement...' : 'Payer avec MoMo'}
@@ -177,7 +208,8 @@ function PaymentPageContent() {
 
           {success && (
             <div className="mt-5 rounded-md border border-stone-200 bg-white px-3 py-2 text-sm text-stone-600">
-              {MOBILE_MONEY_TEST_MODE ? 'Parcours de test terminé; aucun paiement réel n’a été encaissé.' : 'Paiement lancé. Vérifiez son statut avant de considérer votre abonnement comme réglé.'}
+              {activatedWithPromotion ? <Link href="/dashboard" className="font-medium text-amber-800 underline">Voir mon abonnement actif</Link>
+                : MOBILE_MONEY_TEST_MODE ? 'Parcours de test terminé; aucun paiement réel n’a été encaissé.' : 'Paiement lancé. Vérifiez son statut avant de considérer votre abonnement comme réglé.'}
             </div>
           )}
         </div>

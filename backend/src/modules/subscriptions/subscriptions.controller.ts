@@ -19,6 +19,21 @@ export class SubscriptionsController {
     return this.subscriptionsService.getPlans();
   }
 
+  @Public()
+  @Get('capabilities')
+  getCapabilities() {
+    return this.subscriptionsService.getCapabilities();
+  }
+
+  @Post('activate-promotion/:planId')
+  activateWithPromotion(
+    @CurrentUser() user: AuthUser,
+    @Param('planId') planId: string,
+    @Body() body: { promotionCode?: unknown },
+  ) {
+    return this.subscriptionsService.activateWithPromotion(user.id, planId, body?.promotionCode);
+  }
+
   @Post('plan/default')
   async createDefaultPlan() {
     return this.subscriptionsService.createDefaultPlan();

@@ -275,7 +275,9 @@ export const api = {
   getSubscriptionPlans: () => request<Array<{ id: string; name: string; slug: string; price: number; currency: string; durationDays: number; description?: string | null; features?: string[]; sortOrder?: number }>>('/subscriptions/plans'),
 
   getPlanStatus: () =>
-    request<{ premium: boolean; planName: string; planSlug: string | null; endDate: string | null; listingLimit: number | null }>('/subscriptions/status'),
+    request<{ premium: boolean; planName: string; planSlug: string | null; endDate: string | null; listingLimit: number | null; paymentStatus: 'pending' | 'not_required' | null; amountDue: number }>('/subscriptions/status'),
+  getSubscriptionCapabilities: () => request<{ promotionPilotEnabled: boolean }>('/subscriptions/capabilities'),
+  activateSubscriptionWithPromotion: (planId: string, promotionCode: string) => post<{ id: string; status: string; paymentStatus: 'pending' | 'not_required'; amount: number; discountPercent: number }>('/subscriptions/activate-promotion/' + planId, { promotionCode }),
 
   createSubscription: (planId: string, payerPhone: string, promotionCode?: string) => post<{ id: string; status: string; paymentReference?: string | null; redirectUrl?: string | null; amount: number; currency: string; planId: string; discountPercent?: number; originalAmount?: number }>('/subscriptions/create/' + planId, { payerPhone, promotionCode }),
 

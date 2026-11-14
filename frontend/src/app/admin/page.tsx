@@ -1229,7 +1229,11 @@ function AdminSubscriptions({ subscriptions, promotionCodes, onAction }: { subsc
                     </span>
                   </td>
                   <td className="px-3 py-3 text-stone-600">{subscription.endDate ? new Date(subscription.endDate).toLocaleDateString(english ? 'en-GB' : 'fr-FR') : '—'}</td>
-                  <td className="px-3 py-3 text-xs text-stone-500">{subscription.paymentReference ?? subscription.provider}</td>
+                  <td className="px-3 py-3 text-xs text-stone-500">
+                    {subscription.paymentStatus === 'pending' ? (english ? 'Payment pending (pilot)' : 'Paiement en attente (pilote)')
+                      : subscription.paymentStatus === 'not_required' ? (english ? 'No payment required' : 'Aucun paiement requis')
+                        : subscription.paymentReference ?? subscription.provider}
+                  </td>
                 </tr>
               ))}
             </tbody>

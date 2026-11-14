@@ -56,6 +56,21 @@ The city, neighborhood and landmark help visitors find the shop; they are not
 automatically geocoded. Add directions such as "Emana crossroads, behind the
 pharmacy, blue gate". Coordinates are saved only when the shop is created.
 
+## Pilot subscription activation
+
+Set `SUBSCRIPTION_PROMO_PILOT_ENABLED=true` on the backend to allow authenticated
+users to activate a plan with an administrator-created promotion code. The
+frontend reads `/subscriptions/capabilities`; this is independent of the Mobile
+Money flag. Codes retain expiry, plan restrictions, usage limits and one use per
+account. The plan activates immediately for its normal duration. Any discounted
+balance is stored as `paymentStatus=pending`, not as a received payment; a zero
+balance is `not_required`. No MoMo call, automatic renewal or payment date is
+created for this path. The dashboard and administration show the outstanding
+balance. Collection in cash is handled by the team outside this workflow.
+Migration `1761600000000` adds nullable payment status; historical rows are not
+assumed paid. Disable the flag to stop new pilot activations without revoking
+existing subscriptions.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

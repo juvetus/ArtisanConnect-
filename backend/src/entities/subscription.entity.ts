@@ -44,6 +44,9 @@ export class Subscription {
   @Column({ default: 'momo' })
   provider: string;
 
+  @Column({ type: 'varchar', nullable: true })
+  paymentStatus: 'pending' | 'not_required' | null;
+
   @CreateDateColumn()
   createdAt: Date;
 
