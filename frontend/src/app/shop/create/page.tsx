@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { startTransition, useEffect, useState } from 'react';
+import { startTransition, useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import { ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
@@ -29,6 +29,12 @@ export default function CreateShopPage() {
   const [market, setMarket] = useState('');
   const [latitudeInput, setLatitudeInput] = useState('');
   const [longitudeInput, setLongitudeInput] = useState('');
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState('');
+  const [locationAccuracy, setLocationAccuracy] = useState<number | null>(null);
+  const [mapMode, setMapMode] = useState(false);
+  const locationRequest = useRef(0);
+  const locationMap = useRef<HTMLDivElement>(null);
   const [category, setCategory] = useState('vannerie');
   const [isWomenLed, setIsWomenLed] = useState(false);
   const [isCooperative, setIsCooperative] = useState(false);
@@ -41,6 +47,8 @@ export default function CreateShopPage() {
   const [uploading, setUploading] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => () => { locationRequest.current += 1; }, []);
 
   useEffect(() => {
     if (ready && !user) router.push('/login');
@@ -68,6 +76,51 @@ export default function CreateShopPage() {
     && Number.isFinite(longitude) && Math.abs(longitude) <= 180;
   const coordinatesError = hasCoordinates && !validCoordinates;
 
+  const cancelLocationRequest = () => {
+    locationRequest.current += 1;
+    setLocating(false);
+    setLocationError('');
+    setLocationAccuracy(null);
+  };
+
+  const useCurrentLocation = () => {
+    cancelLocationRequest();
+    setMapMode(false);
+    if (!navigator.geolocation) {
+      setLocationError(t('shop_location_unavailable'));
+      return;
+    }
+    const request = locationRequest.current;
+    setLocating(true);
+    try {
+      navigator.geolocation.getCurrentPosition(
+        ({ coords }) => {
+          if (request !== locationRequest.current) return;
+          setLocating(false);
+          if (!Number.isFinite(coords.latitude) || Math.abs(coords.latitude) > 90
+            || !Number.isFinite(coords.longitude) || Math.abs(coords.longitude) > 180
+            || !Number.isFinite(coords.accuracy) || coords.accuracy < 0) {
+            setLocationError(t('shop_location_unavailable'));
+            return;
+          }
+          setLatitudeInput(coords.latitude.toFixed(6));
+          setLongitudeInput(coords.longitude.toFixed(6));
+          setLocationAccuracy(Math.ceil(coords.accuracy));
+        },
+        (failure) => {
+          if (request !== locationRequest.current) return;
+          setLocating(false);
+          setLocationError(t(failure.code === 1 ? 'shop_location_denied'
+            : failure.code === 3 ? 'shop_location_timeout' : 'shop_location_unavailable'));
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+      );
+    } catch {
+      setLocating(false);
+      setLocationError(t('shop_location_unavailable'));
+    }
+  };
+
   const uploadDoc = async (label: string, file: File) => {
     setUploading(label);
     setError('');
@@ -87,6 +140,7 @@ export default function CreateShopPage() {
   };
 
   const handleSubmit = async () => {
+    if (locating) return;
     if (coordinatesError) {
       setError(t('location_coordinates_error'));
       return;
@@ -268,9 +322,36 @@ export default function CreateShopPage() {
               className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 outline-none focus:border-amber-600"
             />
           </div>
+          <div className="space-y-3 rounded-md border border-stone-200 bg-stone-50 p-3">
+            <p className="text-sm font-medium">{t('shop_location_choice')}</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <button type="button" onClick={useCurrentLocation} disabled={locating || submitting} aria-describedby="shop-location-current-help" className="w-full rounded-md bg-amber-700 px-3 py-2 text-sm font-medium text-white disabled:opacity-50">
+                  {t(locating ? 'shop_location_loading' : 'shop_location_current')}
+                </button>
+                <p id="shop-location-current-help" className="mt-2 text-xs text-stone-600">{t('shop_location_current_help')}</p>
+              </div>
+              <div>
+                <button type="button" disabled={submitting} aria-describedby="shop-location-map-help" onClick={() => {
+                  cancelLocationRequest();
+                  setMapMode(true);
+                  locationMap.current?.focus();
+                  locationMap.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                }} className="w-full rounded-md border border-amber-700 bg-white px-3 py-2 text-sm font-medium text-amber-800 disabled:opacity-50">
+                  {t('shop_location_map')}
+                </button>
+                <p id="shop-location-map-help" className="mt-2 text-xs text-stone-600">{t('shop_location_map_help')}</p>
+              </div>
+            </div>
+            <p className="text-xs text-stone-600">{t('shop_location_privacy')}</p>
+            {locating && <p role="status" className="text-sm text-stone-600">{t('shop_location_loading')}</p>}
+            {locationError && <p role="alert" className="text-sm text-red-700">{locationError}</p>}
+            {locationAccuracy !== null && <p role="status" className="text-sm text-stone-700">{t('shop_location_accuracy')} {locationAccuracy.toLocaleString(language)} m. {t('shop_location_adjust')}</p>}
+          </div>
           <GeographyFields value={{ city, district, neighborhood }} onChange={(value) => { setCity(value.city); setDistrict(value.district); setNeighborhood(value.neighborhood); }} language={language} requiredCity />
           <div>
             <div><label htmlFor="shop-market" className="block text-sm font-medium">{t('create_shop_market')}</label><input id="shop-market" value={market} onChange={(e) => setMarket(e.target.value)} placeholder={t('create_shop_landmark_placeholder')} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2" /></div>
+            <p className="mt-1 text-xs text-stone-600">{t('shop_location_landmark_help')}</p>
           </div>
           <fieldset className="space-y-3">
             <legend className="mb-2 text-sm font-medium">{t('create_shop_position')}</legend>
@@ -278,15 +359,18 @@ export default function CreateShopPage() {
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label htmlFor="shop-latitude" className="block text-sm font-medium">{t('location_latitude')}</label>
-                <input id="shop-latitude" type="text" inputMode="decimal" value={latitudeInput} onChange={(event) => setLatitudeInput(event.target.value)} placeholder="4.051100" aria-invalid={coordinatesError} aria-describedby={coordinatesError ? 'shop-gps-help shop-gps-error' : 'shop-gps-help'} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2" />
+                <input id="shop-latitude" type="text" inputMode="decimal" value={latitudeInput} onChange={(event) => { cancelLocationRequest(); setLatitudeInput(event.target.value); }} placeholder="4.051100" aria-invalid={coordinatesError} aria-describedby={coordinatesError ? 'shop-gps-help shop-gps-error' : 'shop-gps-help'} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2" />
               </div>
               <div>
                 <label htmlFor="shop-longitude" className="block text-sm font-medium">{t('location_longitude')}</label>
-                <input id="shop-longitude" type="text" inputMode="decimal" value={longitudeInput} onChange={(event) => setLongitudeInput(event.target.value)} placeholder="9.767900" aria-invalid={coordinatesError} aria-describedby={coordinatesError ? 'shop-gps-help shop-gps-error' : 'shop-gps-help'} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2" />
+                <input id="shop-longitude" type="text" inputMode="decimal" value={longitudeInput} onChange={(event) => { cancelLocationRequest(); setLongitudeInput(event.target.value); }} placeholder="9.767900" aria-invalid={coordinatesError} aria-describedby={coordinatesError ? 'shop-gps-help shop-gps-error' : 'shop-gps-help'} className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2" />
               </div>
             </div>
             {coordinatesError && <p id="shop-gps-error" role="alert" className="text-sm text-red-700">{t('location_coordinates_error')}</p>}
-            <LocationPicker latitude={validCoordinates ? latitude : null} longitude={validCoordinates ? longitude : null} onChange={([lat, lng]) => { setLatitudeInput(lat.toFixed(6)); setLongitudeInput(lng.toFixed(6)); }} />
+            <div ref={locationMap} tabIndex={-1} role="group" aria-label={t('create_shop_position')} className="rounded-md focus:outline-2 focus:outline-amber-700">
+              {mapMode && <p role="status" className="mb-2 text-sm text-stone-700">{t('shop_location_map_help')}</p>}
+              <LocationPicker latitude={validCoordinates ? latitude : null} longitude={validCoordinates ? longitude : null} onChange={([lat, lng]) => { cancelLocationRequest(); setLatitudeInput(lat.toFixed(6)); setLongitudeInput(lng.toFixed(6)); }} />
+            </div>
           </fieldset>
           <div>
             <label htmlFor="shop-description" className="block text-sm font-medium">
@@ -386,7 +470,7 @@ export default function CreateShopPage() {
             </button>
             <button
               type="button"
-              disabled={!name || !description || submitting || coordinatesError}
+              disabled={!name || !description || submitting || locating || coordinatesError}
               onClick={handleSubmit}
               className="flex-1 rounded-md bg-amber-700 py-2 font-medium text-white hover:bg-amber-800 disabled:opacity-60"
             >
