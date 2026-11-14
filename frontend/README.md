@@ -46,6 +46,16 @@ decimal degrees with a dot or comma. Both must be supplied together, within
 dragging its marker fills both fields. The backend validates coordinate pairs on
 creation and update. No database migration is needed.
 
+Two location choices are available: while at the shop, request the device's
+current location, or place the shop manually on the map when away. Device
+location requires browser permission and HTTPS (or localhost), is requested
+once with a 15-second timeout, and shows estimated accuracy. Permission denial,
+unavailable location and timeout leave manual entry available. Manual edits
+cancel pending location results so they cannot overwrite the user's choice.
+The city, neighborhood and landmark help visitors find the shop; they are not
+automatically geocoded. Add directions such as "Emana crossroads, behind the
+pharmacy, blue gate". Coordinates are saved only when the shop is created.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
